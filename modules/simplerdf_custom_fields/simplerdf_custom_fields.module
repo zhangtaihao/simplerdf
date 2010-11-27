@@ -187,7 +187,19 @@ function simplerdf_custom_fields_mapper_map($node, $nodeuri, $field_name, $prope
   $triples = array();
   $base_statement = simplerdf_make_subject('uri', $nodeuri) + simplerdf_make_predicate($property);
   foreach ($values as $value) {
-    $triples[] = $base_statement + simplerdf_make_object('literal', $value);
+    // URL resource
+    if ($url = simplerdf_match_url($value)) {
+      $o = simplerdf_make_object('uri', $url);
+    }
+    // Email resource
+    elseif ($email = simplerdf_match_email($value)) {
+      $o = simplerdf_make_object('uri', $email);
+    }
+    // Regular literal
+    else {
+      $o = simplerdf_make_object('literal', $value);
+    }
+    $triples[] = $base_statement + $o;
   }
 
   return $triples;
