@@ -214,6 +214,9 @@ function simplerdf_custom_fields_mapper_map($node, $nodeuri, $field_name, $prope
  *   Static array.
  * @param string $code
  *   Magic argument: PHP code to evaluate.
+ *
+ * @return
+ *   Evaluated field value.
  */
 function _simplerdf_custom_fields_map_eval($node, &$static) {
   return eval(func_get_arg(2));
