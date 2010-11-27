@@ -1,0 +1,6 @@
+; $Id$
+name = Simple RDF Namespaces
+description = Define custom namespaces in addition to default ones (including those provided by other RDF modules).
+dependencies[] = simplerdf
+package = RDF
+core = 6.x

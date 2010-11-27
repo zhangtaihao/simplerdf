@@ -1,0 +1,20 @@
+/* $Id$ */
+
+/* Theme hook simplerdf_namespaces_table */
+table.simplerdf-namespaces-table {
+  width: 100%;
+}
+
+
+/* simplerdf_namespaces styles */
+
+table.simplerdf-namespaces-admin-list {
+  width: 100%;
+}
+
+#simplerdf-changed-message {
+  display: none;
+}
+#simplerdf-changed-message.changed {
+  display: block;
+}

@@ -1,0 +1,10 @@
+; $Id$
+name = Simple RDF
+description = Simple RDF provides RDF mapping configuration per content type and renders RDF using ARC2. Simple RDF also exposes an API for leveraging the node rendering pipeline in custom RDF mapping. By default, main node and CCK fields are supported for mapping.
+dependencies[] = content
+dependencies[] = ctools
+dependencies[] = libraries
+dependencies[] = uuid
+package = RDF
+core = 6.x
+php = 5.2

@@ -1,0 +1,84 @@
+<?php
+// $Id$
+/**
+ * @file
+ * Module installer.
+ */
+
+/**
+ * @todo
+ * Implements hook_schema().
+ */
+function simplerdf_schema() {
+  $t = get_t();
+
+  // Mappings
+  $schema['simplerdf_mappings'] = array(
+    'description' => $t('Mappings from node field to RDF property.'),
+
+    'fields' => array(
+      'content_type' => array(
+        'description' => $t('Content type for the field mapping.'),
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ),
+      'field' => array(
+        'description' => $t('Node field for mapping.'),
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+      ),
+      'properties' => array(
+        'description' => $t('RDF properties mapped to the node field.'),
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'serialize' => TRUE,
+      ),
+    ),
+
+    'primary key' => array('content_type', 'field'),
+
+    // Index on content type
+    'indexes' => array(
+      'content_type' => array('content_type'),
+    ),
+  );
+
+  // Cache tables
+  $cache_schema = drupal_get_schema_unprocessed('system', 'cache');
+
+  $schema['cache_simplerdf'] = $cache_schema;
+  $schema['cache_simplerdf']['description'] = 'Cache Simple RDF data.';
+
+  return $schema;
+}
+
+/**
+ * Implements hook_install().
+ */
+function simplerdf_install() {
+  drupal_install_schema('simplerdf');
+
+  variable_set('simplerdf_view_path', 'rdf');
+  variable_set('simplerdf_view_tab', TRUE);
+  variable_set('simplerdf_view_title', 'RDF');
+  variable_set('simplerdf_format', 'RDFXML');
+  variable_set('simplerdf_nodeuri_generator', 'raw');
+  variable_set('simplerdf_nodeuri_settings', array());
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function simplerdf_uninstall() {
+  drupal_uninstall_schema('simplerdf');
+
+  variable_del('simplerdf_view_path');
+  variable_del('simplerdf_view_tab');
+  variable_del('simplerdf_view_title');
+  variable_del('simplerdf_format');
+  variable_del('simplerdf_nodeuri_generator');
+  variable_del('simplerdf_nodeuri_settings');
+}

@@ -1,0 +1,65 @@
+<?php
+// $Id$
+/**
+ * @file
+ * Module installer.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function simplerdf_namespaces_schema() {
+  $schema['simplerdf_namespaces'] = array(
+    'description' => $t('RDF namespaces'),
+
+    'fields' => array(
+      'name' => array(
+        'description' => $t('Machine name'),
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+      ),
+      'prefix' => array(
+        'description' => $t('Namespace prefix.'),
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+      ),
+      'uri' => array(
+        'description' => $t('Namespace name (URI).'),
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+    ),
+
+    'primary key' => array('name'),
+
+    // Both fields must be unique (global uniqueness enforced elsewhere)
+    'unique keys' => array(
+      'prefix' => array('prefix'),
+      'uri' => array('uri'),
+    ),
+
+    // Index on namespace URI
+    'indexes' => array(
+      'uri' => array('uri'),
+    ),
+  );
+
+  return $schema;
+}
+
+/**
+ * Implements hook_install().
+ */
+function simplerdf_namespaces_install() {
+  drupal_install_schema('simplerdf_namespaces');
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function simplerdf_namespaces_uninstall() {
+  drupal_uninstall_schema('simplerdf_namespaces');
+}

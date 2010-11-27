@@ -1,0 +1,77 @@
+<?php
+// $Id$
+/**
+ * @file
+ * Core node mapper.
+ */
+
+/**
+ * Core node mapper plugin definition definition.
+ */
+$plugin = array(
+  'title' => t('Core node'),
+  'description' => t('Basic node properties for the basic description of a node.'),
+  'weight' => -20,
+  'callback fields' => 'simplerdf_mapper_node_fields',
+  'callback map' => 'simplerdf_mapper_node_map',
+);
+
+/**
+ * Provide core node fields.
+ */
+function simplerdf_mapper_node_fields($content_type) {
+  $fields = array();
+  $type = node_get_types('type', $content_type);
+
+  // Node title
+  if ($type->has_title) {
+    $fields['title'] = array(
+      'title' => $type->title_label,
+    );
+  }
+
+  // Node body
+  if ($type->has_body) {
+    $fields['body'] = array(
+      'title' => $type->body_label,
+    );
+  }
+
+  // Node created date
+  $fields['created'] = array(
+    'title' => t('Creation date'),
+  );
+
+  // Node changed date
+  $fields['changed'] = array(
+    'title' => t('Modification date'),
+  );
+
+  return $fields;
+}
+
+/**
+ * Mapping callback.
+ */
+function simplerdf_mapper_node_map($node, $nodeuri, $property, $field) {
+  $s = simplerdf_make_subject('uri', $nodeuri);
+  $p = simplerdf_make_predicate($property);
+
+  switch ($field) {
+    // Text fields
+    case 'title':
+    case 'body':
+      $o = simplerdf_make_object('literal', $node->$field);
+      break;
+
+    // Timestamps
+    case 'created':
+    case 'changed':
+      $time = date('c', $node->$field);
+      $o = simplerdf_make_object('literal', $time, 'xsd:dateTime');
+  }
+
+  if ($o) {
+    return $s + $p + $o;
+  }
+}

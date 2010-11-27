@@ -1,0 +1,687 @@
+<?php
+// $Id$
+/**
+ * @file
+ * Main module file.
+ */
+
+/** Default node URI generator. */
+define('SIMPLERDF_DEFAULT_NODEURI_GENERATOR', 'raw');
+
+/** Default format to use for displaying RDF triples. */
+define('SIMPLERDF_DEFAULT_FORMAT', 'RDFXML');
+
+/**
+ * Implements hook_perm().
+ */
+function simplerdf_perm() {
+  return array('administer simplerdf', 'administer simplerdf settings', 'administer simplerdf mappings');
+}
+
+/**
+ * Implements hook_theme().
+ */
+function simplerdf_theme() {
+  module_load_include('inc', 'simplerdf', 'includes/simplerdf.theme');
+  return _simplerdf_theme();
+}
+
+/**
+ * Implements hook_features_api().
+ */
+function simplerdf_features_api() {
+  module_load_include('inc', 'simplerdf', 'includes/simplerdf.features');
+  return _simplerdf_features_api();
+}
+
+/**
+ * Implements hook_menu().
+ */
+function simplerdf_menu() {
+  module_load_include('inc', 'simplerdf', 'includes/simplerdf.menu');
+  return _simplerdf_menu();
+}
+
+/**
+ * Load mapper by its machine name.
+ *
+ * @param string $name
+ *   Machine name of mapper.
+ *
+ * @return array
+ *   Mapper plugin array.
+ */
+function simplerdf_mapper_load($name) {
+  ctools_include('plugins');
+  $plugin = ctools_get_plugins('simplerdf', 'mappers', $name);
+  return $plugin;
+}
+
+/**
+ * Wildcard loader for node URI generator settings.
+ *
+ * @param string $name
+ *   Machine name of generator.
+ *
+ * @return array
+ *   Node URI generator plugin array.
+ */
+function simplerdf_nodeuri_settings_load($name) {
+  ctools_include('plugins');
+  $plugin = ctools_get_plugins('simplerdf', 'nodeuri_generators', $name);
+  if (function_exists($plugin['settings form'])) {
+    return $plugin;
+  }
+}
+
+/**
+ * Implements hook_flush_caches().
+ */
+function simplerdf_flush_caches() {
+  return array('cache_simplerdf');
+}
+
+/**
+ * Clear caches.
+ *
+ * @param string $type
+ *   Type of cache to clear; if not specified, clears all cache. Can be one of:
+ *   - 'node' : Node caches, with node ID optionally specified.
+ *   - 'fields' : Fields cache, for subsequent rebuild.
+ *   - 'mappings' : Mappings cache, with content type optionally specified.
+ * @param $a1
+ *   Parameter to use when clearing cache, depending on $type:
+ *   - If $type is 'node', this can be the node ID. If this is not specified,
+ *     cache for all nodes will be cleared.
+ *   - If $type is 'mappings', specifying the content type clears mappings
+ *     cache for that type, or all types if not specified.
+ */
+function simplerdf_clear_cache($type = NULL, $a1 = NULL) {
+  // Node cache
+  if (!$type || $type == 'node') {
+    if ($a1) {
+      // Clear for node
+      cache_clear_all('node:document:' . $a1, 'cache_simplerdf');
+      cache_clear_all('node:uri:' . $a1 . ':', 'cache_simplerdf', TRUE);
+    }
+    else {
+      // Clear all
+      cache_clear_all('node:', 'cache_simplerdf', TRUE);
+    }
+  }
+
+  // Fields cache
+  if (!$type || $type == 'fields') {
+    cache_clear_all('fields', 'cache_simplerdf');
+    // Force rebuild
+    _simplerdf_build_fields(NULL, TRUE);
+  }
+
+  // Mappings cache
+  if (!$type || $type == 'mappings') {
+    if ($a1) {
+      // Clear for type
+      cache_clear_all('mappings:' . $a1, 'cache_simplerdf');
+    }
+    else {
+      // Clear all
+      cache_clear_all('mappings:', 'cache_simplerdf', TRUE);
+    }
+  }
+}
+
+/**
+ * Implements hook_nodeapi().
+ */
+function simplerdf_nodeapi($op, &$node) {
+  // Clear cache
+  switch ($op) {
+    case 'update':
+    case 'delete':
+      simplerdf_clear_cache('node', $node->nid);
+      break;
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function simplerdf_form_alter(&$form, &$form_state, $form_id) {
+  switch ($form_id) {
+    case 'content_field_edit_form':
+    case 'node_type_form':
+      simplerdf_clear_cache();
+      break;
+  }
+}
+
+/**
+ * Autocomplete callback.
+ */
+function simplerdf_autocomplete($type = '', $string = '') {
+  switch ($type) {
+    case 'nid':
+      // Match on node ID or title for ID
+      $result = db_query("SELECT nid, title FROM {node} WHERE nid LIKE '%%%s%%' OR title LIKE '%%%s%%'", $string, $string);
+      $matches = array();
+      while ($match = db_fetch_array($result)) {
+        $matches[$match['nid']] = "$match[title] (nid: $match[nid])";
+      }
+      return drupal_json($matches);
+  }
+}
+
+/**
+ * Implements hook_rdf_namespaces().
+ */
+function simplerdf_rdf_namespaces() {
+  if (module_exists('rdf')) {
+    return rdf_rdf_namespaces();
+  }
+  else {
+    // Define common namespaces, including those RDF defines
+    return array(
+      '_'        => 'http://bnode.net/',
+      'rdf'      => 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+      'rdfs'     => 'http://www.w3.org/2000/01/rdf-schema#',
+      'xsi'      => 'http://www.w3.org/2001/XMLSchema-instance#',
+      'xsd'      => 'http://www.w3.org/2001/XMLSchema#',
+      'owl'      => 'http://www.w3.org/2002/07/owl#',
+      'dc'       => 'http://purl.org/dc/elements/1.1/',
+      'dcterms'  => 'http://purl.org/dc/terms/',
+      'dcmitype' => 'http://purl.org/dc/dcmitype/',
+      'foaf'     => 'http://xmlns.com/foaf/0.1/',
+      'rss'      => 'http://purl.org/rss/1.0/',
+      'content'  => 'http://purl.org/rss/1.0/modules/content/',
+      'sioc'     => 'http://rdfs.org/sioc/ns#',
+      'sioct'    => 'http://rdfs.org/sioc/types#',
+      'skos'     => 'http://www.w3.org/2004/02/skos/core#',
+    );
+  }
+}
+
+
+/************************************************
+ * RDF statement helper functions.
+ ************************************************/
+
+/**
+ * Make a statement subject.
+ *
+ * @param string $type
+ *   Either 'uri' or 'bnode'.
+ * @param string $value
+ *   Subject value, either a URI or BNode ID. If $type is 'uri', value must be
+ *   specified. If type is 'bnode' and the value is not given, a UUID will be
+ *   generated in its place.
+ *
+ * @return array
+ *   Array representing statement subject containing keys 's' and 's_type'. If
+ *   $type is not 'bnode' and $value is not given, NULL is returned.
+ *
+ * @see http://arc.semsol.org/docs/v2/structures
+ */
+function simplerdf_make_subject($type, $value = NULL) {
+  if ($type == 'bnode' || isset($value)) {
+    if ($type == 'bnode' && !isset($value)) {
+      // Generate BNode ID
+      $value = '_:' . uuid_uuid();
+    }
+    return array(
+      's' => $value,
+      's_type' => $type,
+    );
+  }
+}
+
+/**
+ * Make a statement predicate.
+ *
+ * @param string $property
+ *   RDF property URI.
+ *
+ * @return array
+ *   Array containing predicate keyed by 'p'.
+ *
+ * @see http://arc.semsol.org/docs/v2/structures
+ */
+function simplerdf_make_predicate($value) {
+  return array('p' => $value);
+}
+
+/**
+ * Make a statement object.
+ *
+ * @param string $type
+ *   One of 'uri', 'bnode', or 'literal'.
+ * @param string $value
+ *   Subject value, either a URI or BNode ID. If $type is 'uri', value must be
+ *   specified. If type is 'bnode' and the value is not given, a UUID will be
+ *   generated in its place. If
+ * @param string $datatype
+ *   (Optional) The value data type URI.
+ * @param string $lang
+ *   (Optional) Locale identifier, e.g. 'en-us'.
+ *
+ * @return array
+ *   Array containing object with keys: 'o', 'o_type', 'o_datatype', 'o_lang'.
+ *   If $type is not 'bnode' and $value is not given, NULL is returned.
+ *
+ * @see http://arc.semsol.org/docs/v2/structures
+ */
+function simplerdf_make_object($type, $value = NULL, $datatype = NULL, $lang = NULL) {
+  if ($type == 'bnode' || isset($value)) {
+    if ($type == 'bnode' && !isset($value)) {
+      // Generate BNode ID
+      $value = '_:' . uuid_uuid();
+    }
+    $o = array(
+      'o' => $value,
+      'o_type' => $type,
+    );
+    // Insert data type
+    if ($datatype) {
+      $o['o_datatype'] = $datatype;
+    }
+    // Insert locale
+    if ($lang) {
+      $o['o_lang'] = $lang;
+    }
+    return $o;
+  }
+}
+
+/**
+ * Match a string as URL and clean the URL. This function uses the same pattern
+ * Drupal's Filter uses to match URLs from text input.
+ *
+ * @param string $text
+ *   String to match.
+ *
+ * @return
+ *   Cleaned URL, or NULL if given string is not a URL.
+ */
+function simplerdf_match_url($text) {
+  static $pattern = '`^(http://|https://|ftp://|mailto:|smb://|afp://|file://|gopher://|news://|ssl://|sslv2://|sslv3://|tls://|tcp://|udp://)([a-zA-Z0-9@:%_+*~#?&=.,/;-]*[a-zA-Z0-9@:%_+*~#&=/;-])$`i';
+  static $cache = array();
+  if ($cache[$text]) {
+    return $cache[$text];
+  }
+  elseif (!isset($cache[$text])) {
+    // Match as URL
+    if (preg_match($pattern, $text)) {
+      // Clean and cache
+      $url = check_url(decode_entities($text));
+      $cache[$text] = $url;
+      return $url;
+    }
+  }
+}
+
+/**
+ * Match a string as an email address and transform into a mailto: URI. This
+ * function uses the same pattern Drupal's Filter uses to match emails.
+ *
+ * @param string $text
+ *   String to match.
+ *
+ * @return
+ *   Email mailto: URI, or NULL if given string is not an email address.
+ */
+function simplerdf_match_email($text) {
+  static $pattern = '`^[A-Za-z0-9._-]+@[A-Za-z0-9._+-]+\.[A-Za-z]{2,4}$`i';
+  // Match as email
+  if (preg_match($pattern, $text)) {
+    return 'mailto:' . $text;
+  }
+}
+
+
+/************************************************
+ * Plugin declarations.
+ ************************************************/
+
+/**
+ * Implements hook_ctools_plugin_api().
+ */
+function simplerdf_ctools_plugin_api($owner, $api) {
+  // Default plugins
+  if ($owner == 'simplerdf') {
+    switch ($api) {
+      case 'mappers':
+        return array('version' => 1);
+
+      case 'nodeuri_generators':
+        return array('version' => 1);
+    }
+  }
+}
+
+/**
+ * Implements hook_ctools_plugin_directory().
+ */
+function simplerdf_ctools_plugin_directory($owner, $type) {
+  // Default plugins
+  if ($owner == 'simplerdf') {
+    return 'plugins/' . $type;
+  }
+}
+
+/**
+ * Implements hook_ctools_plugin_TYPE() for mappers.
+ */
+function simplerdf_ctools_plugin_mappers() {
+  return array(
+    'cache' => TRUE,
+    'use hooks' => TRUE,
+    'process' => 'simplerdf_mappers_process',
+  );
+}
+
+/**
+ * Mapper plugin processor.
+ */
+function simplerdf_mappers_process(&$plugin, $info) {
+  $path = drupal_get_path('module', $plugin['module']);
+
+  // Add default values
+  $plugin += array(
+    'title' => '',
+    'description' => '',
+    'weight' => 0,
+    'callback fields' => NULL,
+    'callback fields arguments' => array(),
+    'callback fields file' => NULL,
+    'callback fields path' => $path,
+    'callback map' => NULL,
+    'callback map arguments' => array(),
+    'callback map file' => NULL,
+    'callback map path' => $path,
+  );
+
+  // Use module cache table
+  $plugin['cache table'] = 'cache_simplerdf';
+}
+
+/**
+ * Implements hook_ctools_plugin_TYPE() for nodeuri_generators.
+ */
+function simplerdf_ctools_plugin_nodeuri_generators() {
+  return array(
+    'cache' => TRUE,
+    'use hooks' => TRUE,
+    'process' => 'simplerdf_nodeuri_generators_process',
+  );
+}
+
+/**
+ * Node URI generator plugin processor.
+ */
+function simplerdf_nodeuri_generators_process(&$plugin, $info) {
+  $path = drupal_get_path('module', $plugin['module']);
+
+  // Add default values
+  $plugin += array(
+    'title' => '',
+    'description' => '',
+    'callback generate' => NULL,
+    'callback generate arguments' => array(),
+    'callback generate file' => NULL,
+    'callback generate path' => $path,
+    'settings defaults' => array(),
+    'settings form' => NULL,
+    'settings form validate' => NULL,
+  );
+
+  // Use module cache table
+  $plugin['cache table'] = 'cache_simplerdf';
+}
+
+
+/************************************************
+ * Plugin-related helper functions.
+ ************************************************/
+
+/**
+ * Invoke a plugin callback.
+ */
+function _simplerdf_invoke($op, $plugin) {
+  // Track which callback files have already been loaded
+  static $loaded = array();
+
+  // Pop function arguments manually
+  $args = func_get_args();
+  $op = array_shift($args);
+  $plugin = array_shift($args);
+
+  // Prepare callback arguments
+  $args = array_merge($args, $plugin[$op . ' arguments']);
+
+  // Include file
+  if (!$loaded[$plugin['name']][$op] && isset($plugin[$op . ' file']) && file_exists($file = $plugin[$op . ' path'] . '/' . $plugin[$op . ' file'])) {
+    _simplerdf_invoke_include($file);
+    $loaded[$plugin['name']][$op] = TRUE;
+  }
+
+  // Invoke callback
+  if (function_exists($callback = $plugin[$op])) {
+    return call_user_func_array($callback, $args);
+  }
+}
+
+/**
+ * Load a plugin callback file safely.
+ */
+function _simplerdf_invoke_include($file) {
+  // Simply include the file within a function sandbox
+  include_once $file;
+}
+
+/**
+ * Get a list of fields to map.
+ *
+ * @param string $content_type
+ *   Content type name.
+ *
+ * @return array
+ *   Fields available for mapping to properties, keyed by mapper.
+ */
+function simplerdf_get_fields($content_type) {
+  return _simplerdf_build_fields($content_type);
+}
+
+/**
+ * Lazily build mapper field information.
+ *
+ * @param $content_type string
+ *   Content type name.
+ * @param $reset boolean
+ *   If TRUE, resets the fields cache.
+ *
+ * @return array
+ *   If $content_type is specified, an array of fields keyed by name (NULL if invalid type). Otherwise, arrays of fields grouped by content type.
+ */
+function _simplerdf_build_fields($content_type = NULL, $reset = FALSE) {
+  static $fields;
+
+  if ($reset || !isset($fields)) {
+    // Fetch from cache
+    if (!$reset && $cache_fields = cache_get('fields', 'cache_simplerdf')) {
+      $fields = $cache_fields->data;
+    }
+    // Rebuild cache
+    else {
+      // Prepare content types
+      $types = array_keys(node_get_types());
+
+      // Fetch and sort plugins
+      ctools_include('plugins');
+      $plugins = ctools_get_plugins('simplerdf', 'mappers');
+      usort($plugins, '_simplerdf_compare_mapper_weights');
+
+      // Build field data
+      $fields = array();
+      foreach ($plugins as $plugin) {
+        $plugin_name = $plugin['name'];
+
+        // Get fields by type
+        foreach ($types as $type) {
+          // Fetch fields
+          foreach (_simplerdf_invoke('callback fields', $plugin, $type) as $name => $field) {
+            $field['mapper'] = $plugin_name;
+            $fields[$type][$name] = array('name' => $name) + $field;
+          }
+        }
+      }
+      cache_set('fields', $fields, 'cache_simplerdf');
+    }
+  }
+  return isset($content_type) ? $fields[$content_type] : $fields;
+}
+
+/**
+ * Compare two mappers on weights.
+ */
+function _simplerdf_compare_mapper_weights($a, $b) {
+  return $a['weight'] - $b['weight'];
+}
+
+/**
+ * Get RDF mappings for a content type.
+ *
+ * @param string $content_type
+ *   Content type name.
+ *
+ * @return array
+ *   Mappings keyed by field name.
+ */
+function simplerdf_get_mappings($content_type) {
+  if ($cache = cache_get('mappings:' . $content_type, 'cache_simplerdf')) {
+    // Fetch cached mappings
+    return $cache->data;
+  }
+  else {
+    // Build cache
+    $result = db_query("SELECT * FROM {simplerdf_mappings} WHERE content_type = '%s' ORDER BY field ASC", $content_type);
+    $mappings = array();
+    while ($mapping = db_fetch_object($result)) {
+      $mappings[$mapping->field] = unserialize($mapping->properties);
+    }
+    cache_set('mappings:' . $content_type, $mappings, 'cache_simplerdf');
+    return $mappings;
+  }
+}
+
+/**
+ * Map a node field to an RDF property and generate RDF triples.
+ *
+ * @param stdClass $node
+ *   Node object.
+ * @param string $nodeuri
+ *   Node URI as RDF statement subject.
+ * @param array $field
+ *   Mapping field.
+ * @param array $properties
+ *   An array of RDF properties as predicates.
+ *
+ * @return array
+ *   RDF triples in the format specified by the ARC2 library, with the
+ *   exception of the use of the variable type for any part of the triple.
+ *
+ * @see http://arc.semsol.org/docs/v2/structures
+ */
+function simplerdf_map_field($node, $nodeuri, $field, $properties) {
+  ctools_include('plugins');
+
+  // Map field
+  $mapper = ctools_get_plugins('simplerdf', 'mappers', $field['mapper']);
+  $triples = array();
+  foreach ($properties as $property) {
+    $result = _simplerdf_invoke('callback map', $mapper, $node, $nodeuri, $field, $property);
+    if (is_array($result) && !empty($result)) {
+      $triples = array_merge($triples, $result);
+    }
+  }
+
+  return $triples;
+}
+
+/**
+ * Get URI of node to represent node.
+ *
+ * @param stdClass $node
+ *   Node object.
+ *
+ * @return string
+ *   Node URI.
+ */
+function simplerdf_get_nodeuri($node) {
+  // Use active node URI generator
+  $generator = variable_get('simplerdf_nodeuri_generator', SIMPLERDF_DEFAULT_NODEURI_GENERATOR);
+  $uri = simplerdf_generate_nodeuri($generator, $node);
+
+  if (!empty($uri)) {
+    // Return good URI
+    return $uri;
+  }
+  else {
+    // Failed; fall back to raw generator
+    simplerdf_generate_nodeuri('raw', $node);
+  }
+}
+
+/**
+ * Generate node URI using a specific generator.
+ *
+ * @param string $generator
+ *   Name of generator.
+ * @param stdClass $node
+ *   Node object.
+ *
+ * @return
+ *   Node URI string, or NULL if generation failed.
+ */
+function simplerdf_generate_nodeuri($generator, $node) {
+  if ($cache = cache_get('node:uri:' . $node->nid . ':' . $generator, 'cache_simplerdf')) {
+    // Fetch cached URI
+    return $cache->data;
+  }
+  else {
+    // Generate using active URI generator
+    ctools_include('plugins');
+    $plugin = ctools_get_plugins('simplerdf', 'nodeuri_generators', $generator);
+    $settings = (array) variable_get('simplerdf_nodeuri_settings', array());
+    $settings[$generator] += $plugin['settings defaults'];
+
+    if ($uri = _simplerdf_invoke('callback generate', $node, $settings[$generator])) {
+      cache_set('node:uri:' . $node->nid . ':' . $generator, $uri, 'cache_simplerdf');
+      return $uri;
+    }
+  }
+}
+
+/**
+ * Generate raw or aliased node URI.
+ *
+ * @param array $settings
+ *   Settings (should be empty).
+ * @param stdClass $node
+ *   Node object.
+ * @param string $type
+ *   Type of path to generate. Value is either 'raw' or 'alias'.
+ *
+ * @return string
+ *   Node URI.
+ */
+function _simplerdf_get_nodeuri($settings, $node, $type) {
+  $options = array('absolute' => TRUE);
+  if ($type == 'raw') {
+    // Raw path
+    $options['alias'] = TRUE;
+    return url('node/' . $node->nid, $options);
+  }
+  elseif ($type == 'alias') {
+    // Aliased path
+    return url('node/' . $node->nid, $options);
+  }
+}

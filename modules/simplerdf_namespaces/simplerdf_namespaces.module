@@ -1,0 +1,129 @@
+<?php
+// $Id$
+/**
+ * @file
+ * Namespaces main module file.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function simplerdf_namespaces_menu() {
+  // Namespaces administration
+  $items['admin/build/simplerdf/namespaces'] = array(
+    'title' => 'Custom namespaces',
+    'description' => 'Configure custom RDF namespaces to use in mapping.',
+    'type' => MENU_NORMAL_ITEM,
+    'page callback' => 'simplerdf_namespaces_admin_list',
+    'access arguments' => array('administer simplerdf'),
+    'file' => 'simplerdf_namespaces.admin.inc',
+    'weight' => 2,
+  );
+  $items['admin/build/simplerdf/namespaces/list'] = array(
+    'title' => 'List',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -5,
+  );
+  $items['admin/build/simplerdf/namespaces/add'] = array(
+    'title' => 'Add namespace',
+    'description' => 'Add a new RDF namespace for mapping.',
+    'type' => MENU_NORMAL_ITEM,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('simplerdf_namespaces_admin_edit_form'),
+    'access arguments' => array('administer simplerdf'),
+    'file' => 'simplerdf_namespaces.admin.inc',
+  );
+  $items['admin/build/simplerdf/namespaces/edit/%simplerdf_namespaces'] = array(
+    'title' => 'Edit namespace',
+    'description' => 'Edit an existing namespace.',
+    'type' => MENU_CALLBACK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('simplerdf_namespaces_admin_edit_form', 5),
+    'access arguments' => array('administer simplerdf'),
+    'file' => 'simplerdf_namespaces.admin.inc',
+  );
+  $items['admin/build/simplerdf/namespaces/delete/%simplerdf_namespaces'] = array(
+    'title' => 'Delete namespace',
+    'description' => 'Delete an existing namespace.',
+    'type' => MENU_CALLBACK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('simplerdf_namespaces_admin_delete_form', 5),
+    'access arguments' => array('administer simplerdf'),
+    'file' => 'simplerdf_namespaces.admin.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Load a namespace object.
+ *
+ * @param string $name
+ *   Machine name of the namespace object. If not specified, return all namespaces.
+ *
+ * @return
+ *   Namespace object or NULL if not found; if $name is not given, an array of all namespace objects keyed by machine names.
+ */
+function simplerdf_namespaces_load($name = NULL) {
+  if ($name) {
+    // Load by name
+    $ns = _simplerdf_namespaces_build($name);
+    return $ns;
+  }
+  else {
+    // Load all
+    return _simplerdf_namespaces_build();
+  }
+}
+
+/**
+ * Lazy build namespace objects.
+ *
+ * @param string $name
+ *   Namespace machine name.
+ * @param boolean $reset
+ *   If TRUE, resets namespace cache.
+ *
+ * @return
+ *   Specified namespace object (NULL if not found), or an array of namespace objects keyed by machine name.
+ */
+function _simplerdf_namespaces_build($name = NULL, $reset = FALSE) {
+  static $namespaces;
+
+  if ($reset || !isset($namespaces)) {
+    // Fetch from cache
+    if (!$reset && $cache_namespaces = cache_get('namespaces', 'cache_simplerdf')) {
+      $namespaces = $cache_namespaces->data;
+    }
+    // Rebuild cache
+    else {
+      $namespaces = array();
+      $result = db_query("SELECT * FROM {simplerdf_namespaces} ORDER BY name ASC");
+      while ($ns = db_fetch_object($result)) {
+        $namespaces[$ns->name] = $ns;
+      }
+      cache_set('namespaces', $namespaces, 'cache_simplerdf');
+    }
+  }
+  return isset($name) ? $namespaces[$name] : $namespaces;
+}
+
+/**
+ * Implements hook_rdf_namespaces().
+ */
+function simplerdf_namespaces_rdf_namespaces() {
+  // Load custom namespaces
+  $namespaces = array();
+  foreach (simplerdf_namespaces_load() as $ns) {
+    $namespaces[$ns->prefix] = $ns->uri;
+  }
+  return $namespaces;
+}
+
+/**
+ * Implements hook_features_api().
+ */
+function simplerdf_namespaces_features_api() {
+  module_load_include('inc', 'simplerdf_namespaces', 'simplerdf_namespaces.features');
+  return _simplerdf_namespaces_features_api();
+}

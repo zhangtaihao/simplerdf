@@ -1,0 +1,6 @@
+; $Id$
+name = Simple RDF Custom Mapper
+description = Define custom fields for mapping in Simple RDF.
+dependencies[] = simplerdf
+package = RDF
+core = 6.x

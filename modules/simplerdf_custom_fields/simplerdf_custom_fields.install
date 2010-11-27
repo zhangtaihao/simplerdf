@@ -1,0 +1,49 @@
+<?php
+// $Id$
+/**
+ * @file
+ * Module installer.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function simplerdf_custom_fields_schema() {
+  $t = get_t();
+
+  $schema['simplerdf_custom_fields'] = array(
+    'description' => $t('Custom fields'),
+
+    'fields' => array(
+      'name' => array(
+        'description' => $t('Machine name of the field.'),
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+      ),
+      'title' => array(
+        'description' => $t('User-friendly field title.'),
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'type' => array(
+        'description' => $t('Type of field: basic or advanced.'),
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ),
+      'settings' => array(
+        'description' => $t('Custom field settings.'),
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'serialize' => TRUE,
+      ),
+    ),
+
+    'primary key' => array('name'),
+  );
+
+  return $schema;
+}

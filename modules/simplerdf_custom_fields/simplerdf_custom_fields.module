@@ -1,0 +1,208 @@
+<?php
+// $Id$
+/**
+ * @file
+ * Simple RDF Custom Mapper main module.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function simplerdf_custom_fields_menu() {
+  $administer_simplerdf = array('administer simplerdf');
+
+  $items['admin/build/simplerdf/custom_fields'] = array(
+    'title' => 'Custom fields',
+    'description' => 'Define custom fields to map from nodes to RDF properties.',
+    'page callback' => 'simplerdf_custom_fields_admin_list',
+    'type' => MENU_NORMAL_ITEM,
+    'access arguments' => $administer_simplerdf,
+    'file' => 'simplerdf_custom_fields.admin.inc',
+    'weight' => 2,
+  );
+  $items['admin/build/simplerdf/custom_fields/list'] = array(
+    'title' => 'List',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -5,
+  );
+  $items['admin/build/simplerdf/custom_fields/add'] = array(
+    'title' => 'Add field',
+    'description' => 'Add the custom field for mapping to RDF properties.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('simplerdf_custom_fields_admin_edit'),
+    'type' => MENU_NORMAL_ITEM,
+    'access arguments' => $administer_simplerdf,
+    'file' => 'simplerdf_custom_fields.admin.inc',
+  );
+  $items['admin/build/simplerdf/custom_fields/edit/%simplerdf_custom_fields'] = array(
+    'title' => 'Edit field',
+    'description' => 'Configure the custom field to expose node value(s) for mapping to RDF properties.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('simplerdf_custom_fields_admin_edit', 5),
+    'type' => MENU_CALLBACK,
+    'access arguments' => $administer_simplerdf,
+    'file' => 'simplerdf_custom_fields.admin.inc',
+  );
+  $items['admin/build/simplerdf/custom_fields/delete/%simplerdf_custom_fields'] = array(
+    'title' => 'Delete field',
+    'description' => 'Delete the custom field.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('simplerdf_custom_fields_admin_delete', 5),
+    'type' => MENU_CALLBACK,
+    'access arguments' => $administer_simplerdf,
+    'file' => 'simplerdf_custom_fields.admin.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Load a custom field.
+ *
+ * @param string $name
+ *   Machine name of the custom field.
+ *
+ * @return
+ *   Field object, or an array of fields if name is not given.
+ */
+function simplerdf_custom_fields_load($name = NULL) {
+  if ($name) {
+    // Load by name
+    $field = _simplerdf_custom_fields_build($name);
+    return $field;
+  }
+  else {
+    // Load all
+    return _simplerdf_custom_fields_build();
+  }
+}
+
+
+/**
+ * Lazy build custom field objects.
+ *
+ * @param string $name
+ *   Field machine name.
+ * @param boolean $reset
+ *   If TRUE, resets cache.
+ *
+ * @return
+ *   Specified custom field object (NULL if not found), or an array of field objects keyed by machine name.
+ */
+function _simplerdf_custom_fields_build($name = NULL, $reset = FALSE) {
+  static $fields;
+
+  if ($reset || !isset($fields)) {
+    // Fetch from cache
+    if (!$reset && $cache_fields = cache_get('custom_fields', 'cache_simplerdf')) {
+      $fields = $cache_fields->data;
+    }
+    // Rebuild cache
+    else {
+      $fields = array();
+      $result = db_query("SELECT * FROM {simplerdf_custom_fields} ORDER BY name ASC");
+      while ($field = db_fetch_object($result)) {
+        $field->settings = unserialize($field->settings);
+        $fields[$field->name] = $field;
+      }
+      cache_set('custom_fields', $fields, 'cache_simplerdf');
+    }
+  }
+  return isset($name) ? $fields[$name] : $fields;
+}
+
+/**
+ * Implements hook_simplerdf_mappers().
+ */
+function simplerdf_custom_fields_simplerdf_mappers() {
+  return array(
+    'custom' => array(
+      'title' => t('Custom fields'),
+      'description' => t('Custom defined fields.'),
+      'callback fields' => 'simplerdf_custom_fields_mapper_fields',
+      'callback map' => 'simplerdf_custom_fields_mapper_map',
+    ),
+  );
+}
+
+/**
+ * Simple RDF fields callback.
+ */
+function simplerdf_custom_fields_mapper_fields($content_type) {
+  $fields = array();
+  foreach (simplerdf_custom_fields_load() as $name => $field) {
+    $fields[$name] = array(
+      $field->title,
+    );
+  }
+}
+
+/**
+ * Simple RDF map callback.
+ */
+function simplerdf_custom_fields_mapper_map($node, $nodeuri, $field_name, $property) {
+  static $mappings = array();
+  static $static = array();
+
+  if (isset($mappings[$node->nid][$field_name])) {
+    $values = $mappings[$node->nid][$field_name];
+  }
+  // Lazy map value
+  else {
+    $values = array();
+    $field = simplerdf_custom_fields_load($field_name);
+    switch ($field->type) {
+      // Basic field
+      case 'basic':
+
+        break;
+
+      // Advanced field
+      case 'advanced':
+        $value = _simplerdf_custom_fields_map_eval($node, $static, $field->settings['phpcode']);
+        if (is_object($value)) {
+          break;
+        }
+        // Array value
+        elseif (is_array($value)) {
+          foreach ($value as $entry) {
+            // Use only non-blank unstructured value
+            if (isset($entry) && $entry !== '') {
+              $values[] = $entry;
+            }
+          }
+        }
+        // Non-blank value
+        elseif (isset($value) && $value !== '') {
+          $values[] = $value;
+        }
+        break;
+    }
+
+    // Cache values
+    $mappings[$node->nid][$field_name] = $values;
+  }
+
+  // Construct triples
+  $triples = array();
+  $base_statement = simplerdf_make_subject('uri', $nodeuri) + simplerdf_make_predicate($property);
+  foreach ($values as $value) {
+    $triples[] = $base_statement + simplerdf_make_object('literal', $value);
+  }
+
+  return $triples;
+}
+
+/**
+ * Evaluate advanced field PHP code.
+ *
+ * @param stdClass $node
+ *   Node object.
+ * @param array $static
+ *   Static array.
+ * @param string $code
+ *   Magic argument: PHP code to evaluate.
+ */
+function _simplerdf_custom_fields_map_eval($node, &$static) {
+  return eval(func_get_arg(2));
+}
