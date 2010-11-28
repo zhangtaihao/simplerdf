@@ -533,9 +533,9 @@ function simplerdf_get_fields($content_type) {
 /**
  * Lazily build mapper field information.
  *
- * @param $content_type string
+ * @param string $content_type
  *   Content type name.
- * @param $reset boolean
+ * @param boolean $reset
  *   If TRUE, resets the fields cache.
  *
  * @return array
@@ -561,9 +561,7 @@ function _simplerdf_build_fields($content_type = NULL, $reset = FALSE) {
 
       // Build field data
       $fields = array();
-      foreach ($plugins as $plugin) {
-        $plugin_name = $plugin['name'];
-
+      foreach ($plugins as $plugin_name => $plugin) {
         // Get fields by type
         foreach ($types as $type) {
           // Fetch fields
