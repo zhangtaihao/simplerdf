@@ -425,8 +425,6 @@ function simplerdf_content_mappers_process(&$plugin, $info) {
 
   // Add default values
   $plugin += array(
-    'title' => '',
-    'description' => '',
     'weight' => 0,
     'field types' => array(),
     'callback fields' => NULL,
