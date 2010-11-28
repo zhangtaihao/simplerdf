@@ -14,13 +14,12 @@ define('SIMPLERDF_ARC_PATH', function_exists('libraries_get_path') ? libraries_g
 function simplerdf_arc_include() {
   $arc2 = SIMPLERDF_ARC_PATH . '/ARC2.php';
 
-  // Check that ARC2 exists, or throw an error message if not.
+  // Check that ARC2 exists
   if (file_exists($arc2)) {
     require_once $arc2;
     return TRUE;
   }
   else {
-    drupal_set_message(t('The ARC2 library is missing. Please see status report on how to install it.'), 'error');
     return FALSE;
   }
 }
