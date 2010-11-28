@@ -351,6 +351,9 @@ function simplerdf_ctools_plugin_api($owner, $api) {
       case 'mappers':
         return array('version' => 1);
 
+      case 'content_mappers':
+        return array('version' => 1);
+
       case 'nodeuri_generators':
         return array('version' => 1);
     }
@@ -389,6 +392,43 @@ function simplerdf_mappers_process(&$plugin, $info) {
     'title' => '',
     'description' => '',
     'weight' => 0,
+    'callback fields' => NULL,
+    'callback fields arguments' => array(),
+    'callback fields file' => NULL,
+    'callback fields path' => $path,
+    'callback map' => NULL,
+    'callback map arguments' => array(),
+    'callback map file' => NULL,
+    'callback map path' => $path,
+  );
+
+  // Use module cache table
+  $plugin['cache table'] = 'cache_simplerdf';
+}
+
+/**
+ * Implements hook_ctools_plugin_TYPE() for content_mappers.
+ */
+function simplerdf_ctools_plugin_content_mappers() {
+  return array(
+    'cache' => TRUE,
+    'use hooks' => TRUE,
+    'process' => 'simplerdf_content_mappers_process',
+  );
+}
+
+/**
+ * Content mapper plugin processor.
+ */
+function simplerdf_content_mappers_process(&$plugin, $info) {
+  $path = drupal_get_path('module', $plugin['module']);
+
+  // Add default values
+  $plugin += array(
+    'title' => '',
+    'description' => '',
+    'weight' => 0,
+    'field types' => array(),
     'callback fields' => NULL,
     'callback fields arguments' => array(),
     'callback fields file' => NULL,
@@ -534,6 +574,69 @@ function _simplerdf_build_fields($content_type = NULL, $reset = FALSE) {
         }
       }
       cache_set('fields', $fields, 'cache_simplerdf');
+    }
+  }
+  return isset($content_type) ? $fields[$content_type] : $fields;
+}
+
+/**
+ * Get a list of content fields to map.
+ *
+ * @param string $content_type
+ *   Content type name.
+ *
+ * @return array
+ *   Fields available for mapping to properties, keyed by content mapper.
+ */
+function simplerdf_get_content_fields($content_type) {
+  return _simplerdf_build_content_fields($content_type);
+}
+
+/**
+ * Lazily build content mapper field information.
+ *
+ * @param string $content_type
+ *   Content type name.
+ * @param boolean $reset
+ *   If TRUE, resets the fields cache.
+ *
+ * @return array
+ *   If $content_type is specified, an array of fields keyed by name (NULL if invalid type). Otherwise, arrays of fields grouped by content type.
+ */
+function _simplerdf_build_content_fields($content_type = NULL, $reset = FALSE) {
+  static $fields;
+
+  if ($reset || !isset($fields)) {
+    // Fetch from cache
+    if (!$reset && $cache_fields = cache_get('content_fields', 'cache_simplerdf')) {
+      $fields = $cache_fields->data;
+    }
+    // Rebuild cache
+    else {
+      // Prepare content types
+      $content_fields = content_fields();
+      ksort($content_fields);
+
+      // Fetch and sort plugins
+      ctools_include('plugins');
+      $plugins = ctools_get_plugins('simplerdf', 'content_mappers');
+      usort($plugins, '_simplerdf_compare_mapper_weights');
+
+      // Build field data
+      $fields = array();
+      foreach ($plugins as $plugin_name => $plugin) {
+        foreach ($content_fields as $content_field) {
+          // Forward field to plugins providing corresponding field types
+          if (in_array($content_field['module'], $plugin['field types'])) {
+            foreach (_simplerdf_invoke('callback fields', $plugin, $content_field) as $name => $field) {
+              $field['mapper'] = 'content';
+              $field['content mapper'] = $plugin_name;
+              $fields[$content_field['type_name']][$name] = array('name' => $name) + $field;
+            }
+          }
+        }
+      }
+      cache_set('content_fields', $fields, 'cache_simplerdf');
     }
   }
   return isset($content_type) ? $fields[$content_type] : $fields;
