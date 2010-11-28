@@ -54,20 +54,22 @@ function simplerdf_mapper_node_fields($content_type) {
  * Mapping callback.
  */
 function simplerdf_mapper_node_map($node, $nodeuri, $property, $field) {
+  $field_name = $field['name'];
+
   $s = simplerdf_make_subject('uri', $nodeuri);
   $p = simplerdf_make_predicate($property);
 
-  switch ($field) {
+  switch ($field_name) {
     // Text fields
     case 'title':
     case 'body':
-      $o = simplerdf_make_object('literal', $node->$field);
+      $o = simplerdf_make_object('literal', $node->$field_name);
       break;
 
     // Timestamps
     case 'created':
     case 'changed':
-      $time = date('c', $node->$field);
+      $time = date('c', $node->$field_name);
       $o = simplerdf_make_object('literal', $time, 'xsd:dateTime');
   }
 

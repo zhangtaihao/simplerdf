@@ -140,9 +140,11 @@ function simplerdf_custom_fields_mapper_fields($content_type) {
 /**
  * Simple RDF map callback.
  */
-function simplerdf_custom_fields_mapper_map($node, $nodeuri, $field_name, $property) {
+function simplerdf_custom_fields_mapper_map($node, $nodeuri, $field, $property) {
   static $mappings = array();
   static $static = array();
+
+  $field_name = $field['name'];
 
   if (isset($mappings[$node->nid][$field_name])) {
     $values = $mappings[$node->nid][$field_name];
@@ -150,8 +152,8 @@ function simplerdf_custom_fields_mapper_map($node, $nodeuri, $field_name, $prope
   // Lazy map value
   else {
     $values = array();
-    $field = simplerdf_custom_fields_load($field_name);
-    switch ($field->type) {
+    $custom_field = simplerdf_custom_fields_load($field_name);
+    switch ($custom_field->type) {
       // Basic field
       case 'basic':
 
@@ -159,7 +161,7 @@ function simplerdf_custom_fields_mapper_map($node, $nodeuri, $field_name, $prope
 
       // Advanced field
       case 'advanced':
-        $value = _simplerdf_custom_fields_map_eval($node, $static, $field->settings['phpcode']);
+        $value = _simplerdf_custom_fields_map_eval($node, $static, $custom_field->settings['phpcode']);
         if (is_object($value)) {
           break;
         }
