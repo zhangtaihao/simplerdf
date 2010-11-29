@@ -427,7 +427,7 @@ function simplerdf_content_mappers_process(&$plugin, $info) {
   $plugin += array(
     'weight' => 0,
     'field types' => array(),
-    'callback fields' => NULL,
+    'callback fields' => '_simplerdf_content_mappers_default_fields',
     'callback fields arguments' => array(),
     'callback fields file' => NULL,
     'callback fields path' => $path,
@@ -439,6 +439,17 @@ function simplerdf_content_mappers_process(&$plugin, $info) {
 
   // Use module cache table
   $plugin['cache table'] = 'cache_simplerdf';
+}
+
+/**
+ * Default field callback.
+ * This returns the basic content field with its name and label title.
+ */
+function _simplerdf_content_mappers_default_fields($content_field) {
+  $field = array(
+    'title' => $content_field['widget']['label'],
+  );
+  return array($content_field['field_name'] => $fields);
 }
 
 /**
@@ -620,15 +631,26 @@ function _simplerdf_build_content_fields($content_type = NULL, $reset = FALSE) {
 
       // Build field data
       $fields = array();
-      foreach ($plugins as $plugin_name => $plugin) {
-        foreach ($content_fields as $content_field) {
-          // Forward field to plugins providing corresponding field types
+      foreach ($content_fields as $content_field) {
+        // Lookup field providers
+        $providers = array();
+        foreach ($plugins as $plugin_name => $plugin) {
           if (in_array($content_field['module'], $plugin['field types'])) {
-            foreach (_simplerdf_invoke('callback fields', $plugin, $content_field) as $name => $field) {
-              $field['mapper'] = 'content';
-              $field['content mapper'] = $plugin_name;
-              $fields[$content_field['type_name']][$name] = array('name' => $name) + $field;
-            }
+            $providers[] = $plugin_name;
+          }
+        }
+        if (empty($providers)) {
+          // Specify default mapper
+          $providers[] = $plugin_name;
+        }
+
+        // Forward field to plugins providing its type
+        foreach ($providers as $plugin_name) {
+          $plugin = $plugins[$plugin_name];
+          foreach (_simplerdf_invoke('callback fields', $plugin, $content_field) as $name => $field) {
+            $field['mapper'] = 'content';
+            $field['content mapper'] = $plugin_name;
+            $fields[$content_field['type_name']][$name] = array('name' => $name) + $field;
           }
         }
       }

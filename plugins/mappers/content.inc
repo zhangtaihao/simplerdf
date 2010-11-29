@@ -37,6 +37,7 @@ function simplerdf_mapper_content_map($node, $nodeuri, $property, $field) {
   $mapper = $plugins[$field['content mapper']];
   if (isset($mapper)) {
     // Delegate to the content mapper
-    return _simplerdf_invoke('callback map', $mapper, $node, $nodeuri, $property, $field);
+    $field_name = $field['name'];
+    return _simplerdf_invoke('callback map', $mapper, $node, $nodeuri, $property, $field, $node->$field_name);
   }
 }
