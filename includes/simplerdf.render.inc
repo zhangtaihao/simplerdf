@@ -72,10 +72,8 @@ function simplerdf_build_document($node) {
   // Serialize document
   $document = array();
   module_load_include('inc', 'simplerdf', 'includes/simplerdf.arc');
-  if (simplerdf_arc_include()) {
+  if (simplerdf_arc_include() && $serializer = simplerdf_arc_get_serializer(NULL, array('ns' => $namespaces))) {
     // Initialize ARC2
-    $format = variable_get('simplerdf_format', SIMPLERDF_DEFAULT_FORMAT);
-    $serializer = ARC2::getSer($format, array('ns' => $namespaces));
     $document['type'] = $serializer->content_header ? $serializer->content_header : 'text/plain';
     $index = $serializer->toIndex($triples);
 
