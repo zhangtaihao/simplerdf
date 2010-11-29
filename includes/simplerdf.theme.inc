@@ -24,7 +24,7 @@ function _simplerdf_theme() {
     ),
     'file' => 'includes/simplerdf.theme.inc',
   );
-  $hooks['simplerdf_admin_mappings_form'] = array(
+  $hooks['simplerdf_admin_mappings_table'] = array(
     'file' => 'includes/simplerdf.admin.inc',
   );
 
@@ -43,10 +43,10 @@ function theme_simplerdf_namespaces() {
   $fieldset_contents = '';
 
   // Render namespaces table
-  $fieldset_contents .= theme('simplerdf_namespaces');
+  $fieldset_contents .= theme('simplerdf_namespaces_table');
 
-  if (user_access('administer simplerdf')) {
-    $fieldset_contents .= '<p>' . l('Manage namespaces', 'admin/') . '</p>';
+  if (user_access('administer simplerdf') && module_exists('simplerdf_namespaces')) {
+    $fieldset_contents .= '<p>' . l(t('Manage namespaces'), 'admin/build/simplerdf/namespaces') . '</p>';
   }
 
   $fieldset = array(
@@ -63,30 +63,13 @@ function theme_simplerdf_namespaces() {
 /**
  * Format available RDF namespaces and their prefixes.
  *
- * @param boolean $hide_custom
- *   Hide custom namespaces defined in Simple RDF.
- *
  * @return string
  *   An HTML table listing available namespaces.
  *
  * @ingroup simplerdf_themeable
  */
-function theme_simplerdf_namespaces_table($hide_custom) {
-  // Show only default namespaces
-  if ($hide_custom) {
-    // Include default namespace defined in this module
-    $namespaces = simplerdf_get_common_namespaces();
-    // Include default namespaces outside this module
-    foreach (module_implements('rdf_namespaces') as $module) {
-      if ($module != 'simplerdf' && is_array($module_ns = module_invoke($module, 'rdf_namespaces'))) {
-        $namespaces = array_merge($namespaces, $module_ns);
-      }
-    }
-  }
-  // Show all namespaces
-  else {
-    $namespaces = module_implements('rdf_namespaces');
-  }
+function theme_simplerdf_namespaces_table() {
+  $namespaces = simplerdf_get_namespaces();
 
   // Build table
   $header = array(
@@ -110,8 +93,8 @@ function theme_simplerdf_namespaces_table($hide_custom) {
  *   RDF mappings, each an array keyed by field name with the following keys:
  *   - 'field' : Field title.
  *   - 'field_name' : Field machine name.
- *   - 'properties' : RDF properties (flat value).
- *   - 'mapper' : Machine name of the mapper for mapping this field.
+ *   - 'properties' : RDF properties. If an array, assumed to be a Form API element.
+ *   - 'mapper' : Machine name of the mapper for mapping this field (not displayed).
  * @param array $mappers
  *   Optional. Mappers keyed by machine names. Mappings will only be grouped
  *   if these mappers are given.
@@ -124,10 +107,10 @@ function theme_simplerdf_namespaces_table($hide_custom) {
 function theme_simplerdf_mappings_table($mappings, $mappers) {
   // Group mappings by mapper
   $groups = array();
-  foreach ($mappings as $field_name => $mapping) {
+  foreach ($mappings as $key => $mapping) {
     // Only group if mapper is defined and exists in given mappers
     $mapper = !empty($mapping['mapper']) && $mappers[$mapping['mapper']] ? $mapping['mapper'] : 0;
-    $groups[$mapper][$field_name] = $field_name;
+    $groups[$mapper][] = $key;
   }
 
   // Check whether there is at least one non-empty group
@@ -155,15 +138,26 @@ function theme_simplerdf_mappings_table($mappings, $mappers) {
       );
     }
     // Render mappings
-    foreach ($group as $field_name) {
-      $mapping = $mappings[$field_name];
+    foreach ($group as $key) {
+      $mapping = $mappings[$key];
+      $properties = $mapping['properties'];
+
+      // Build properties display
+      if (is_array($properties)) {
+        $properties = drupal_render($properties);
+      }
+      else {
+        $properties = filter_xss_admin($properties);
+      }
+
+      // Build row
       $rows[] = array(
-        $mapping['field'],
-        check_plain($field_name),
-        $mapping['properties'],
+        filter_xss($mapping['field_title']),
+        check_plain($mapping['field_name']),
+        $properties,
       );
     }
   }
 
-  theme('table', $header, $rows, array('class' => 'simplerdf-mappings-table'));
+  return theme('table', $header, $rows, array('class' => 'simplerdf-mappings-table'));
 }

@@ -23,6 +23,11 @@ function simplerdf_mapper_node_fields($content_type) {
   $fields = array();
   $type = node_get_types('type', $content_type);
 
+  // Node type
+  $fields['class'] = array(
+    'title' => t('RDF class (rdf:type)'),
+  );
+
   // Node title
   if ($type->has_title) {
     $fields['title'] = array(
@@ -60,6 +65,11 @@ function simplerdf_mapper_node_map($node, $nodeuri, $property, $field) {
   $p = simplerdf_make_predicate($property);
 
   switch ($field_name) {
+    // Type
+    case 'class':
+      $p = simplerdf_make_predicate('rdf:type');
+      $o = simplerdf_make_object('uri', $property);
+
     // Text fields
     case 'title':
     case 'body':
@@ -71,6 +81,7 @@ function simplerdf_mapper_node_map($node, $nodeuri, $property, $field) {
     case 'changed':
       $time = date('c', $node->$field_name);
       $o = simplerdf_make_object('literal', $time, 'xsd:dateTime');
+      break;
   }
 
   if ($o) {

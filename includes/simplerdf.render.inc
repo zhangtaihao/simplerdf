@@ -67,7 +67,7 @@ function simplerdf_build_document($node) {
   }
 
   // Prepare namespaces
-  $namespaces = module_invoke_all('rdf_namespaces');
+  $namespaces = simplerdf_get_namespaces();
 
   // Serialize document
   $document = array();

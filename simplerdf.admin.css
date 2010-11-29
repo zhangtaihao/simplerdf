@@ -1,5 +1,11 @@
 /* $Id$ */
 
+/* Theme hook simplerdf_mappings_table */
+table.simplerdf-mappings-table .simplerdf-mapper {
+  padding: 0.6em inherit;
+}
+
+
 /* Theme hook simplerdf_namespaces_table */
 table.simplerdf-namespaces-table {
   width: 100%;

@@ -10,6 +10,10 @@
  * Form for configuring node property mappings.
  */
 function simplerdf_admin_mappings_form($form_state, $content_type) {
+  $path = drupal_get_path('module', 'simplerdf');
+  drupal_add_css($path . '/simplerdf.admin.css');
+
+  $content_type = str_replace('-', '_', $content_type);
   $form = array();
 
   // Cache content type
@@ -35,19 +39,21 @@ function simplerdf_admin_mappings_form($form_state, $content_type) {
   $rdf_mappings = simplerdf_get_mappings($content_type);
 
   // Build mappings
-  $form['mappings'] = array();
+  $form['mappings'] = array(
+    '#theme' => 'simplerdf_admin_mappings_table',
+  );
   $fields = simplerdf_get_fields($content_type);
   foreach ($fields as $name => $field) {
     $mapping = array(
-      'field' => check_plain($field['title']),
-      'field_name' => check_plain($name),
+      '#field_title' => $field['title'],
+      '#field_name' => $name,
       'properties' => array('#tree' => TRUE),
-      'mapper' => $field['mapper'],
+      '#mapper' => $field['mapper'],
     );
     // Mapping textfield
     $mapping['properties'][$name] = array(
       '#type' => 'textfield',
-      '#size' => 50,
+      '#size' => 20,
       '#maxlength' => 100,
       '#default_value' => implode(', ', $rdf_mappings[$name]),
     );
@@ -57,28 +63,26 @@ function simplerdf_admin_mappings_form($form_state, $content_type) {
 
   $form['save'] = array(
     '#type' => 'submit',
-    '#value' => t('Save'),
+    '#value' => t('Save mappings'),
   );
 
   return $form;
 }
 
 /**
- * Themes the Simple RDF mappings form as a table, using the theme hook
- * <code>simplerdf_mappings_table</code> for rendering.
+ * Themes the Simple RDF mappings table.
  *
- * @param array $form
- *   The fully built form from simplerdf_admin_mappings_form().
+ * @param array $mappings
+ *   Mappings form element from simplerdf_admin_mappings_form().
  *
  * @return string
- *   Form with fully rendered mappings table.
+ *   Fully rendered mappings table.
  *
  * @ingroup themeable
  * @ingroup simplerdf_themeable
  */
-function theme_simplerdf_admin_mappings_form($form) {
+function theme_simplerdf_admin_mappings_table($elements) {
   ctools_include('plugins');
-  $output = '';
 
   // Prepare mappers
   $plugins = ctools_get_plugins('simplerdf', 'mappers');
@@ -87,23 +91,27 @@ function theme_simplerdf_admin_mappings_form($form) {
     $mappers[$name] = check_plain($plugin['title']);
   }
 
-  // Render form
-  foreach ($form as $name => $elements) {
-    // Mapping table
-    if ($name == 'mappings') {
-      foreach ($elements as &$mapping) {
-        $mapping['properties'] = drupal_render($mapping['properties'][$mapping['field_name']]);
-      }
-      unset($mapping);
-      $output .= theme('simplerdf_mappings_table', $elements, $mappers);
-    }
-    // Default form element
-    else {
-      $output .= drupal_render($elements);
+  foreach (element_children($elements) as $key) {
+    $mapping = &$elements[$key];
+
+    // Prepare mapping row
+    $mapping['properties'] = $mapping['properties'][$mapping['#field_name']];
+    $mapping['field_title'] = $mapping['#field_title'];
+    $mapping['field_name'] = $mapping['#field_name'];
+    $mapping['mapper'] = $mapping['#mapper'];
+
+    // Strip properties
+    foreach (element_properties($mapping) as $property) {
+      unset($mapping[$property]);
     }
   }
 
-  return $output;
+  // Strip all form properties
+  foreach (element_properties($elements) as $property) {
+    unset($elements[$property]);
+  }
+
+  return theme('simplerdf_mappings_table', $elements, $mappers);
 }
 
 /**
@@ -122,8 +130,10 @@ function simplerdf_admin_mappings_form_submit($form, $form_state) {
     $properties = array_filter(array_map('trim', preg_split('/\s*,\s*/', $properties)));
 
     // Save
-    $mapping = (object) compact('content_type', 'field', 'properties');
-    drupal_write_record('simplerdf_mappings', $mapping);
+    if (!empty($properties)) {
+      $mapping = (object) compact('content_type', 'field', 'properties');
+      drupal_write_record('simplerdf_mappings', $mapping);
+    }
   }
 
   // Clear mapping cache
@@ -167,7 +177,8 @@ function simplerdf_admin_nodeuri_form($form_state) {
     '#description' => t('Configure the way the URI of a node is generated.'),
   );
   // Populate choices
-  foreach ($plugins as $name => $plugin) {
+  foreach ($plugins as $plugin) {
+    $name = $plugin['name'];
     $title = check_plain($plugin['title']);
     if (function_exists($plugin['settings form'])) {
       // Add link to settings form
