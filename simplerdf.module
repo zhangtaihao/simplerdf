@@ -496,7 +496,7 @@ function simplerdf_nodeuri_generators_process(&$plugin, $info) {
 /**
  * Invoke a plugin callback.
  */
-function _simplerdf_invoke($op, $plugin) {
+function _simplerdf_invoke($plugin, $op) {
   // Track which callback files have already been loaded
   static $loaded = array();
 
@@ -576,7 +576,7 @@ function _simplerdf_build_fields($content_type = NULL, $reset = FALSE) {
         // Get fields by type
         foreach ($types as $type) {
           // Fetch fields
-          foreach (_simplerdf_invoke('callback fields', $plugin, $type) as $name => $field) {
+          foreach (_simplerdf_invoke($plugin, 'callback fields', $type) as $name => $field) {
             $field['mapper'] = $plugin_name;
             $fields[$type][$name] = array('name' => $name) + $field;
           }
@@ -649,7 +649,7 @@ function _simplerdf_build_content_fields($content_type = NULL, $reset = FALSE) {
         // Forward field to plugins providing its type
         foreach ($providers as $plugin_name) {
           $plugin = $plugins[$plugin_name];
-          foreach (_simplerdf_invoke('callback fields', $plugin, $content_field) as $name => $field) {
+          foreach (_simplerdf_invoke($plugin, 'callback fields', $content_field) as $name => $field) {
             $field['mapper'] = 'content';
             $field['content mapper'] = $plugin_name;
             $fields[$content_field['type_name']][$name] = array('name' => $name) + $field;
@@ -720,7 +720,7 @@ function simplerdf_map_field($node, $nodeuri, $field, $properties) {
   $mapper = ctools_get_plugins('simplerdf', 'mappers', $field['mapper']);
   $triples = array();
   foreach ($properties as $property) {
-    $result = _simplerdf_invoke('callback map', $mapper, $node, $nodeuri, $field, $property);
+    $result = _simplerdf_invoke($mapper, 'callback map', $node, $nodeuri, $field, $property);
     if (is_array($result) && !empty($result)) {
       $triples = array_merge($triples, $result);
     }
@@ -776,7 +776,7 @@ function simplerdf_generate_nodeuri($generator, $node) {
     $settings = (array) variable_get('simplerdf_nodeuri_settings', array());
     $settings[$generator] += $plugin['settings defaults'];
 
-    if ($uri = _simplerdf_invoke('callback generate', $node, $settings[$generator])) {
+    if ($uri = _simplerdf_invoke($plugin, 'callback generate', $node, $settings[$generator])) {
       cache_set('node:uri:' . $node->nid . ':' . $generator, $uri, 'cache_simplerdf');
       return $uri;
     }
