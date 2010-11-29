@@ -142,6 +142,18 @@ function simplerdf_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
       // Clear cache
       simplerdf_clear_cache('node', $node->nid);
       break;
+
+    case 'view':
+      // Add autodiscovery link if not in conflict with RDF
+      $path = variable_get('simplerdf_view_path', 'rdf');
+      if ($a4 && !(module_exists('rdf') && $path == 'rdf')) {
+        module_load_include('inc', 'simplerdf', 'includes/simplerdf.arc');
+        $format = variable_get('simplerdf_format', SIMPLERDF_DEFAULT_FORMAT);
+        if ($mime_type = simplerdf_arc_get_mime_type($format)) {
+          drupal_add_link(array('rel' => 'meta', 'type' => $mime_type, 'title' => 'RDF', 'href' => 'node/' . $node->nid . '/' . $path));
+        }
+      }
+      break;
   }
 }
 

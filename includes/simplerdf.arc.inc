@@ -12,16 +12,19 @@ define('SIMPLERDF_ARC_PATH', function_exists('libraries_get_path') ? libraries_g
  * Include the ARC2 class. To
  */
 function simplerdf_arc_include() {
-  $arc2 = SIMPLERDF_ARC_PATH . '/ARC2.php';
-
-  // Check that ARC2 exists
-  if (file_exists($arc2)) {
-    require_once $arc2;
-    return TRUE;
+  static $init;
+  if (!isset($init)) {
+    $arc2 = SIMPLERDF_ARC_PATH . '/ARC2.php';
+    // Check that ARC2 exists
+    if (file_exists($arc2)) {
+      require_once $arc2;
+      $init = TRUE;
+    }
+    else {
+      $init = FALSE;
+    }
   }
-  else {
-    return FALSE;
-  }
+  return $init;
 }
 
 /**
@@ -53,8 +56,7 @@ function simplerdf_arc_get_formats() {
  * Get ARC2 serializer for format.
  *
  * @param string $format
- *   Name of format as given in simplerdf_arc_get_formats(). If not specified,
- *   the active format from settings will be used.
+ *   Name of format as given in simplerdf_arc_get_formats().
  * @param $conf
  *   Configuration parameters for ARC2 classes. For example, $conf can be an
  *   array with key 'ns' containing an array of namespaces keyed by prefixes.
@@ -62,12 +64,39 @@ function simplerdf_arc_get_formats() {
  * @return ARC2_Class
  *   Serializer object, or NULL if specified format is invalid.
  */
-function simplerdf_arc_get_serializer($format = NULL, $conf = '') {
-  if (!isset($format)) {
-    $format = variable_get('simplerdf_format', SIMPLERDF_DEFAULT_FORMAT);
-  }
+function simplerdf_arc_get_serializer($format, $conf = '') {
   $factory_method = 'get' . $format . 'Serializer';
   if (method_exists('ARC2', $factory_method)) {
     return ARC2::$factory_method($conf);
   }
+}
+
+/**
+ * Get the MIME type of an ARC2 serializer.
+ *
+ * @param string $format
+ *   Name of format as given in simplerdf_arc_get_formats().
+ * @param ARC2_Class $serializer
+ *   Optional. Fully initialized ARC2 serializer object.
+ *
+ * @return string
+ *   MIME type name string, or NULL if given format is invalid.
+ */
+function simplerdf_arc_get_mime_type($format, ARC2_Class $serializer = NULL) {
+  static $types = array();
+
+  // Lazy detect type
+  if (!isset($types[$format])) {
+    if ($cache = cache_get('arc2_mime_types:' . $format, 'cache_simplerdf')) {
+      $types[$format] = $cache->data;
+    }
+    // Detect type from serializer object
+    elseif (isset($serializer) || simplerdf_arc_include() && $serializer = simplerdf_arc_get_serializer()) {
+      $type = !empty($serializer->content_header) ? $serializer->content_header : 'text/plain';
+      $types[$format] = $type;
+      cache_set('arc2_mime_types:' . $format, $type, 'cache_simplerdf');
+    }
+  }
+
+  return $types[$format] ? $types[$format] : NULL;
 }
