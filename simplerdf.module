@@ -135,11 +135,11 @@ function simplerdf_clear_cache($type = NULL, $a1 = NULL) {
 /**
  * Implements hook_nodeapi().
  */
-function simplerdf_nodeapi($op, &$node) {
-  // Clear cache
+function simplerdf_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
   switch ($op) {
     case 'update':
     case 'delete':
+      // Clear cache
       simplerdf_clear_cache('node', $node->nid);
       break;
   }
