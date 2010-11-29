@@ -514,8 +514,8 @@ function _simplerdf_invoke($plugin, $op) {
 
   // Pop function arguments manually
   $args = func_get_args();
-  $op = array_shift($args);
   $plugin = array_shift($args);
+  $op = array_shift($args);
 
   // Prepare callback arguments
   $args = array_merge($args, $plugin[$op . ' arguments']);
@@ -742,7 +742,8 @@ function simplerdf_map_field($node, $nodeuri, $field, $properties) {
 }
 
 /**
- * Get URI of node to represent node.
+ * Get URI of node to represent node. If the active generator failed to produce
+ * a URI, a default will be generated using the raw generator.
  *
  * @param stdClass $node
  *   Node object.
@@ -753,15 +754,20 @@ function simplerdf_map_field($node, $nodeuri, $field, $properties) {
 function simplerdf_get_nodeuri($node) {
   // Use active node URI generator
   $generator = variable_get('simplerdf_nodeuri_generator', SIMPLERDF_DEFAULT_NODEURI_GENERATOR);
-  $uri = simplerdf_generate_nodeuri($generator, $node);
 
-  if (!empty($uri)) {
-    // Return good URI
-    return $uri;
+  if ($cache = cache_get('node:uri:' . $node->nid . ':' . $generator, 'cache_simplerdf')) {
+    // Fetch cached URI
+    return $cache->data;
   }
   else {
-    // Failed; fall back to raw generator
-    simplerdf_generate_nodeuri('raw', $node);
+    // Generate using active URI generator
+    $uri = simplerdf_generate_nodeuri($generator, $node);
+    if (empty($uri)) {
+      // Failed; fall back to raw generator
+      simplerdf_generate_nodeuri('raw', $node);
+    }
+    cache_set('node:uri:' . $node->nid . ':' . $generator, $uri, 'cache_simplerdf');
+    return $uri;
   }
 }
 
@@ -777,21 +783,17 @@ function simplerdf_get_nodeuri($node) {
  *   Node URI string, or NULL if generation failed.
  */
 function simplerdf_generate_nodeuri($generator, $node) {
-  if ($cache = cache_get('node:uri:' . $node->nid . ':' . $generator, 'cache_simplerdf')) {
-    // Fetch cached URI
-    return $cache->data;
+  // Generate using active URI generator
+  ctools_include('plugins');
+  $plugin = ctools_get_plugins('simplerdf', 'nodeuri_generators', $generator);
+  $settings = (array) variable_get('simplerdf_nodeuri_settings', array());
+  if (!isset($settings[$generator])) {
+    $settings[$generator] = array();
   }
-  else {
-    // Generate using active URI generator
-    ctools_include('plugins');
-    $plugin = ctools_get_plugins('simplerdf', 'nodeuri_generators', $generator);
-    $settings = (array) variable_get('simplerdf_nodeuri_settings', array());
-    $settings[$generator] += $plugin['settings defaults'];
+  $settings[$generator] += $plugin['settings defaults'];
 
-    if ($uri = _simplerdf_invoke($plugin, 'callback generate', $node, $settings[$generator])) {
-      cache_set('node:uri:' . $node->nid . ':' . $generator, $uri, 'cache_simplerdf');
-      return $uri;
-    }
+  if ($uri = _simplerdf_invoke($plugin, 'callback generate', $node, $settings[$generator])) {
+    return $uri;
   }
 }
 
@@ -808,7 +810,7 @@ function simplerdf_generate_nodeuri($generator, $node) {
  * @return string
  *   Node URI.
  */
-function _simplerdf_get_nodeuri($settings, $node, $type) {
+function _simplerdf_get_nodeuri($node, $settings, $type) {
   $options = array('absolute' => TRUE);
   if ($type == 'raw') {
     // Raw path

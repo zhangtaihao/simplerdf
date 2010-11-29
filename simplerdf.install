@@ -9,8 +9,7 @@
  * Implements hook_requirements().
  */
 function simplerdf_requirements($phase) {
-  $includes = drupal_get_path('module', 'simplerdf') . '/includes';
-  require_once $includes . '/arc.inc';
+  module_load_include('inc', 'simplerdf', 'includes/simplerdf.arc');
   simplerdf_arc_include();
 
   $t = get_t();

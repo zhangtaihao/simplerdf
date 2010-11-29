@@ -27,6 +27,8 @@ function _simplerdf_theme() {
   $hooks['simplerdf_admin_mappings_form'] = array(
     'file' => 'includes/simplerdf.admin.inc',
   );
+
+  return $hooks;
 }
 
 /**

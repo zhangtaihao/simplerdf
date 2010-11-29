@@ -19,7 +19,7 @@ $plugin = array(
 /**
  * Provide CCK fields.
  */
-function simplerdf_mapper_content_fields($content_type) {;
+function simplerdf_mapper_content_fields($content_type) {
   return simplerdf_get_content_fields($content_type);
 }
 

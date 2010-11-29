@@ -9,7 +9,7 @@
  * @todo ???
  * Form for configuring node property mappings.
  */
-function simplerdf_admin_mappings_form($form_state, $content_type = NULL) {
+function simplerdf_admin_mappings_form($form_state, $content_type) {
   $form = array();
 
   // Cache content type
@@ -201,7 +201,7 @@ function simplerdf_admin_nodeuri_form($form_state) {
     $form['preview']['uri'] = array(
       '#type' => 'item',
       '#title' => t('Generated URI'),
-      '#value' => check_plain($uri),
+      '#value' => !empty($uri) ? check_plain($uri) : ('<em>' . t('Empty') . '</em>'),
     );
   }
   $form['preview']['preview'] = array(
@@ -353,25 +353,25 @@ function simplerdf_admin_settings_form($form_state) {
   $form['path'] = array(
     '#type' => 'textfield',
     '#title' => t('RDF view path'),
-    '#prefix' => 'node/%/',
+    '#field_prefix' => 'node/%/',
     '#default_value' => variable_get('simplerdf_view_path', 'rdf'),
     '#description' => t('Internal path to display node RDF documents at.'),
   );
 
-  $form['show_tab'] = array(
+  $form['view_tab'] = array(
     '#type' => 'fieldset',
     '#title' => t('RDF view tab'),
     '#collapsible' => FALSE,
     '#collapsed' => FALSE,
     '#description' => t('Configure tab settings.'),
   );
-  $form['tab'] = array(
+  $form['view_tab']['tab'] = array(
     '#type' => 'checkbox',
     '#title' => t('Show tab'),
     '#default_value' => variable_get('simplerdf_view_tab', TRUE),
     '#description' => t('Display tab for viewing node RDF document pages.'),
   );
-  $form['title'] = array(
+  $form['view_tab']['title'] = array(
     '#type' => 'textfield',
     '#title' => t('Tab title'),
     '#default_value' => variable_get('simplerdf_view_title', 'RDF'),
@@ -402,6 +402,11 @@ function simplerdf_admin_settings_form($form_state) {
       '#value' => t('The ARC2 library is missing.'),
     );
   }
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save settings'),
+  );
 
   return $form;
 }
