@@ -14,10 +14,8 @@ function _simplerdf_custom_fields_features_api() {
     'simplerdf_custom_fields' => array(
       'name' => t('Simple RDF custom fields'),
       'default_hook' => 'simplerdf_default_custom_fields',
-      'default_file' => FEATURES_DEFAULTS_CUSTOM,
-      'default_filename' => 'features.simplerdf',
       'features_source' => TRUE,
-      'file' => $path . '/simplerdf_custom_mapper.features.inc',
+      'file' => $path . '/simplerdf_custom_fields.features.inc',
     ),
   );
 }
@@ -27,8 +25,9 @@ function _simplerdf_custom_fields_features_api() {
  */
 function simplerdf_custom_fields_features_export($data, &$export, $module_name) {
   foreach ($data as $name) {
-    $export['simplerdf_custom_fields'][$name] = $name;
+    $export['features']['simplerdf_custom_fields'][$name] = $name;
   }
+  $export['dependencies']['simplerdf_custom_fields'] = 'simplerdf_custom_fields';
   return array();
 }
 
@@ -36,10 +35,10 @@ function simplerdf_custom_fields_features_export($data, &$export, $module_name) 
  * Implements hook_features_export_options() for simplerdf_custom_fields.
  */
 function simplerdf_custom_fields_features_export_options() {
-  $namespaces = simplerdf_namespaces_load();
+  $fields = simplerdf_custom_fields_load();
   $options = array();
-  foreach ($namespaces as $name => $ns) {
-    $options[$name] = $name . ' : ' . $ns->uri;
+  foreach ($fields as $name => $field) {
+    $options[$name] = $field->title . ' (' . $name . ')';
   }
   return $options;
 }
@@ -50,17 +49,18 @@ function simplerdf_custom_fields_features_export_options() {
 function simplerdf_custom_fields_features_export_render($module_name, $data, $export = NULL) {
   $code = array();
   foreach ($data as $name) {
-    $ns = simplerdf_namespaces_load($name);
-    if ($ns) {
+    $field = simplerdf_custom_fields_load($name);
+    if ($field) {
       // Export prefix and URI by name
       $code[$name] = array(
-        'prefix' => $ns->prefix,
-        'uri' => $ns->uri,
+        'title' => $field->title,
+        'type' => $field->type,
+        'settings' => $field->settings,
       );
     }
   }
 
-  $code = "  return ". features_var_export($code, '  ') .";";
+  $code = '  return ' . features_var_export($code, '  ') . ';';
   return array('simplerdf_default_custom_fields' => $code);
 }
 
@@ -79,6 +79,10 @@ function simplerdf_custom_fields_features_rebuild($module) {
     foreach ($fields as $name => $field) {
       $field = array('name' => $name) + $field;
       drupal_write_record('simplerdf_custom_fields', $field, 'name');
+      if (!db_affected_rows()) {
+        drupal_write_record('simplerdf_custom_fields', $field);
+      }
     }
+    _simplerdf_custom_fields_build(NULL, TRUE);
   }
 }

@@ -47,3 +47,17 @@ function simplerdf_custom_fields_schema() {
 
   return $schema;
 }
+
+/**
+ * Implements hook_install().
+ */
+function simplerdf_custom_fields_install() {
+  drupal_install_schema('simplerdf_custom_fields');
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function simplerdf_custom_fields_uninstall() {
+  drupal_uninstall_schema('simplerdf_custom_fields');
+}

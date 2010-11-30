@@ -17,9 +17,7 @@ function simplerdf_namespaces_admin_list() {
 
   $output = '';
 
-  // Custom namespaces edit table
-  $output .= '<h2>' . t('Custom namespaces') . '</h2>';
-
+  // Custom namespaces listing table
   $header = array(
     t('Machine name'),
     t('Prefix'),
@@ -41,10 +39,7 @@ function simplerdf_namespaces_admin_list() {
     $ns->state = _simplerdf_namespaces_detect_state($ns);
 
     // Build operations
-    $ops = array(
-      'edit' => NULL,
-      'delete' => NULL,
-    );
+    $ops = array();
 
     if ($ns->state == 'default') {
       $ops['edit'] = t('Override');
@@ -60,7 +55,7 @@ function simplerdf_namespaces_admin_list() {
     }
 
     foreach ($ops as $op_name => $op) {
-      $ops[$op_name] = l($op, SIMPLERDF_NAMESPACES_ADMIN_PATH . '/edit/' . $ns->prefix, array('class' => $op_name . '-link'));
+      $ops[$op_name] = l($op, SIMPLERDF_NAMESPACES_ADMIN_PATH . '/' . $op_name . '/' . $ns->name, array('class' => $op_name . '-link'));
     }
 
     // Build row
@@ -88,7 +83,7 @@ function simplerdf_namespaces_admin_list() {
   }
 
   // Render
-  $output .= theme('table', $header, $rows, array('class' => 'simplerdf-namespaces-admin-list'));
+  $output .= theme('table', $header, $rows, array('id' => 'simplerdf-namespaces-admin-list', 'class' => 'simplerdf-admin-listing-table'));
 
   $output .= '<div>' . l(t('Add a namespace'), SIMPLERDF_NAMESPACES_ADMIN_PATH . '/add') . '</div>';
 
@@ -114,12 +109,12 @@ function simplerdf_namespaces_admin_edit_form($form_state, $ns = NULL) {
   // Machine name
   $form['name'] = array(
     '#title' => t('Machine name'),
-    '#description' => t('Unique code name of this namespace. Must contain only lowercase letters (a-z), numbers (0-9), and underscores (_). Once this value has been set, it cannot be changed.'),
   );
   if ($ns) {
     // Existing item
     $form['name'] += array(
       '#type' => 'item',
+      '#value' => $ns->name,
     );
   }
   else {
@@ -129,6 +124,7 @@ function simplerdf_namespaces_admin_edit_form($form_state, $ns = NULL) {
       '#maxlength' => 64,
       '#size' => 30,
       '#required' => TRUE,
+      '#description' => t('Unique code name of this namespace. Must contain only lowercase letters (a-z), numbers (0-9), and underscores (_). Once this value has been set, it cannot be changed.'),
     );
   }
 
@@ -139,6 +135,7 @@ function simplerdf_namespaces_admin_edit_form($form_state, $ns = NULL) {
     '#maxlength' => 64,
     '#required' => TRUE,
     '#description' => t('Namespace prefix as used in some RDF document formats. Do not include a colon (:) at the end.'),
+    '#default_value' => $ns ? $ns->prefix : NULL,
   );
 
   $form['uri'] = array(
@@ -148,6 +145,7 @@ function simplerdf_namespaces_admin_edit_form($form_state, $ns = NULL) {
     '#maxlength' => 255,
     '#required' => TRUE,
     '#description' => t('Namespace URI indicating the base of objects grouped under the namespace.'),
+    '#default_value' => $ns ? $ns->uri : NULL,
   );
 
   $form['submit'] = array(
@@ -234,6 +232,12 @@ function simplerdf_namespaces_admin_delete_form($form_state, $ns = NULL) {
   // Detect state
   $ns->state = _simplerdf_namespaces_detect_state($ns);
 
+  if ($ns->state == 'default') {
+    // Illegal state
+    // Go back to the main admin page
+    drupal_goto(SIMPLERDF_CUSTOM_FIELDS_ADMIN_PATH);
+  }
+
   if ($ns) {
     // Cache namespace
     $form['__ns'] = array(
@@ -263,7 +267,7 @@ function simplerdf_namespaces_admin_delete_form($form_state, $ns = NULL) {
  * Namespace delete form submit callback.
  * Delete/revert the namespace.
  */
-function simplerdf_namespaces_admin_delete_form_submit($form, $form_state) {
+function simplerdf_namespaces_admin_delete_form_submit($form, &$form_state) {
   $ns = $form_state['values']['__ns'];
   db_query("DELETE FROM {simplerdf_namespaces} WHERE name = '%s'", $ns->name);
 

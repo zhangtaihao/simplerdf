@@ -1,5 +1,10 @@
 /* $Id$ */
 
+/* Dashboard */
+table.simplerdf-admin-settings-table {
+  width: 400px;
+}
+
 /* Theme hook simplerdf_mappings_table */
 table.simplerdf-mappings-table .simplerdf-mapper {
   padding: 0.6em inherit;
@@ -9,16 +14,6 @@ table.simplerdf-mappings-table .simplerdf-mapper {
 /* Theme hook simplerdf_namespaces_table */
 table.simplerdf-namespaces-table {
   width: 100%;
-}
-
-
-/* simplerdf_namespaces styles */
-table.simplerdf-namespaces-admin-list {
-  width: 100%;
-  margin: 15px 0;
-}
-table.simplerdf-namespaces-admin-list .empty {
-  font-style: italic;
 }
 
 
@@ -35,4 +30,11 @@ a.simplerdf-nodeuri-settings-link {
 }
 #simplerdf-changed-message.changed {
   display: block;
+}
+table.simplerdf-admin-listing-table {
+  margin: 15px 0;
+  width: 100%;
+}
+table.simplerdf-admin-listing-table .empty {
+  font-style: italic;
 }

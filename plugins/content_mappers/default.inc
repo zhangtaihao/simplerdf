@@ -6,6 +6,7 @@
  */
 
 $plugin = array(
+  'title' => t('Default'),
   'field types' => array('textfield'),
   'callback map' => 'simplerdf_content_mapper_default_map',
 );

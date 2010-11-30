@@ -59,7 +59,7 @@ function _simplerdf_menu() {
 
   // Node URI administration
   $items['admin/build/simplerdf/nodeuri'] = array(
-    'title' => 'Node URI generators',
+    'title' => 'Node URI format',
     'description' => 'Select and configure settings for generation of node URIs for RDF documents.',
     'type' => MENU_NORMAL_ITEM,
     'page callback' => 'drupal_get_form',

@@ -181,11 +181,138 @@ function simplerdf_admin_mappings_form_submit($form, $form_state) {
 }
 
 /**
- * @todo Admin dashboard
- * Dashboard page.
+ * Administration dashboard page.
  */
 function simplerdf_admin_dashboard() {
-  return '';
+  $path = drupal_get_path('module', 'simplerdf');
+  drupal_add_css($path . '/simplerdf.admin.css');
+
+  $output = '<div class="simplerdf-admin-dashboard">';
+
+  $output .= '<p>' . t('An overview of the Simple RDF configuration for this site is displayed on this page.');
+
+  // Display general settings
+  $output .= '<h2>' . t('General settings') . '</h2>';
+
+  $header = array(
+    t('Name'),
+    t('Value'),
+  );
+  $rows = array();
+
+  // Active node URI generator
+  $plugins = ctools_get_plugins('simplerdf', 'nodeuri_generators');
+  $active_nodeuri = variable_get('simplerdf_nodeuri_generator', SIMPLERDF_DEFAULT_NODEURI_GENERATOR);
+  $rows[] = array(
+    t('Node URI format'),
+    check_plain($plugins[$active_nodeuri]['title']),
+  );
+
+  // View path
+  $rows[] = array(
+    t('RDF view path'),
+    check_plain('node/%/' . variable_get('simplerdf_view_path', 'rdf')),
+  );
+
+  // Tab settings
+  $rows[] = array(
+    t('Show tab'),
+    variable_get('simplerdf_view_tab', TRUE) ? t('true') : t('false'),
+  );
+  $rows[] = array(
+    t('Tab title'),
+    check_plain(variable_get('simplerdf_view_title', 'RDF')),
+  );
+
+  // RDF format
+  module_load_include('inc', 'simplerdf', 'includes/simplerdf.arc');
+  if (simplerdf_arc_include()) {
+    $rows[] = array(
+      t('RDF format'),
+      _simplerdf_admin_get_friendly_format(variable_get('simplerdf_format', SIMPLERDF_DEFAULT_FORMAT)),
+    );
+  }
+  else {
+    drupal_set_message(t('The ARC2 library is not found. Please install it under @path to enable RDF output.', array('@path' => '<code>sites/all/libraries/arc</code>')), 'warning');
+  }
+
+  $output .= theme('table', $header, $rows, array('class' => 'simplerdf-admin-settings-table'));
+
+  $output .= '<div class="simplerdf-admin-links">';
+  $output .= l(t('Configure node URI format'), 'admin/build/simplerdf/nodeuri');
+  $output .= ' | ';
+  $output .= l(t('Configure settings'), 'admin/build/simplerdf/settings');
+  $output .= '</div>';
+
+  // Display namespaces
+  $output .= '<h2>' . t('RDF namespaces') . '</h2>';
+
+  $output .= theme('simplerdf_namespaces_table');
+  if (module_exists('simplerdf_namespaces')) {
+    $output .= '<div class="simplerdf-admin-links">';
+    $output .= l(t('Manage custom namespaces'), 'admin/build/simplerdf/namespaces');
+    $output .= '</div>';
+  }
+
+  // Build mappings
+  $output .= '<h2>' . t('Mapped fields') . '</h2>';
+
+  $header = array(
+    t('Type'),
+    t('Mapped fields'),
+    t('Operations'),
+  );
+  $rows = array();
+  foreach (node_get_types('names') as $content_type => $type_name) {
+    $fields = simplerdf_get_fields($content_type);
+    $rdf_mappings = simplerdf_get_mappings($content_type);
+    $mapped_fields = array();
+    // Group mapped fields
+    foreach ($fields as $name => $field) {
+      if (isset($rdf_mappings[$name])) {
+        $mapped_fields[] = $name;
+      }
+    }
+    $rows[] = array(
+      check_plain($type_name),
+      check_plain(implode(', ', $mapped_fields)),
+      l(t('Manage mappings'), 'admin/content/node-type/' . str_replace('_', '-', $content_type) . '/simplerdf'),
+    );
+  }
+
+  $output .= theme('table', $header, $rows, array('class' => 'simplerdf-admin-mapped-fields'));
+
+  // Active plugins
+  $output .= '<h2>' . t('Active plugins') . '</h2>';
+
+  $header = array(
+    t('Type'),
+    t('Plugins'),
+  );
+  $type_names = array(
+    'nodeuri_generators' => t('Node URI generator'),
+    'mappers' => t('Field mappers'),
+    'content_mappers' => t('Content field mappers'),
+  );
+  $rows = array();
+  foreach ($type_names as $type => $type_name) {
+    $plugin_titles = array();
+    $plugins = ctools_get_plugins('simplerdf', $type);
+    uasort($plugins, '_simplerdf_compare_plugin_weights');
+    foreach ($plugins as $name => $plugin) {
+      $plugin_titles[] = '<strong>' . check_plain($plugin['title']) . '</strong>' . ' (' . check_plain($name) . ')';
+    }
+
+    $rows[] = array(
+      $type_name,
+      implode(', ', $plugin_titles),
+    );
+  }
+
+  $output .= theme('table', $header, $rows, array('id' => 'simplerdf-admin-active-plugins', 'class' => 'simplerdf-admin-listing-table'));
+
+  $output .= '</div>';
+  return $output;
 }
 
 /**
@@ -197,6 +324,7 @@ function simplerdf_admin_nodeuri_form($form_state) {
   drupal_add_js($path . '/simplerdf.admin.js');
 
   $plugins = ctools_get_plugins('simplerdf', 'nodeuri_generators');
+  uasort($plugins, '_simplerdf_compare_plugin_weights');
   $active_nodeuri = variable_get('simplerdf_nodeuri_generator', SIMPLERDF_DEFAULT_NODEURI_GENERATOR);
 
   // Cache old setting
@@ -212,7 +340,7 @@ function simplerdf_admin_nodeuri_form($form_state) {
   $form['nodeuri'] = array(
     '#type' => 'item',
     '#title' => t('Node URI format'),
-    '#description' => t('Configure the way the URI of a node is generated.'),
+    '#description' => t('Configure the way the URI of a node is generated. If the generated URI is empty, the URI will be generated as the raw path of the node (which will always produce a URI).'),
   );
   // Populate choices
   foreach ($plugins as $plugin) {
@@ -510,7 +638,7 @@ function _simplerdf_admin_get_friendly_format($format) {
       'RSS10' => t('RSS 1.0'),
     );
   }
-  return isset($names[$format]) ? $names[$format] : $format;
+  return isset($names[$format]) ? $names[$format] : check_plain($format);
 }
 
 /**

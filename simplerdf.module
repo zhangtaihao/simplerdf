@@ -72,7 +72,7 @@ function simplerdf_flush_caches() {
  * @param string $type
  *   Type of cache to clear; if not specified, clears all cache. Can be one of:
  *   - 'node' : Node caches, with node ID optionally specified.
- *   - 'fields' : Fields cache, for subsequent rebuild.
+ *   - 'fields' : Fields cache, for subsequent rebuild, with content type optionally specified.
  *   - 'mappings' : Mappings cache, with content type optionally specified.
  * @param $a1
  *   Parameter to use when clearing cache, depending on $type:
@@ -97,8 +97,14 @@ function simplerdf_clear_cache($type = NULL, $a1 = NULL) {
 
   // Fields cache
   if (!$type || $type == 'fields') {
-    cache_clear_all('fields', 'cache_simplerdf');
-    cache_clear_all('content_fields', 'cache_simplerdf');
+    if ($a1) {
+      cache_clear_all('fields:' . $a1, 'cache_simplerdf');
+      cache_clear_all('content_fields:' . $a1, 'cache_simplerdf');
+    }
+    else {
+      cache_clear_all('fields:', 'cache_simplerdf', TRUE);
+      cache_clear_all('content_fields:', 'cache_simplerdf', TRUE);
+    }
     // Force rebuild
     _simplerdf_build_content_fields(NULL, TRUE);
     _simplerdf_build_fields(NULL, TRUE);
@@ -225,6 +231,7 @@ function simplerdf_get_namespaces() {
       $namespaces += $result;
     }
   }
+  ksort($namespaces);
   return $namespaces;
 }
 
@@ -498,6 +505,7 @@ function simplerdf_nodeuri_generators_process(&$plugin, $info) {
   $plugin += array(
     'title' => '',
     'description' => '',
+    'weight' => 0,
     'callback generate' => NULL,
     'callback generate arguments' => array(),
     'callback generate file' => NULL,
@@ -576,42 +584,44 @@ function simplerdf_get_fields($content_type) {
  *   If TRUE, resets the fields cache.
  *
  * @return array
- *   If $content_type is specified, an array of fields keyed by name (NULL if invalid type). Otherwise, arrays of fields grouped by content type.
+ *   An array of fields keyed by name (NULL if invalid type).
  */
-function _simplerdf_build_fields($content_type = NULL, $reset = FALSE) {
-  static $fields;
+function _simplerdf_build_fields($content_type, $reset = FALSE) {
+  static $fields = array();
 
-  if ($reset || !isset($fields)) {
+  // Internal use only; reset static cache
+  if (!isset($content_type)) {
+    if ($reset) {
+      $fields = array();
+    }
+    return;
+  }
+
+  if ($reset || !isset($fields[$content_type])) {
     // Fetch from cache
-    if (!$reset && $cache_fields = cache_get('fields', 'cache_simplerdf')) {
-      $fields = $cache_fields->data;
+    if (!$reset && $cache_fields = cache_get('fields:' . $content_type, 'cache_simplerdf')) {
+      $fields[$content_type] = $cache_fields->data;
     }
     // Rebuild cache
-    else {
-      // Prepare content types
-      $types = array_keys(node_get_types());
-
+    elseif (node_get_types('type', $content_type)) {
       // Fetch and sort plugins
       ctools_include('plugins');
       $plugins = ctools_get_plugins('simplerdf', 'mappers');
-      uasort($plugins, '_simplerdf_compare_mapper_weights');
+      uasort($plugins, '_simplerdf_compare_plugin_weights');
 
       // Build field data
-      $fields = array();
+      $fields[$content_type] = array();
       foreach ($plugins as $plugin_name => $plugin) {
-        // Get fields by type
-        foreach ($types as $type) {
-          // Fetch fields
-          foreach (_simplerdf_invoke($plugin, 'callback fields', $type) as $name => $field) {
-            $field['mapper'] = $plugin_name;
-            $fields[$type][$name] = array('name' => $name) + $field;
-          }
+        // Fetch fields
+        foreach (_simplerdf_invoke($plugin, 'callback fields', $content_type) as $name => $field) {
+          $field['mapper'] = $plugin_name;
+          $fields[$content_type][$name] = array('name' => $name) + $field;
         }
       }
-      cache_set('fields', $fields, 'cache_simplerdf');
+      cache_set('fields:' . $content_type, $fields[$content_type], 'cache_simplerdf');
     }
   }
-  return isset($content_type) ? $fields[$content_type] : $fields;
+  return $fields[$content_type];
 }
 
 /**
@@ -636,53 +646,64 @@ function simplerdf_get_content_fields($content_type) {
  *   If TRUE, resets the fields cache.
  *
  * @return array
- *   If $content_type is specified, an array of fields keyed by name (NULL if invalid type). Otherwise, arrays of fields grouped by content type.
+ *   An array of fields keyed by name (NULL if invalid type).
  */
-function _simplerdf_build_content_fields($content_type = NULL, $reset = FALSE) {
-  static $fields;
+function _simplerdf_build_content_fields($content_type, $reset = FALSE) {
+  static $fields = array();
 
-  if ($reset || !isset($fields)) {
+  // Internal use only; reset static cache
+  if (!isset($content_type)) {
+    if ($reset) {
+      $fields = array();
+    }
+    return;
+  }
+
+  if ($reset || !isset($fields[$content_type])) {
     // Fetch from cache
-    if (!$reset && $cache_fields = cache_get('content_fields', 'cache_simplerdf')) {
-      $fields = $cache_fields->data;
+    if (!$reset && $cache_fields = cache_get('content_fields:' . $content_type, 'cache_simplerdf')) {
+      $fields[$content_type] = $cache_fields->data;
     }
     // Rebuild cache
     else {
       // Prepare content types
-      $content_fields = content_fields();
-      ksort($content_fields);
+      $content_type_info = content_types($content_type);
+      $content_fields = $content_type_info['fields'];
+      if (!empty($content_fields)) {
+        ksort($content_fields);
 
-      // Fetch and sort plugins
-      ctools_include('plugins');
-      $plugins = ctools_get_plugins('simplerdf', 'content_mappers');
-      uasort($plugins, '_simplerdf_compare_mapper_weights');
+        // Fetch and sort plugins
+        ctools_include('plugins');
+        $plugins = ctools_get_plugins('simplerdf', 'content_mappers');
+        uasort($plugins, '_simplerdf_compare_plugin_weights');
 
-      // Build field data
-      $fields = array();
-      foreach ($content_fields as $content_field) {
-        // Lookup field providers
-        $providers = array();
-        foreach ($plugins as $plugin_name => $plugin) {
-          if (in_array($content_field['module'], $plugin['field types'])) {
+        // Build field data
+        $fields[$content_type] = array();
+        foreach ($content_fields as $content_field) {
+          // Lookup field providers
+          $providers = array();
+          foreach ($plugins as $plugin_name => $plugin) {
+            if (in_array($content_field['module'], $plugin['field types'])) {
+              $providers[] = $plugin_name;
+            }
+          }
+          if (empty($providers)) {
+            // Specify default mapper
             $providers[] = $plugin_name;
           }
-        }
-        if (empty($providers)) {
-          // Specify default mapper
-          $providers[] = $plugin_name;
-        }
 
-        // Forward field to plugins providing its type
-        foreach ($providers as $plugin_name) {
-          $plugin = $plugins[$plugin_name];
-          foreach (_simplerdf_invoke($plugin, 'callback fields', $content_field) as $name => $field) {
-            $field['mapper'] = 'content';
-            $field['content mapper'] = $plugin_name;
-            $fields[$content_field['type_name']][$name] = array('name' => $name) + $field;
+          // Forward field to plugins providing its type
+          foreach ($providers as $plugin_name) {
+            $plugin = $plugins[$plugin_name];
+            foreach (_simplerdf_invoke($plugin, 'callback fields', $content_field) as $name => $field) {
+              $field['mapper'] = 'content';
+              $field['content mapper'] = $plugin_name;
+              $fields[$content_type][$name] = array('name' => $name) + $field;
+            }
           }
         }
+        cache_set('content_fields:' . $content_type, $fields[$content_type], 'cache_simplerdf');
       }
-      cache_set('content_fields', $fields, 'cache_simplerdf');
     }
   }
   return isset($content_type) ? $fields[$content_type] : $fields;
@@ -691,7 +712,7 @@ function _simplerdf_build_content_fields($content_type = NULL, $reset = FALSE) {
 /**
  * Compare two mappers on weights.
  */
-function _simplerdf_compare_mapper_weights($a, $b) {
+function _simplerdf_compare_plugin_weights($a, $b) {
   return $a['weight'] - $b['weight'];
 }
 

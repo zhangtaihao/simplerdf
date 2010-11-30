@@ -1,5 +1,5 @@
 ; $Id$
-name = Simple RDF Custom Mapper
+name = Simple RDF Custom Fields
 description = Define custom fields for mapping in Simple RDF.
 dependencies[] = simplerdf
 package = RDF

@@ -29,7 +29,7 @@ function simplerdf_custom_fields_menu() {
     'title' => 'Add field',
     'description' => 'Add the custom field for mapping to RDF properties.',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('simplerdf_custom_fields_admin_edit'),
+    'page arguments' => array('simplerdf_custom_fields_admin_edit_form'),
     'type' => MENU_NORMAL_ITEM,
     'access arguments' => $administer_simplerdf,
     'file' => 'simplerdf_custom_fields.admin.inc',
@@ -38,7 +38,7 @@ function simplerdf_custom_fields_menu() {
     'title' => 'Edit field',
     'description' => 'Configure the custom field to expose node value(s) for mapping to RDF properties.',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('simplerdf_custom_fields_admin_edit', 5),
+    'page arguments' => array('simplerdf_custom_fields_admin_edit_form', 5),
     'type' => MENU_CALLBACK,
     'access arguments' => $administer_simplerdf,
     'file' => 'simplerdf_custom_fields.admin.inc',
@@ -47,7 +47,7 @@ function simplerdf_custom_fields_menu() {
     'title' => 'Delete field',
     'description' => 'Delete the custom field.',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('simplerdf_custom_fields_admin_delete', 5),
+    'page arguments' => array('simplerdf_custom_fields_admin_delete_form', 5),
     'type' => MENU_CALLBACK,
     'access arguments' => $administer_simplerdf,
     'file' => 'simplerdf_custom_fields.admin.inc',
@@ -132,15 +132,16 @@ function simplerdf_custom_fields_mapper_fields($content_type) {
   $fields = array();
   foreach (simplerdf_custom_fields_load() as $name => $field) {
     $fields[$name] = array(
-      $field->title,
+      'title' => $field->title,
     );
   }
+  return $fields;
 }
 
 /**
  * Simple RDF map callback.
  */
-function simplerdf_custom_fields_mapper_map($node, $nodeuri, $field, $property) {
+function simplerdf_custom_fields_mapper_map($node, $nodeuri, $property, $field) {
   static $mappings = array();
   static $static = array();
 
@@ -157,7 +158,9 @@ function simplerdf_custom_fields_mapper_map($node, $nodeuri, $field, $property) 
       // Basic field
       case 'basic':
         $field_key = $custom_field->settings['node_field'];
-        $value = $node->$custom_field;
+        if (property_exists($node, $field_key)) {
+          $value = $node->$field_key;
+        }
         break;
 
       // Advanced field
@@ -223,4 +226,12 @@ function simplerdf_custom_fields_mapper_map($node, $nodeuri, $field, $property) 
  */
 function _simplerdf_custom_fields_map_eval($node, &$static) {
   return eval(func_get_arg(2));
+}
+
+/**
+ * Implements hook_features_api().
+ */
+function simplerdf_custom_fields_features_api() {
+  module_load_include('inc', 'simplerdf_custom_fields', 'simplerdf_custom_fields.features');
+  return _simplerdf_custom_fields_features_api();
 }
