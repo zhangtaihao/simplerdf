@@ -60,14 +60,13 @@ function simplerdf_build_document($node) {
   $triples = array();
   foreach ($fields as $field_name => $field) {
     if (isset($mappings[$field_name])) {
-      foreach ($mappings[$field_name] as $properties) {
-        $triples = array_merge($triples, simplerdf_map_field($node, $uri, $field, $properties));
-      }
+      $triples = array_merge($triples, simplerdf_map_field($node, $uri, $mappings[$field_name], $field));
     }
   }
 
   // Prepare namespaces
   $namespaces = simplerdf_get_namespaces();
+  unset($namespaces['_']);
 
   // Serialize document
   $document = array();

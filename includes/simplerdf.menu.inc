@@ -19,6 +19,7 @@ function _simplerdf_menu() {
       'title' => check_plain(variable_get('simplerdf_view_title', 'RDF')),
       'description' => 'View the RDF document.',
       'page callback' => 'simplerdf_render_node',
+      'page arguments' => array(1),
       'type' => variable_get('simplerdf_view_tab', TRUE) ? MENU_LOCAL_TASK : MENU_CALLBACK,
       'access callback' => 'node_access',
       'access arguments' => array('view', 1),
@@ -27,8 +28,9 @@ function _simplerdf_menu() {
   }
 
   // Node field mappings
-  foreach (content_types() as $type) {
-    $items['admin/content/node-type/' . $type['url_str'] . '/simplerdf'] = array(
+  foreach (array_keys(node_get_types()) as $type) {
+    $type = str_replace('_', '-', $type);
+    $items['admin/content/node-type/' . $type . '/simplerdf'] = array(
       'title' => 'Simple RDF mappings',
       'description' => 'Configure node property mappings.',
       'page callback' => 'drupal_get_form',

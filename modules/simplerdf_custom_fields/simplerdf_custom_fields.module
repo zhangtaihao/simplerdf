@@ -156,29 +156,28 @@ function simplerdf_custom_fields_mapper_map($node, $nodeuri, $field, $property) 
     switch ($custom_field->type) {
       // Basic field
       case 'basic':
-
+        $field_key = $custom_field->settings['node_field'];
+        $value = $node->$custom_field;
         break;
 
       // Advanced field
       case 'advanced':
         $value = _simplerdf_custom_fields_map_eval($node, $static, $custom_field->settings['phpcode']);
-        if (is_object($value)) {
-          break;
-        }
-        // Array value
-        elseif (is_array($value)) {
-          foreach ($value as $entry) {
-            // Use only non-blank unstructured value
-            if (isset($entry) && $entry !== '') {
-              $values[] = $entry;
-            }
-          }
-        }
-        // Non-blank value
-        elseif (isset($value) && $value !== '') {
-          $values[] = $value;
-        }
         break;
+    }
+
+    // Array value
+    if (is_array($value)) {
+      foreach ($value as $entry) {
+        // Use only non-blank unstructured value
+        if (isset($entry) && $entry !== '') {
+          $values[] = $entry;
+        }
+      }
+    }
+    // Non-blank value
+    elseif (!is_object($value) && isset($value) && $value !== '') {
+      $values[] = $value;
     }
 
     // Cache values
@@ -187,21 +186,23 @@ function simplerdf_custom_fields_mapper_map($node, $nodeuri, $field, $property) 
 
   // Construct triples
   $triples = array();
-  $base_statement = simplerdf_make_subject('uri', $nodeuri) + simplerdf_make_predicate($property);
-  foreach ($values as $value) {
-    // URL resource
-    if ($url = simplerdf_match_url($value)) {
-      $o = simplerdf_make_object('uri', $url);
+  if (!empty($values)) {
+    $base_statement = simplerdf_make_subject('uri', $nodeuri) + simplerdf_make_predicate($property);
+    foreach ($values as $value) {
+      // URL resource
+      if ($url = simplerdf_match_url($value)) {
+        $o = simplerdf_make_object('uri', $url);
+      }
+      // Email resource
+      elseif ($email = simplerdf_match_email($value)) {
+        $o = simplerdf_make_object('uri', $email);
+      }
+      // Regular literal
+      else {
+        $o = simplerdf_make_object('literal', $value);
+      }
+      $triples[] = $base_statement + $o;
     }
-    // Email resource
-    elseif ($email = simplerdf_match_email($value)) {
-      $o = simplerdf_make_object('uri', $email);
-    }
-    // Regular literal
-    else {
-      $o = simplerdf_make_object('literal', $value);
-    }
-    $triples[] = $base_statement + $o;
   }
 
   return $triples;

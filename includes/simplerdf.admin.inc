@@ -6,6 +6,44 @@
  */
 
 /**
+ * Insert Simple RDF mappings column.
+ */
+function _simplerdf_content_types_overview_alter(&$header, &$rows) {
+  // Operations header
+  $header_index = count($header) - 1;
+  $header_position = 0;
+  // Trace to header column
+  for ($i = 0; $i < $header_index; $i ++) {
+    $header_position += $header[$i]['colspan'] ? $header[$i]['colspan'] : 1;
+  }
+  // Trace to column just before last in the 'Operations' group
+  $header_position += $header[$header_index]['colspan'] - 1;
+
+  // Trace the cell column index
+  $cell_index = 0;
+  $cell_position = 0;
+  $row = $rows[0];
+  foreach ($row as $cell) {
+    $cell_position += $cell['colspan'] ? $cell['colspan'] : 1;
+    $cell_index ++;
+    if ($cell_position >= $header_position) {
+      // We've reached or gone beyond the corresponding header position
+      break;
+    }
+  }
+
+  // Expand header
+  $header[$header_index]['colspan'] = $header[$header_index]['colspan'] ? ($header[$header_index]['colspan'] + 1) : 2;
+
+  // Insert cells
+  foreach ($rows as &$row) {
+    $path = 'admin/content/node-type/' . str_replace('_', '-', $row[1]) . '/simplerdf';
+    array_splice($row, $cell_index, 0, l(t('RDF mappings'), $path));
+  }
+  unset($row);
+}
+
+/**
  * @todo ???
  * Form for configuring node property mappings.
  */
@@ -180,9 +218,9 @@ function simplerdf_admin_nodeuri_form($form_state) {
   foreach ($plugins as $plugin) {
     $name = $plugin['name'];
     $title = check_plain($plugin['title']);
-    if (function_exists($plugin['settings form'])) {
+    if (!empty($plugin['settings form'])) {
       // Add link to settings form
-      $title .=  ' ' . l(t('(Settings)'), 'admin/build/simplerdf/nodeuri/' . $name);
+      $title .=  ' ' . l(t('(Settings)'), 'admin/build/simplerdf/nodeuri/' . $name, array('attributes' => array('class' => 'simplerdf-nodeuri-settings-link')));
     }
     $form['nodeuri'][$name] = array(
       '#type' => 'radio',
@@ -259,6 +297,8 @@ function simplerdf_admin_nodeuri_preview($form, &$form_state) {
 function simplerdf_admin_nodeuri_form_submit($form, $form_state) {
   $nodeuri = $form_state['values']['nodeuri'];
   variable_set('simplerdf_nodeuri_generator', $nodeuri);
+
+  simplerdf_clear_cache('node');
   drupal_set_message(t('Node URI generator saved.'));
 }
 
@@ -275,26 +315,49 @@ function simplerdf_admin_nodeuri_settings_form($form_state, $plugin = NULL) {
       '#value' => $plugin,
     );
   }
+  elseif ($form_state['values']['__plugin']) {
+    $plugin = $form_state['values']['__plugin'];
+  }
+
+  // Load plugin
+  if (!empty($plugin) && !empty($plugin['file']) && file_exists($plugin_file = $plugin['path'] . '/' . $plugin['file'])) {
+    _simplerdf_invoke_include($plugin_file);
+  }
 
   // Prepare default values
+  if (!isset($form_state['values'])) {
+    $form_state['values'] = array();
+  }
+  $settings = variable_get('simplerdf_nodeuri_settings', array());
+  if (!empty($settings) && is_array($settings[$plugin['name']])) {
+    $form_state['values'] = array_merge($form_state['values'], $settings[$plugin['name']]);
+  }
   $form_state['values'] = ((array) $form_state['values']) + $plugin['settings defaults'];
 
   // Fetch plugin settings form
   if (function_exists($callback = $plugin['settings form'])) {
-    $form = array_merge($form, $callback($form_state));
+    if (is_array($subform = $callback($form_state))) {
+      $form = array_merge($form, $subform);
+    }
   }
 
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Save settings'),
   );
+
+  return $form;
 }
 
 /**
  * Node URI settings form validate callback.
  */
 function simplerdf_admin_nodeuri_settings_form_validate(&$form, &$form_state) {
+  // Load plugin
   $plugin = $form_state['values']['__plugin'];
+  if (!empty($plugin['file']) && file_exists($plugin_file = $plugin['path'] . '/' . $plugin['file'])) {
+    _simplerdf_invoke_include($plugin_file);
+  }
   if (function_exists($callback = $plugin['settings form validate'])) {
     // Pass through to plugin settings validator
     $callback($form, $form_state);
@@ -308,12 +371,17 @@ function simplerdf_admin_nodeuri_settings_form_submit($form, &$form_state) {
   $plugin = $form_state['values']['__plugin'];
   $settings = (array) variable_get('simplerdf_nodeuri_settings', array());
   $settings[$plugin['name']] = _simplerdf_admin_nodeuri_process_values($plugin['settings defaults'], $form_state['values']);
+  variable_set('simplerdf_nodeuri_settings', $settings);
+
+  simplerdf_clear_cache('node');
   drupal_set_message(t('Settings for %nodeuri have been saved.', array('%nodeuri' => $plugin['title'])));
 }
 
 /**
  * Helper function to construct settings by recursively traversing defaults
  * and values arrays.
+ *
+ * @todo Test whether recursion works properly.
  *
  * @param array $defaults
  *   Default settings, used for detecting which values to save.
@@ -435,9 +503,6 @@ function _simplerdf_admin_get_friendly_format($format) {
   static $names;
   if (!$names) {
     $names = array(
-      'LegacyHTML' => t('Legacy HTML'),
-      'LegacyJSON' => t('Legacy JSON'),
-      'LegacyXML' => t('Legacy XML'),
       'NTriples' => t('N-Triples'),
       'POSHRDF' => t('POSH RDF'),
       'RDFJSON' => t('RDF/JSON'),
@@ -456,7 +521,7 @@ function simplerdf_admin_settings_form_validate($form, &$form_state) {
   if (preg_match('/[^A-Za-z0-9]/', $path)) {
     form_set_error('path', t('Invalid character detected for RDF view path. Please enter only lowercase, uppercase, and numeric characters.'));
   }
-  elseif (db_result(db_query("SELECT 1 FROM {menu_router} WHERE path = '%s'", "node/%/$path"))) {
+  elseif ($path != variable_get('simplerdf_view_path', 'rdf') && db_result(db_query("SELECT 1 FROM {menu_router} WHERE path = '%s'", "node/%/$path"))) {
     form_set_error('path', t('The specified path already exists. Please enter different one.'));
   }
 }
@@ -476,4 +541,6 @@ function simplerdf_admin_settings_form_submit($form, &$form_state) {
     // Clear just document cache
     cache_clear_all('node:document:', 'cache_simplerdf', TRUE);
   }
+
+  drupal_set_message(t('The settings have been saved.'));
 }

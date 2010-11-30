@@ -9,6 +9,8 @@
  * Implements hook_schema().
  */
 function simplerdf_namespaces_schema() {
+  $t = get_t();
+
   $schema['simplerdf_namespaces'] = array(
     'description' => $t('RDF namespaces'),
 
@@ -38,11 +40,6 @@ function simplerdf_namespaces_schema() {
     // Both fields must be unique (global uniqueness enforced elsewhere)
     'unique keys' => array(
       'prefix' => array('prefix'),
-      'uri' => array('uri'),
-    ),
-
-    // Index on namespace URI
-    'indexes' => array(
       'uri' => array('uri'),
     ),
   );

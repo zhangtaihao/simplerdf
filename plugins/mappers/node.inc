@@ -69,6 +69,7 @@ function simplerdf_mapper_node_map($node, $nodeuri, $property, $field) {
     case 'class':
       $p = simplerdf_make_predicate('rdf:type');
       $o = simplerdf_make_object('uri', $property);
+      break;
 
     // Text fields
     case 'title':
@@ -85,6 +86,6 @@ function simplerdf_mapper_node_map($node, $nodeuri, $property, $field) {
   }
 
   if ($o) {
-    return $s + $p + $o;
+    return array($s + $p + $o);
   }
 }

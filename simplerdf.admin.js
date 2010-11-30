@@ -9,7 +9,7 @@ $(document).ready(function () {
   $('.simplerdf-nodeuri-button:radio').change(function () {
     if (!shown) {
       // Show "changed" message on changing options
-      $('#simplerdf-changed-message:not(.changed)').show();
+      $('#simplerdf-changed-message:not(.changed)').show(300);
       shown = true;
     }
   });

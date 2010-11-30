@@ -13,13 +13,25 @@ table.simplerdf-namespaces-table {
 
 
 /* simplerdf_namespaces styles */
-
 table.simplerdf-namespaces-admin-list {
   width: 100%;
+  margin: 15px 0;
+}
+table.simplerdf-namespaces-admin-list .empty {
+  font-style: italic;
 }
 
+
+/* Node URI styles */
+a.simplerdf-nodeuri-settings-link {
+  margin-left: 0.4em;
+}
+
+
+/* Generic styles */
 #simplerdf-changed-message {
   display: none;
+  margin: 1em 0;
 }
 #simplerdf-changed-message.changed {
   display: block;

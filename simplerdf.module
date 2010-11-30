@@ -43,21 +43,6 @@ function simplerdf_menu() {
 }
 
 /**
- * Load mapper by its machine name.
- *
- * @param string $name
- *   Machine name of mapper.
- *
- * @return array
- *   Mapper plugin array.
- */
-function simplerdf_mapper_load($name) {
-  ctools_include('plugins');
-  $plugin = ctools_get_plugins('simplerdf', 'mappers', $name);
-  return $plugin;
-}
-
-/**
  * Wildcard loader for node URI generator settings.
  *
  * @param string $name
@@ -69,7 +54,7 @@ function simplerdf_mapper_load($name) {
 function simplerdf_nodeuri_settings_load($name) {
   ctools_include('plugins');
   $plugin = ctools_get_plugins('simplerdf', 'nodeuri_generators', $name);
-  if (function_exists($plugin['settings form'])) {
+  if (!empty($plugin['settings form'])) {
     return $plugin;
   }
 }
@@ -155,6 +140,14 @@ function simplerdf_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
       }
       break;
   }
+}
+
+/**
+ * Implements hook_content_types_overview_alter().
+ */
+function simplerdf_content_types_overview_alter(&$header, &$rows) {
+  module_load_include('inc', 'simplerdf', 'includes/simplerdf.admin');
+  _simplerdf_content_types_overview_alter($header, $rows);
 }
 
 /**
@@ -535,10 +528,16 @@ function _simplerdf_invoke($plugin, $op) {
   // Prepare callback arguments
   $args = array_merge($args, $plugin[$op . ' arguments']);
 
+  // Load plugin file
+  if (!$loaded[$plugin['name']]['plugin'] && !empty($plugin['file']) && file_exists($plugin_file = $plugin['path'] . '/' . $plugin['file'])) {
+    _simplerdf_invoke_include($plugin_file);
+    $loaded[$plugin['name']]['plugin'] = TRUE;
+  }
+
   // Include file
-  if (!$loaded[$plugin['name']][$op] && isset($plugin[$op . ' file']) && file_exists($file = $plugin[$op . ' path'] . '/' . $plugin[$op . ' file'])) {
+  if (!$loaded[$plugin['name']]['ops'][$op] && isset($plugin[$op . ' file']) && file_exists($file = $plugin[$op . ' path'] . '/' . $plugin[$op . ' file'])) {
     _simplerdf_invoke_include($file);
-    $loaded[$plugin['name']][$op] = TRUE;
+    $loaded[$plugin['name']]['ops'][$op] = TRUE;
   }
 
   // Invoke callback
@@ -729,10 +728,10 @@ function simplerdf_get_mappings($content_type) {
  *   Node object.
  * @param string $nodeuri
  *   Node URI as RDF statement subject.
- * @param array $field
- *   Mapping field.
  * @param array $properties
  *   An array of RDF properties as predicates.
+ * @param array $field
+ *   Mapping field.
  *
  * @return array
  *   RDF triples in the format specified by the ARC2 library, with the
@@ -740,14 +739,14 @@ function simplerdf_get_mappings($content_type) {
  *
  * @see http://arc.semsol.org/docs/v2/structures
  */
-function simplerdf_map_field($node, $nodeuri, $field, $properties) {
+function simplerdf_map_field($node, $nodeuri, $properties, $field) {
   ctools_include('plugins');
 
   // Map field
-  $mapper = ctools_get_plugins('simplerdf', 'mappers', $field['mapper']);
+  $plugin = ctools_get_plugins('simplerdf', 'mappers', $field['mapper']);
   $triples = array();
   foreach ($properties as $property) {
-    $result = _simplerdf_invoke($mapper, 'callback map', $node, $nodeuri, $field, $property);
+    $result = _simplerdf_invoke($plugin, 'callback map', $node, $nodeuri, $property, $field);
     if (is_array($result) && !empty($result)) {
       $triples = array_merge($triples, $result);
     }
@@ -798,8 +797,9 @@ function simplerdf_get_nodeuri($node) {
  *   Node URI string, or NULL if generation failed.
  */
 function simplerdf_generate_nodeuri($generator, $node) {
-  // Generate using active URI generator
   ctools_include('plugins');
+
+  // Generate using active URI generator
   $plugin = ctools_get_plugins('simplerdf', 'nodeuri_generators', $generator);
   $settings = (array) variable_get('simplerdf_nodeuri_settings', array());
   if (!isset($settings[$generator])) {

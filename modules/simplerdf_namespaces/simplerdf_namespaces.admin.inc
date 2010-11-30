@@ -12,6 +12,9 @@ define('SIMPLERDF_NAMESPACES_ADMIN_PATH', 'admin/build/simplerdf/namespaces');
  * Namespace administration page.
  */
 function simplerdf_namespaces_admin_list() {
+  $path = drupal_get_path('module', 'simplerdf');
+  drupal_add_css($path . '/simplerdf.admin.css');
+
   $output = '';
 
   // Custom namespaces edit table
@@ -73,8 +76,21 @@ function simplerdf_namespaces_admin_list() {
     );
   }
 
+  // Empty table
+  if (empty($rows)) {
+    $rows[] = array(
+      array(
+        'colspan' => count($header),
+        'data' => t('No custom namespaces defined.'),
+        'class' => 'empty',
+      ),
+    );
+  }
+
   // Render
   $output .= theme('table', $header, $rows, array('class' => 'simplerdf-namespaces-admin-list'));
+
+  $output .= '<div>' . l(t('Add a namespace'), SIMPLERDF_NAMESPACES_ADMIN_PATH . '/add') . '</div>';
 
   return $output;
 }

@@ -23,8 +23,8 @@ $plugin = array(
  */
 function simplerdf_nodeuri_custom_generate($node) {
   if (module_exists('token')) {  // Just to make sure Token is available
-    $pattern = simplerdf_get_setting('custom', 'pattern');
-    return token_replace($pattern, 'node', $node);
+    $pattern = $settings['pattern'];
+    return url(NULL, array('absolute' => TRUE)) . token_replace($pattern, 'node', $node);
   }
 }
 
@@ -35,7 +35,7 @@ function simplerdf_nodeuri_custom_settings($form_state) {
   $form['pattern'] = array(
     '#title' => 'Node URI pattern',
     '#type' => 'textfield',
-    '#prefix' => base_path(),
+    '#field_prefix' => base_path(),
     '#default_value' => $form_state['values']['pattern'],
     '#required' => TRUE,
   );
@@ -43,4 +43,6 @@ function simplerdf_nodeuri_custom_settings($form_state) {
     '#type' => 'markup',
     '#value' => theme('token_help', 'node'),
   );
+
+  return $form;
 }
