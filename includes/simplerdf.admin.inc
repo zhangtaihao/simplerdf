@@ -174,8 +174,9 @@ function simplerdf_admin_mappings_form_submit($form, $form_state) {
     }
   }
 
-  // Clear mapping cache
+  // Clear cache
   simplerdf_clear_cache('mappings', $content_type);
+  simplerdf_clear_cache('node');
 
   drupal_set_message(t('RDF mappings have been updated.'));
 }
