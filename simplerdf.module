@@ -460,6 +460,7 @@ function simplerdf_content_mappers_process(&$plugin, $info) {
   // Add default values
   $plugin += array(
     'weight' => 0,
+    'field modules' => array(),
     'field types' => array(),
     'callback fields' => '_simplerdf_content_mappers_default_fields',
     'callback fields arguments' => array(),
@@ -683,13 +684,13 @@ function _simplerdf_build_content_fields($content_type, $reset = FALSE) {
           // Lookup field providers
           $providers = array();
           foreach ($plugins as $plugin_name => $plugin) {
-            if (in_array($content_field['module'], $plugin['field types'])) {
+            if (in_array($content_field['module'], $plugin['field modules']) || in_array($content_field['type'], $plugin['field types'])) {
               $providers[] = $plugin_name;
             }
           }
           if (empty($providers)) {
             // Specify default mapper
-            $providers[] = $plugin_name;
+            $providers[] = 'default';
           }
 
           // Forward field to plugins providing its type
