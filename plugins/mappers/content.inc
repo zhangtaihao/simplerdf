@@ -31,13 +31,31 @@ function simplerdf_mapper_content_map($node, $nodeuri, $property, $field) {
   // Initialize plugins
   if (!$plugins) {
     ctools_include('plugins');
-    $plugins = ctools_get_plugins('simplerdf', 'content_fields');
+    $plugins = ctools_get_plugins('simplerdf', 'content_mappers');
   }
 
   $mapper = $plugins[$field['content mapper']];
   if (isset($mapper)) {
     // Delegate to the content mapper
-    $field_name = $field['name'];
-    return _simplerdf_invoke('callback map', $mapper, $node, $nodeuri, $property, $field, $node->$field_name);
+    $field_name = $field['content field'];
+    if (property_exists($node, $field_name)) {
+      $values = $node->$field_name;
+      // Ignore invalid values
+      if (!is_array($values) || count($values) == 1 && !isset($values[0])) {
+        $values = array();
+      }
+
+      // Map each non-null value
+      $triples = array();
+      foreach ($values as $value) {
+        if (isset($value)) {
+          $result = _simplerdf_invoke($mapper, 'callback map', $node, $nodeuri, $property, $field, $value);
+          if (is_array($result)) {
+            $triples = array_merge($triples, $result);
+          }
+        }
+      }
+      return $triples;
+    }
   }
 }

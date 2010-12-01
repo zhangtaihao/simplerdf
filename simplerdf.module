@@ -681,6 +681,7 @@ function _simplerdf_build_content_fields($content_type, $reset = FALSE) {
         // Build field data
         $fields[$content_type] = array();
         foreach ($content_fields as $content_field) {
+          $field_name = $content_field['field_name'];
           // Lookup field providers
           $providers = array();
           foreach ($plugins as $plugin_name => $plugin) {
@@ -698,6 +699,9 @@ function _simplerdf_build_content_fields($content_type, $reset = FALSE) {
             $plugin = $plugins[$plugin_name];
             foreach (_simplerdf_invoke($plugin, 'callback fields', $content_field) as $name => $field) {
               $field['mapper'] = 'content';
+              $field['field type'] = $content_field['type'];
+              $field['field module'] = $content_field['module'];
+              $field['content field'] = $field_name;
               $field['content mapper'] = $plugin_name;
               $fields[$content_type][$name] = array('name' => $name) + $field;
             }
