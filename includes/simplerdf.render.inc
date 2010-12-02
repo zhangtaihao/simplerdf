@@ -50,7 +50,7 @@ function simplerdf_render_node($node) {
 function simplerdf_render_build_document($node) {
   $type = $node->type;
 
-  $triples = simplerdf_render_build_triples($node);
+  $triples = simplerdf_render_get_processed_triples($node);
 
   // Serialize document
   $document = array();
@@ -83,7 +83,7 @@ function simplerdf_render_build_document($node) {
 }
 
 /**
- * Build RDF triples for a node.
+ * Build RDF triples for a node for output to ARC2.
  *
  * @param stdClass $node
  *   Node object.
@@ -91,21 +91,8 @@ function simplerdf_render_build_document($node) {
  * @return array
  *   Triples suitable for ARC2.
  */
-function simplerdf_render_build_triples($node) {
-
-  // Generate node URI
-  $uri = simplerdf_get_nodeuri($node);
-
-  $fields = simplerdf_get_fields($type);
-  $mappings = simplerdf_get_mappings($type);
-
-  // Map each field
-  $triples = array();
-  foreach ($fields as $field_name => $field) {
-    if (isset($mappings[$field_name])) {
-      $triples = array_merge($triples, simplerdf_map_field($node, $uri, $mappings[$field_name], $field));
-    }
-  }
+function simplerdf_render_get_processed_triples($node) {
+  $triples = simplerdf_build_triples($node);
 
   // Expand known namespace prefixes
   foreach ($triples as &$triple) {
