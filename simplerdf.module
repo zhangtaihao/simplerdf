@@ -219,20 +219,26 @@ function simplerdf_rdf_namespaces() {
 }
 
 /**
- * Helper function to get an array of RDF namespaces.
+ * Helper function to get defined RDF namespaces.
  *
- * @return array
- *   Namespace URIs keyed by prefixes.
+ * @param string $prefix
+ *   Only return the namespace with this prefix.
+ *
+ * @return
+ *   Array of namespace URIs keyed by prefixes, or a matching namespace if prefix is specified.
  */
-function simplerdf_get_namespaces() {
-  $namespaces = array();
-  foreach (module_implements('rdf_namespaces') as $module) {
-    if (is_array($result = module_invoke($module, 'rdf_namespaces'))) {
-      $namespaces += $result;
+function simplerdf_get_namespaces($prefix = NULL) {
+  static $namespaces;
+  if (!isset($namespaces)) {
+    $namespaces = array();
+    foreach (module_implements('rdf_namespaces') as $module) {
+      if (is_array($result = module_invoke($module, 'rdf_namespaces'))) {
+        $namespaces += $result;
+      }
     }
+    ksort($namespaces);
   }
-  ksort($namespaces);
-  return $namespaces;
+  return isset($prefix) ? $namespaces[$prefix] : $namespaces;
 }
 
 

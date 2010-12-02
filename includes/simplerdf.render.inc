@@ -18,7 +18,7 @@ function simplerdf_render_node($node) {
   }
   else {
     // Build page
-    $document = simplerdf_build_document($node);
+    $document = simplerdf_render_build_document($node);
     if ($document) {
       cache_set('node:document:' . $node->nid, $document, 'cache_simplerdf');
     }
@@ -47,26 +47,10 @@ function simplerdf_render_node($node) {
  *   - 'type' : MIME type.
  *   - 'content' : document content.
  */
-function simplerdf_build_document($node) {
+function simplerdf_render_build_document($node) {
   $type = $node->type;
 
-  // Generate node URI
-  $uri = simplerdf_get_nodeuri($node);
-
-  $fields = simplerdf_get_fields($type);
-  $mappings = simplerdf_get_mappings($type);
-
-  // Map each field
-  $triples = array();
-  foreach ($fields as $field_name => $field) {
-    if (isset($mappings[$field_name])) {
-      $triples = array_merge($triples, simplerdf_map_field($node, $uri, $mappings[$field_name], $field));
-    }
-  }
-
-  // Prepare namespaces
-  $namespaces = simplerdf_get_namespaces();
-  unset($namespaces['_']);
+  $triples = simplerdf_render_build_triples($node);
 
   // Serialize document
   $document = array();
@@ -94,6 +78,102 @@ function simplerdf_build_document($node) {
 
     if (!empty($document['content'])) {
       return $document;
+    }
+  }
+}
+
+/**
+ * Build RDF triples for a node.
+ *
+ * @param stdClass $node
+ *   Node object.
+ *
+ * @return array
+ *   Triples suitable for ARC2.
+ */
+function simplerdf_render_build_triples($node) {
+
+  // Generate node URI
+  $uri = simplerdf_get_nodeuri($node);
+
+  $fields = simplerdf_get_fields($type);
+  $mappings = simplerdf_get_mappings($type);
+
+  // Map each field
+  $triples = array();
+  foreach ($fields as $field_name => $field) {
+    if (isset($mappings[$field_name])) {
+      $triples = array_merge($triples, simplerdf_map_field($node, $uri, $mappings[$field_name], $field));
+    }
+  }
+
+  // Expand known namespace prefixes
+  foreach ($triples as &$triple) {
+    // Subject
+    if ($triple['s_type'] == 'uri') {
+      $value = _simplerdf_expand_ns_prefix($triple['s']);
+      if (isset($value)) {
+        $triple['s'] = $value;
+      }
+    }
+    // Predicate
+    $value = _simplerdf_expand_ns_prefix($triple['p']);
+    if (isset($value)) {
+      $triple['p'] = $value;
+    }
+    // Object
+    if ($triple['o_type'] == 'uri') {
+      $value = _simplerdf_expand_ns_prefix($triple['o']);
+      if (isset($value)) {
+        $triple['o'] = $value;
+      }
+    }
+    if ($triple['o_datatype']) {
+      $datatype = _simplerdf_expand_ns_prefix($triple['o_datatype']);
+      if (isset($datatype)) {
+        $triple['o_datatype'] = $datatype;
+      }
+    }
+  }
+  unset($triple);
+
+  return $triples;
+}
+
+/**
+ * Expand a prefixed value to its full URI
+ */
+function _simplerdf_expand_ns_prefix($value) {
+  if (($prefix = _simplerdf_render_extract_ns_prefix($value)) && ($ns = simplerdf_get_namespaces($prefix))) {
+    return $ns . substr($value, strlen($prefix) + 1);
+  }
+}
+
+/**
+ * Extract a possible namespace prefix.
+ */
+function _simplerdf_render_extract_ns_prefix($value) {
+  static $protocols = array('http', 'https', 'ftp', 'news', 'nntp', 'telnet', 'mailto', 'irc', 'ssh', 'sftp', 'webcal', 'rtsp');
+  // Calculate maximum length of protocol/prefix string
+  static $max_length;
+  if (!isset($max_length)) {
+    $max_length = 0;
+    foreach ($protocols as $v) {
+      $max_length = max($max_length, strlen($v));
+    }
+    $namespaces = simplerdf_get_namespaces();
+    unset($namespaces['_']);
+    foreach (array_keys($namespaces) as $v) {
+      $max_length = max($max_length, strlen($v));
+    }
+  }
+
+  // Match only against possible protocol/prefix
+  if ($max_length && ($segment_length = strcspn($value, ':', 0, $max_length + 1)) && $segment_length < $max_length + 1) {
+    $segment = substr($value, 0, $segment_length);
+    // Only return if not a protocol
+    if (!in_array($segment, $protocols)) {
+      return $segment;
     }
   }
 }
