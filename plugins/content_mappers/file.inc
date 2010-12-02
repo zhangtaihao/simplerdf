@@ -10,6 +10,7 @@ $plugin = array(
   'field types' => array('filefield'),
   'callback fields' => 'simplerdf_content_mapper_file_fields',
   'callback map' => 'simplerdf_content_mapper_file_map',
+  'weight' => -10,
 );
 
 /**
