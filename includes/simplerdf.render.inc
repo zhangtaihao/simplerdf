@@ -140,22 +140,9 @@ function _simplerdf_expand_ns_prefix($value) {
  */
 function _simplerdf_render_extract_ns_prefix($value) {
   static $protocols = array('http', 'https', 'ftp', 'news', 'nntp', 'telnet', 'mailto', 'irc', 'ssh', 'sftp', 'webcal', 'rtsp');
-  // Calculate maximum length of protocol/prefix string
-  static $max_length;
-  if (!isset($max_length)) {
-    $max_length = 0;
-    foreach ($protocols as $v) {
-      $max_length = max($max_length, strlen($v));
-    }
-    $namespaces = simplerdf_get_namespaces();
-    unset($namespaces['_']);
-    foreach (array_keys($namespaces) as $v) {
-      $max_length = max($max_length, strlen($v));
-    }
-  }
 
   // Match only against possible protocol/prefix
-  if ($max_length && ($segment_length = strcspn($value, ':', 0, $max_length + 1)) && $segment_length < $max_length + 1) {
+  if ($segment_length = strcspn($value, ':')) {
     $segment = substr($value, 0, $segment_length);
     // Only return if not a protocol
     if (!in_array($segment, $protocols)) {
