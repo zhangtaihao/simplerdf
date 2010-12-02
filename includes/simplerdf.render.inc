@@ -48,8 +48,6 @@ function simplerdf_render_node($node) {
  *   - 'content' : document content.
  */
 function simplerdf_render_build_document($node) {
-  $type = $node->type;
-
   $triples = simplerdf_render_get_processed_triples($node);
 
   // Serialize document

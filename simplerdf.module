@@ -763,6 +763,8 @@ function simplerdf_get_mappings($content_type) {
  *   Namespace-prefixed RDF triples.
  */
 function simplerdf_build_triples($node) {
+  $type = $node->type;
+
   // Generate node URI
   $uri = simplerdf_get_nodeuri($node);
 
