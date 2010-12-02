@@ -10,6 +10,7 @@ $plugin = array(
   'field types' => array('link'),
   'callback fields' => 'simplerdf_content_mapper_link_fields',
   'callback map' => 'simplerdf_content_mapper_link_map',
+  'weight' => -10,
 );
 
 /**

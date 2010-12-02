@@ -9,6 +9,7 @@ $plugin = array(
   'title' => t('Number'),
   'field modules' => array('number'),
   'callback map' => 'simplerdf_content_mapper_number_map',
+  'weight' => -10,
 );
 
 /**
