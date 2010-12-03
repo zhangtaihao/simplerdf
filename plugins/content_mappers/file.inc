@@ -43,51 +43,53 @@ function simplerdf_content_mapper_file_fields($content_field) {
  * Map link fields.
  */
 function simplerdf_content_mapper_file_map($node, $nodeuri, $property, $field, $value) {
-  $filepath = url($value['filepath'], array('absolute' => TRUE));
+  if ($value['list']) {
+    $filepath = url($value['filepath'], array('absolute' => TRUE));
 
-  list($name, $subtype) = explode(':', $field['name']);
-  $triples = array();
+    list($name, $subtype) = explode(':', $field['name']);
+    $triples = array();
 
-  $p = simplerdf_make_predicate($property);
-  if (!isset($subtype)) {
-    // File URL field
-    $s = simplerdf_make_subject('uri', $nodeuri);
-    $o = simplerdf_make_object('uri', url($filepath, array('absolute' => TRUE)));
-    $triples[] = $s + $p + $o;
-  }
-  else {
-    $s = simplerdf_make_subject('uri', $filepath);
-
-    // Detect range
-    if ($subtype == 'filesize') {
-      $range = 'xsd:integer';
-    }
-    elseif ($subtype == 'timestamp') {
-      $range = 'xsd:dateTime';
-    }
-
-    // Fetch value
-    switch ($subtype) {
-      case 'filename':
-      case 'filemime':
-      case 'filesize':
-        $v = $value[$subtype];
-        break;
-
-      case 'timestamp':
-        $v = date('c', $value[$subtype]);
-        break;
-
-      case 'title':
-      case 'description':
-        $v = $value['data'][$subtype];
-    }
-
-    if (!empty($v)) {
-      $o = simplerdf_make_object('literal', $v, $range);
+    $p = simplerdf_make_predicate($property);
+    if (!isset($subtype)) {
+      // File URL field
+      $s = simplerdf_make_subject('uri', $nodeuri);
+      $o = simplerdf_make_object('uri', url($filepath, array('absolute' => TRUE)));
       $triples[] = $s + $p + $o;
     }
-  }
+    else {
+      $s = simplerdf_make_subject('uri', $filepath);
 
-  return $triples;
+      // Detect range
+      if ($subtype == 'filesize') {
+        $range = 'xsd:integer';
+      }
+      elseif ($subtype == 'timestamp') {
+        $range = 'xsd:dateTime';
+      }
+
+      // Fetch value
+      switch ($subtype) {
+        case 'filename':
+        case 'filemime':
+        case 'filesize':
+          $v = $value[$subtype];
+          break;
+
+        case 'timestamp':
+          $v = date('c', $value[$subtype]);
+          break;
+
+        case 'title':
+        case 'description':
+          $v = $value['data'][$subtype];
+      }
+
+      if (!empty($v)) {
+        $o = simplerdf_make_object('literal', $v, $range);
+        $triples[] = $s + $p + $o;
+      }
+    }
+
+    return $triples;
+  }
 }
