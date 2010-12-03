@@ -22,10 +22,10 @@ $plugin = array(
 /**
  * Generate custom node URI.
  */
-function simplerdf_nodeuri_custom_generate($node, $settings) {
+function simplerdf_nodeuri_custom_generate($nid, $settings) {
   if (module_exists('token')) {  // Just to make sure Token is available
     $pattern = $settings['pattern'];
-    return url(token_replace($pattern, 'node', $node), array('absolute' => TRUE, 'alias' => TRUE));
+    return url(token_replace($pattern, 'node', node_load($nid)), array('absolute' => TRUE, 'alias' => TRUE));
   }
 }
 
