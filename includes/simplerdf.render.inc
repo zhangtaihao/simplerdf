@@ -18,7 +18,9 @@ function simplerdf_render_node($node) {
   }
   else {
     // Build page
-    $document = simplerdf_render_build_document($node);
+    $triples = simplerdf_build_triples($node);
+    $triples = simplerdf_render_process_triples($triples);
+    $document = simplerdf_render_build_document($triples);
     if ($document) {
       cache_set('node:document:' . $node->nid, $document, 'cache_simplerdf');
     }
@@ -37,19 +39,18 @@ function simplerdf_render_node($node) {
 }
 
 /**
- * Build RDF document.
+ * Build RDF document from RDF triples.
  *
- * @param stdClass $node
- *   Node object.
+ * @param array $triples
+ *   Array of processed RDF triples.
  *
  * @return array
  *   RDF document, or NULL if cannot be built. The document array consists of:
  *   - 'type' : MIME type.
  *   - 'content' : document content.
  */
-function simplerdf_render_build_document($node) {
+function simplerdf_render_build_document($triples) {
   $namespaces = simplerdf_get_namespaces();
-  $triples = simplerdf_render_get_processed_triples($node);
 
   // Serialize document
   $document = array();
@@ -82,17 +83,15 @@ function simplerdf_render_build_document($node) {
 }
 
 /**
- * Build RDF triples for a node for output to ARC2.
+ * Process raw RDF triples for output to ARC2.
  *
- * @param stdClass $node
- *   Node object.
+ * @param array $triples
+ *   Array of raw RDF triples.
  *
  * @return array
  *   Triples suitable for ARC2.
  */
-function simplerdf_render_get_processed_triples($node) {
-  $triples = simplerdf_build_triples($node);
-
+function simplerdf_render_process_triples($triples) {
   // Expand known namespace prefixes
   foreach ($triples as &$triple) {
     // Subject
