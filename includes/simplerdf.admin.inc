@@ -558,9 +558,15 @@ function _simplerdf_admin_nodeuri_process_values($defaults, $values) {
  * Settings form.
  */
 function simplerdf_admin_settings_form($form_state) {
-  $form['path'] = array(
-    '#type' => 'textfield',
+  $form['view_path'] = array(
+    '#type' => 'fieldset',
     '#title' => t('RDF view path'),
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+  );
+  $form['view_path']['path'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Node RDF path'),
     '#field_prefix' => 'node/%/',
     '#default_value' => variable_get('simplerdf_view_path', 'rdf'),
     '#description' => t('Internal path to display node RDF documents at.'),
