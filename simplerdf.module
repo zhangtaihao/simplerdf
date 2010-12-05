@@ -777,6 +777,9 @@ function simplerdf_build_triples($node) {
     }
   }
 
+  // Give modules a chance to perform some hardcore postprocessing
+  drupal_alter('simplerdf_triples', $triples, $node, $nodeuri);
+
   return $triples;
 }
 
