@@ -569,6 +569,7 @@ function simplerdf_admin_settings_form($form_state) {
     '#title' => t('Node RDF path'),
     '#field_prefix' => 'node/%/',
     '#default_value' => variable_get('simplerdf_view_path', 'rdf'),
+    '#required' => TRUE,
     '#description' => t('Internal path to display node RDF documents at.'),
   );
 
@@ -589,6 +590,7 @@ function simplerdf_admin_settings_form($form_state) {
     '#type' => 'textfield',
     '#title' => t('Tab title'),
     '#default_value' => variable_get('simplerdf_view_title', 'RDF'),
+    '#required' => TRUE,
     '#description' => t('If "RDF view tab" is selected, set this to what should be displayed for the RDF tab label.'),
   );
 
