@@ -82,8 +82,13 @@ function simplerdf_flush_caches() {
  *     cache for that type, or all types if not specified.
  */
 function simplerdf_clear_cache($type = NULL, $a1 = NULL) {
+  // Clear all caches
+  if (!$type) {
+    cache_clear_all('*', 'cache_simplerdf', TRUE);
+  }
+
   // Node cache
-  if (!$type || $type == 'node') {
+  elseif ($type == 'node') {
     if ($a1) {
       // Clear for node
       cache_clear_all('node:document:' . $a1, 'cache_simplerdf');
@@ -96,7 +101,7 @@ function simplerdf_clear_cache($type = NULL, $a1 = NULL) {
   }
 
   // Fields cache
-  if (!$type || $type == 'fields') {
+  elseif ($type == 'fields') {
     if ($a1) {
       cache_clear_all('fields:' . $a1, 'cache_simplerdf');
       cache_clear_all('content_fields:' . $a1, 'cache_simplerdf');
@@ -111,7 +116,7 @@ function simplerdf_clear_cache($type = NULL, $a1 = NULL) {
   }
 
   // Mappings cache
-  if (!$type || $type == 'mappings') {
+  elseif ($type == 'mappings') {
     if ($a1) {
       // Clear for type
       cache_clear_all('mappings:' . $a1, 'cache_simplerdf');
