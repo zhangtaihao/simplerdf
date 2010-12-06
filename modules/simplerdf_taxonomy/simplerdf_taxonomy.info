@@ -1,0 +1,8 @@
+; $Id$
+name = Simple RDF Taxonomy
+description = Provide basic RDF mappings for taxonomy vocabularies and terms.
+dependencies[] = simplerdf
+dependencies[] = taxonomy
+package = RDF
+core = 6.x
+php = 5.2

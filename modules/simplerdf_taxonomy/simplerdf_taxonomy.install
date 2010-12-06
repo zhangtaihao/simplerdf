@@ -1,0 +1,61 @@
+<?php
+// $Id$
+/**
+ * @file
+ * Module installer.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function simplerdf_taxonomy_schema() {
+  $t = get_t();
+
+  $schema['simplerdf_taxonomy_term'] = array(
+    'description' => $t('RDF extensions for taxonomy terms.'),
+
+    'fields' => array(
+      'tid' => array(
+        'type' => 'int',
+        'size' => 'medium',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => $t('Term ID, corresponds to a term in the {term_data} table.'),
+      ),
+      'remote_uri' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => $t('Term remote URI; a term with a remote URI is used in RDF as an external term for mapping.'),
+      ),
+    ),
+
+    'primary key' => array('tid'),
+  );
+
+  return $schema;
+}
+
+/**
+ * Implements hook_install().
+ */
+function simplerdf_taxonomy_install() {
+  drupal_install_schema('simplerdf_taxonomy');
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function simplerdf_taxonomy_uninstall() {
+  drupal_uninstall_schema('simplerdf_taxonomy');
+
+  // Clean taxonomy mapping variables
+  $result = db_query("SELECT * FROM {vocabulary}");
+  while ($vocabulary = db_fetch_object($result)) {
+    if ($vocabulary->module && substr($vocabulary->module, 0, 9) == 'features_') {
+      $machine_name = substr($vocabulary->module, 9);
+      variable_del('simplerdf_taxonomy_mappings_' . $machine_name);
+    }
+  }
+}

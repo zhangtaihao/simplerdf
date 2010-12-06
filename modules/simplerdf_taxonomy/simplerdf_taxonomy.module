@@ -1,0 +1,512 @@
+<?php
+// $Id$
+/**
+ * @file
+ * Main module file.
+ * Minimal taxonomy mapping functionality.
+ */
+
+/**
+ * Implements hook_init().
+ */
+function simplerdf_taxonomy_init() {
+  $args = arg();
+
+  // Add taxonomy term RDF auto-discovery links
+  if (count($args) == 3 && $args[0] == 'taxonomy' && $args[1] == 'term') {
+    $terms = taxonomy_terms_parse_string($args[2]);
+    if ($terms['operator'] == 'or' || $terms['operator'] == 'and') {
+      $tids = $terms['tids'];
+
+      module_load_include('inc', 'simplerdf', 'includes/simplerdf.arc');
+      $path = variable_get('simplerdf_view_path', 'rdf');
+      $format = variable_get('simplerdf_format', SIMPLERDF_DEFAULT_FORMAT);
+      if (($mime_type = simplerdf_arc_get_mime_type($format)) || ($mime_type = 'text/plain')) {
+        foreach ($tids as $tid) {
+          // Add links for only local terms
+          $term = simplerdf_taxonomy_term_load($tid);
+          if (empty($term->remote_uri)) {
+            drupal_add_link(array('rel' => 'meta', 'type' => $mime_type, 'title' => 'RDF', 'href' => url('taxonomy/term/' . $tid . '/' . $path)));
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function simplerdf_taxonomy_theme() {
+  $hooks['simplerdf_taxonomy_admin_mappings_table'] = array(
+    'file' => 'simplerdf_taxonomy.admin.inc',
+  );
+  return $hooks;
+}
+
+/**
+ * Implements hook_menu().
+ */
+function simplerdf_taxonomy_menu() {
+  $items[] = array();
+
+  $view_path = variable_get('simplerdf_taxonomy_term_view_path', 'rdf');
+  $administer_simplerdf = array('administer simplerdf');
+
+  $items['taxonomy/term/%/' . $view_path] = array(
+    'title' => check_plain(variable_get('simplerdf_view_title', 'RDF')),
+    'description' => 'View the RDF document.',
+    'page callback' => 'simplerdf_taxonomy_render_term',
+    'page arguments' => array(2),
+    'type' => MENU_CALLBACK, // Term listings don't show tabs
+    'access arguments' => array('access content'),
+  );
+
+  $items['admin/content/taxonomy/simplerdf'] = array(
+    'title' => 'Simple RDF mappings',
+    'description' => 'Manage RDF mappings for taxonomies.',
+    'page callback' => 'simplerdf_taxonomy_admin_mappings_overview',
+    'access arguments' => $administer_simplerdf,
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'simplerdf_taxonomy.admin.inc',
+    'weight' => -1,
+  );
+  $items['admin/content/taxonomy/%simplerdf_taxonomy_vocabulary/simplerdf'] = array(
+    'title' => 'Simple RDF mappings',
+    'description' => 'Manage RDF mappings for terms in the vocabulary',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('simplerdf_taxonomy_admin_vocabulary_mappings_form', 3),
+    'access arguments' => $administer_simplerdf,
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'simplerdf_taxonomy.admin.inc',
+    'weight' => -1,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_ctools_plugin_directory().
+ */
+function simplerdf_taxonomy_plugin_directory($owner, $type) {
+  if ($owner == 'simplerdf') {
+    return 'plugins/' . $type;
+  }
+}
+
+/**
+ * Render a term RDF document.
+ */
+function simplerdf_taxonomy_render_term($tid) {
+  // Load term
+  $term = simplerdf_taxonomy_term_load($tid);
+
+  // Only render if term is not remote
+  if (!empty($term->remote_uri)) {
+    return drupal_not_found();
+  }
+
+  if ($cache = cache_get('term:document:' . $tid, 'cache_simplerdf')) {
+    // Load cached document
+    $document = $cache->data;
+  }
+  else {
+    $triples = simplerdf_taxonomy_build_triples($term);
+
+    // Render triples
+    module_load_include('inc', 'simplerdf', 'includes/simplerdf.render');
+    $triples = simplerdf_render_process_triples($triples);
+    if ($document = simplerdf_render_build_document($triples)) {
+      cache_set('term:document:' . $tid, $document, 'cache_simplerdf');
+    }
+  }
+
+  if ($document) {
+    // Display document
+    drupal_set_header('Content-Type: ' . $document['type']);
+    echo $document['content'];
+    exit;
+  }
+  else {
+    // Document could not be built
+    drupal_not_found();
+  }
+}
+
+/**
+ * Build term RDF triples.
+ *
+ * @param stdClass $term
+ *   Term object.
+ *
+ * @return array
+ *   Raw RDF triples.
+ */
+function simplerdf_taxonomy_build_triples($term) {
+  // Map fields
+  $triples = array();
+  $mappings = simplerdf_taxonomy_get_mappings($term->vid);
+  $termuri = simplerdf_taxonomy_get_termuri($term->tid);
+  foreach ($mappings as $field => $properties) {
+    $triples = array_merge($triples, simplerdf_taxonomy_map_field($term, $termuri, $properties, $field));
+  }
+
+  return $triples;
+}
+
+/**
+ * Map term RDF fields.
+ *
+ * @param stdClass $term
+ *   Term object.
+ * @param string $termuri
+ *   URI representing the term.
+ * @param array $properties
+ *   Array of RDF properties mapped for this field.
+ * @param string $field
+ *   Name of the field.
+ *
+ * @return array
+ *   RDF triples.
+ */
+function simplerdf_taxonomy_map_field($term, $termuri, $properties, $field) {
+  // Map field
+  $triples = array();
+  foreach ($properties as $property) {
+    $result = simplerdf_taxonomy_map_value($term, $termuri, $property, $field);
+    if (is_array($result) && !empty($result)) {
+      $triples = array_merge($triples, $result);
+    }
+  }
+
+  return $triples;
+}
+
+/**
+ * Helper function to map a field value of a term.
+ *
+ * @param array $term
+ *   Term object.
+ * @param string $termuri
+ *   Term URI.
+ * @param string $property
+ *   RDF property mapping.
+ * @param string $field
+ *   Field name.
+ *
+ * @return array
+ *   RDF triples for this particular property.
+ */
+function simplerdf_taxonomy_map_value($term, $termuri, $property, $field) {
+  $s = simplerdf_make_subject('uri', $termuri);
+  $p = simplerdf_make_predicate($property);
+
+  $triples = array();
+  switch ($field) {
+    // RDF type
+    case 'rdftype':
+      $o = simplerdf_make_object('uri', $property);
+      $triples[] = $s + simplerdf_make_predicate('rdf:type') + $o;
+      break;
+
+    // Single literal values
+    case 'name':
+    case 'description':
+      if (!empty($term->$field)) {
+        $o = simplerdf_make_object('literal', $term->$field);
+        $triples[] = $s + $p + $o;
+      }
+      break;
+
+    // Linked terms
+    case 'parent':
+      if (!isset($rel)) {
+        // Load parent terms
+        $rel = taxonomy_get_parents($term->tid);
+      }
+    case 'related':
+      if (!isset($rel)) {
+        // Load related terms
+        $rel = taxonomy_get_related($term->tid);
+      }
+
+      // Map terms
+      foreach ($rel as $rel_tid => $rel_term) {
+        $o = simplerdf_make_object('uri', simplerdf_taxonomy_get_termuri($rel_tid));
+        $triples[] = $s + $p + $o;
+      }
+      break;
+
+    // Synonyms
+    case 'synonym':
+      $synonyms = taxonomy_get_synonyms($term->tid);
+      foreach ($synonyms as $synonym) {
+        $o = simplerdf_make_object('literal', $synonym);
+        $triples[] = $s + $p + $o;
+      }
+      break;
+  }
+
+  return $triples;
+}
+
+
+/**********************************************************
+ * CRUD functions.
+ **********************************************************/
+
+/**
+ * Wildcard loader for a taxonomy term.
+ */
+function simplerdf_taxonomy_term_load($tid) {
+  static $terms = array();
+  if (isset($terms[$tid])) {
+    // Return cached term
+    return $terms[$tid];
+  }
+  if ($tid && is_numeric($tid)) {
+    $term = taxonomy_get_term($tid);
+    if ($term) {
+      // Load extra data
+      $data = db_fetch_array(db_query("SELECT * FROM {simplerdf_taxonomy_term} WHERE tid = %d", $tid));
+      if ($data) {
+        $term = (object) array_merge((array) $term, $data);
+      }
+      // Cache term
+      $terms[$tid] = $term;
+
+      return $term;
+    }
+  }
+}
+
+/**
+ * Wildcard loader for an exportable vocabulary (i.e. with machine name defined).
+ */
+function simplerdf_taxonomy_vocabulary_load($vid) {
+  if ($vid && is_numeric($vid)) {
+    $vocabulary = taxonomy_vocabulary_load($vid);
+    if ($vocabulary && $vocabulary->module && substr($vocabulary->module, 0, 9) == 'features_') {
+      return $vocabulary;
+    }
+  }
+}
+
+/**
+ * Get RDF mappings for a vocabulary.
+ *
+ * @param int $vid
+ *   Vocabulary ID.
+ *
+ * @return array
+ *   Arrays of properties keyed by field name.
+ */
+function simplerdf_taxonomy_get_mappings($vid) {
+  $machine_name = _simplerdf_taxonomy_get_vocabulary_name($vid);
+  if (!empty($machine_name)) {
+    return variable_get('simplerdf_taxonomy_mappings_' . $machine_name, array());
+  }
+}
+
+/**
+ * Save vocabulary RDF mappings.
+ *
+ * @param int $vid
+ *   Vocabulary ID.
+ * @param array $mappings
+ *   Array of mappings. (See return value of simplerdf_taxonomy_mappings_load().)
+ */
+function simplerdf_taxonomy_save_mappings($vid, array $mappings) {
+  $machine_name = _simplerdf_taxonomy_get_vocabulary_name($vid);
+  if (!empty($machine_name)) {
+    // Validate mappings
+    foreach ($mappings as $field => $properties) {
+      if (!is_array($properties)) {
+        return;
+      }
+      else {
+        foreach ($properties as $property) {
+          if (!is_string($property)) {
+            return;
+          }
+        }
+      }
+    }
+    // Save
+    variable_set('simplerdf_taxonomy_mappings_' . $machine_name, $mappings);
+  }
+}
+
+/**
+ * Get mapping fields for taxonomy.
+ *
+ * @param int $vid
+ *   Vocabulary ID (ignored).
+ *
+ * @return array
+ *   Field titles keyed by field name.
+ */
+function simplerdf_taxonomy_get_fields($vid) {
+  return array(
+    'rdftype' => t('RDF class (rdf:type)'),
+    'name' => t('Term name'),
+    'description' => t('Description'),
+    'parent' => t('Parent term'),
+    'related' => t('Related term'),
+    'synonym' => t('Term synonym'),
+  );
+}
+
+/**
+ * Implements hook_taxonomy().
+ */
+function simplerdf_taxonomy_taxonomy($op, $type, $array) {
+  if ($type == 'term') {
+    switch ($op) {
+      case 'insert':
+      case 'update':
+        $tid = $array['tid'];
+        $remote_uri = $array['simplerdf_remote_uri'];
+        if (empty($remote_uri) && $op == 'update') {
+          // Unset remote URI
+          db_query("DELETE FROM {simplerdf_taxonomy_term} WHERE tid = %d", $tid);
+        }
+        else {
+          // Add remote URI
+          $term = array(
+            'tid' => $array['tid'],
+            'remote_uri' => $remote_uri,
+          );
+          drupal_write_record('simplerdf_taxonomy_term', $term, array('tid'));
+          if (!db_affected_rows()) {
+            drupal_write_record('simplerdf_taxonomy_term', $term);
+          }
+        }
+        break;
+
+      case 'delete':
+        db_query("DELETE FROM {simplerdf_taxonomy_term} WHERE tid = %d", $array['tid']);
+        break;
+    }
+
+    // Clear term RDF cache
+    // FIXME: Figure out a more efficient way to clear cache.
+    simplerdf_clear_cache('term');
+  }
+}
+
+
+/**********************************************************
+ * Form alter hooks.
+ **********************************************************/
+
+// Simple RDF settings
+
+/**
+ * Implements hook_form_FORM_ID_alter() for simplerdf_admin_settings_form().
+ */
+function simplerdf_taxonomy_form_simplerdf_admin_settings_form_alter(&$form, &$form_state) {
+  $form['view_path']['taxonomy_term_path'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Taxonomy term RDF path'),
+    '#field_prefix' => 'taxonomy/term/%/',
+    '#default_value' => variable_get('simplerdf_taxonomy_term_view_path', 'rdf'),
+    '#required' => TRUE,
+    '#description' => t('Internal path to display term RDF documents at.'),
+  );
+
+  $form['#validate'][] = 'simplerdf_taxonomy_settings_form_validate';
+  $form['#submit'][] = 'simplerdf_taxonomy_settings_form_submit';
+}
+
+/**
+ * Injected validator for Simple RDF settings form.
+ */
+function simplerdf_taxonomy_settings_form_validate($form, $form_state) {
+  $path = $form_state['values']['taxonomy_term_path'];
+  if (preg_match('/[^A-Za-z0-9]/', $path)) {
+    form_set_error('taxonomy_term_path', t('Invalid character detected for taxonomy term RDF path. Please enter only lowercase, uppercase, and numeric characters.'));
+  }
+  elseif ($path != variable_get('simplerdf_taxonomy_term_view_path', 'rdf') && db_result(db_query("SELECT 1 FROM {menu_router} WHERE path = '%s'", "taxonomy/term/%/$path"))) {
+    form_set_error('taxonomy_term_path', t('The specified path already exists. Please enter different one.'));
+  }
+}
+
+/**
+ * Injected submit handler for Simple RDF settings form.
+ */
+function simplerdf_taxonomy_settings_form_submit($form, $form_state) {
+  // Save path
+  variable_set('simplerdf_taxonomy_term_view_path', $form_state['values']['taxonomy_term_path']);
+  simplerdf_clear_cache('term');
+}
+
+// Taxonomy term edit
+
+/**
+ * Implements hook_form_FORM_ID_alter() for taxonomy_form_term().
+ */
+function simplerdf_taxonomy_form_taxonomy_form_term_alter(&$form, &$form_state) {
+  // Push submit buttons down
+
+  // Remote URI settings
+  $form['advanced']['simplerdf'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Simple RDF'),
+    '#description' => t('Configure term settings for use with Simple RDF.'),
+  );
+
+  if ($form['#term'] && $form['#term']['tid']) {
+    $full_term = simplerdf_taxonomy_term_load($form['#term']['tid']);
+    $remote_uri = $full_term->remote_uri;
+  }
+  $form['advanced']['simplerdf']['simplerdf_remote_uri'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Remote term URI'),
+    '#default_value' => $remote_uri,
+    '#description' => t('If specified, any RDF mapping to this term will use this URI instead of the local path of this term. An example value is a DBpedia category page; nodes tagged with this term contain triples relating them to other content on the Web via the common category URI.'),
+  );
+}
+
+
+/**********************************************************
+ * Helper functions.
+ **********************************************************/
+
+/**
+ * Get vocabulary name by ID.
+ */
+function _simplerdf_taxonomy_get_vocabulary_name($vocabulary) {
+  static $names = array();
+  // Use vocabulary ID
+  $vid = is_object($vocabulary) ? (property_exists($vocabulary, 'vid') ? $vocabulary->vid : 0) : $vocabulary;
+  if ($vid && !isset($names[$vid])) {
+    if (!is_object($vocabulary)) {
+      // Normalize into object
+      $vocabulary = taxonomy_vocabulary_load($vid);
+    }
+    $names[$vid] = ($vocabulary->module && substr($vocabulary->module, 0, 9) == 'features_') ? substr($vocabulary->module, 9) : FALSE;
+  }
+  return $names[$vid] ? $names[$vid] : NULL;
+}
+
+/**
+ * Get the URI of a term depending on whether it is a local term.
+ *
+ * @param int $tid
+ *   Term ID.
+ *
+ * @return string
+ *   Term URI.
+ */
+function simplerdf_taxonomy_get_termuri($tid) {
+  $term = simplerdf_taxonomy_term_load($tid);
+  if (empty($term->remote_uri)) {
+    // Local URI
+    return url('taxonomy/term/' . $term->tid, array('absolute' => TRUE));
+  }
+  else {
+    // Remote URI
+    return $term->remote_uri;
+  }
+}
