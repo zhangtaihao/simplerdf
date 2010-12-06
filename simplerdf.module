@@ -72,6 +72,7 @@ function simplerdf_flush_caches() {
  * @param string $type
  *   Type of cache to clear; if not specified, clears all cache. Can be one of:
  *   - 'node' : Node caches, with node ID optionally specified.
+ *   - 'term' : Term caches, with term ID optionally specified (only if simplerdf_taxonomy is enabled).
  *   - 'fields' : Fields cache, for subsequent rebuild, with content type optionally specified.
  *   - 'mappings' : Mappings cache, with content type optionally specified.
  * @param $a1
@@ -97,6 +98,18 @@ function simplerdf_clear_cache($type = NULL, $a1 = NULL) {
     else {
       // Clear all
       cache_clear_all('node:', 'cache_simplerdf', TRUE);
+    }
+  }
+
+  // Terms
+  elseif ($type == 'term') {
+    if ($a1) {
+      // Clear for term
+      cache_clear_all('term:document:' . $a1, 'cache_simplerdf');
+    }
+    else {
+      // Clear all
+      cache_clear_all('term:', 'cache_simplerdf', TRUE);
     }
   }
 
