@@ -24,7 +24,7 @@ function simplerdf_mapper_node_fields($content_type) {
   $type = node_get_types('type', $content_type);
 
   // Node type
-  $fields['class'] = array(
+  $fields['rdftype'] = array(
     'title' => t('RDF class (rdf:type)'),
   );
 

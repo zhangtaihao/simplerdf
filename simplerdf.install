@@ -126,3 +126,15 @@ function simplerdf_uninstall() {
   variable_del('simplerdf_nodeuri_generator');
   variable_del('simplerdf_nodeuri_settings');
 }
+
+/**
+ * Implements hook_update_N() for 6001.
+ */
+function simplerdf_update_6001(&$sandbox) {
+  $ret = array();
+
+  // Rename 'class' to 'rdftype'
+  $ret[] = update_sql("UPDATE {simplerdf_mappings} SET field = 'rdftype' WHERE field = 'class'");
+
+  return $ret;
+}
