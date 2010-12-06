@@ -149,7 +149,9 @@ function simplerdf_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
     case 'update':
     case 'delete':
       // Clear cache
-      simplerdf_clear_cache('node', $node->nid);
+      //simplerdf_clear_cache('node', $node->nid);
+      // FIXME: Force clear all cache
+      simplerdf_clear_cache('node');
       break;
 
     case 'view':
