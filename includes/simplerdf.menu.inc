@@ -56,6 +56,13 @@ function _simplerdf_menu() {
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => -10,
   );
+  $items['admin/build/simplerdf/flush'] = array(
+    'title' => 'Flush cache',
+    'type' => MENU_CALLBACK,
+    'page callback' => 'simplerdf_admin_flush',
+    'access arguments' => $administer_simplerdf,
+    'file' => 'includes/simplerdf.admin.inc',
+  );
 
   // Node URI administration
   $items['admin/build/simplerdf/nodeuri'] = array(

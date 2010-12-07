@@ -192,6 +192,8 @@ function simplerdf_admin_dashboard() {
 
   $output .= '<p>' . t('An overview of the Simple RDF configuration for this site is displayed on this page.');
 
+  $output .= '<p>' . l(t('Flush Simple RDF cache'), 'admin/build/simplerdf/flush') . '</p>';
+
   // Display general settings
   $output .= '<h2>' . t('General settings') . '</h2>';
 
@@ -314,6 +316,15 @@ function simplerdf_admin_dashboard() {
 
   $output .= '</div>';
   return $output;
+}
+
+/**
+ * Flush Simple RDF cache and return to dashboard.
+ */
+function simplerdf_admin_flush() {
+  simplerdf_clear_cache_all();
+  drupal_set_message(t('Simple RDF caches have been cleared.'));
+  drupal_goto('admin/build/simplerdf');
 }
 
 /**
