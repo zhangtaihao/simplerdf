@@ -71,7 +71,7 @@ function simplerdf_content_mapper_date_map($node, $nodeuri, $property, $field, $
   // Detect consecutive granularities
   $date_granularity = array();
   foreach ($granularities as $granularity) {
-    if (in_array($granularity, $granularities)) {
+    if (in_array($granularity, $content_field['granularity'])) {
       $date_granularity[$granularity] = $granularity;
     }
     else {
