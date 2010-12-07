@@ -6,7 +6,7 @@
  */
 
 /**
- * Core node mapper plugin definition definition.
+ * Core node mapper plugin definition.
  */
 $plugin = array(
   'title' => t('Core node'),
