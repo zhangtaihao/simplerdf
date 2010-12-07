@@ -142,6 +142,14 @@ function simplerdf_clear_cache($type = NULL, $a1 = NULL) {
 }
 
 /**
+ * Alias of simplerdf_clear_cache() for all caches. This function is useful for
+ * handling submission of altered form just to clear cache.
+ */
+function simplerdf_clear_cache_all() {
+  simplerdf_clear_cache();
+}
+
+/**
  * Implements hook_nodeapi().
  */
 function simplerdf_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
@@ -183,7 +191,7 @@ function simplerdf_form_alter(&$form, &$form_state, $form_id) {
   switch ($form_id) {
     case 'content_field_edit_form':
     case 'node_type_form':
-      simplerdf_clear_cache();
+      $form['#submit'][] = 'simplerdf_clear_cache_all';
       break;
   }
 }
