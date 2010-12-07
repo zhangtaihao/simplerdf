@@ -167,6 +167,9 @@ function simplerdf_taxonomy_build_triples($term) {
     $triples = array_merge($triples, simplerdf_taxonomy_map_field($term, $termuri, $properties, $field));
   }
 
+  // Triples postprocessing
+  drupal_alter('simplerdf_taxonomy_triples', $triples);
+
   return $triples;
 }
 
