@@ -47,9 +47,9 @@ function simplerdf_mapper_content_map($node, $nodeuri, $property, $field) {
 
       // Map each non-null value
       $triples = array();
-      foreach ($values as $value) {
+      foreach ($values as $delta => $value) {
         if (isset($value)) {
-          $result = _simplerdf_invoke($mapper, 'callback map', $node, $nodeuri, $property, $field, $value);
+          $result = _simplerdf_invoke($mapper, 'callback map', $node, $nodeuri, $property, $field, $value, $delta);
           if (is_array($result)) {
             $triples = array_merge($triples, $result);
           }
