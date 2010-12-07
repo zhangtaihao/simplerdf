@@ -111,6 +111,14 @@ function simplerdf_taxonomy_ctools_plugin_directory($owner, $type) {
 }
 
 /**
+ * Implements hook_features_api().
+ */
+function simplerdf_taxonomy_features_api() {
+  module_load_include('inc', 'simplerdf_taxonomy', 'simplerdf_taxonomy.features');
+  return _simplerdf_taxonomy_features_api();
+}
+
+/**
  * Render a term RDF document.
  */
 function simplerdf_taxonomy_render_term($tid) {
