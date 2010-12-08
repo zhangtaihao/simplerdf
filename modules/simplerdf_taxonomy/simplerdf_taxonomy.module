@@ -341,7 +341,7 @@ function simplerdf_taxonomy_get_mappings($vid) {
  * @param int $vid
  *   Vocabulary ID.
  * @param array $mappings
- *   Array of mappings. (See return value of simplerdf_taxonomy_mappings_load().)
+ *   Array of mappings. (See return value of simplerdf_taxonomy_get_mappings().)
  */
 function simplerdf_taxonomy_save_mappings($vid, array $mappings) {
   $machine_name = _simplerdf_taxonomy_get_vocabulary_name($vid);
