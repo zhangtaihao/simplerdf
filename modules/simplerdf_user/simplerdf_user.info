@@ -1,0 +1,7 @@
+; $Id$
+name = Simple RDF User
+description = Provide basic RDF mappings for users.
+dependencies[] = simplerdf
+package = RDF
+core = 6.x
+php = 5.2
