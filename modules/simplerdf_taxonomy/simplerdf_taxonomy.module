@@ -35,16 +35,6 @@ function simplerdf_taxonomy_init() {
 }
 
 /**
- * Implements hook_theme().
- */
-function simplerdf_taxonomy_theme() {
-  $hooks['simplerdf_taxonomy_admin_mappings_table'] = array(
-    'file' => 'simplerdf_taxonomy.admin.inc',
-  );
-  return $hooks;
-}
-
-/**
  * Implements hook_menu().
  */
 function simplerdf_taxonomy_menu() {
