@@ -176,7 +176,7 @@ function simplerdf_content_mapper_date_map($node, $nodeuri, $property, $field, $
       break;
 
     case 'to':
-      if ($field_mapping['all'] && $date_nodes[$node->nid][$name][$delta]) {
+      if ($field_mapping['all'] && $date_nodes[$node->nid][$name][$delta] && $value['value2']) {
         // Map to BNode
         $s = simplerdf_make_subject('bnode', $date_nodes[$node->nid][$name][$delta]);
         $date = date_convert($value['value2'], $value['date_type'], DATE_OBJECT, $value['timezone_db']);
