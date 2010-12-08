@@ -65,7 +65,7 @@ function simplerdf_admin_mappings_form($form_state, $content_type) {
   $form['help'] = array(
     '#type' => 'markup',
     '#prefix' => '<p>',
-    '#value' => t('Enter one or more RDF property mapping (separated by commas) for the node class and each node field listed below. The fields are grouped together by their property mappers for clarity. Namespace prefixes defined for this site are listed in the table below (open the "RDF namespaces" fieldset to view). You may use these prefixes in the property mappings. Note: specified mappings will not be checked against their vocabularies.'),
+    '#value' => t('Enter one or more RDF property mapping (separated by commas) for each node field listed below. The fields are grouped together by their property mappers for clarity. Namespace prefixes defined for this site are listed in the table below (open the "RDF namespaces" fieldset to view). You may use these prefixes in the property mappings. Note: specified mappings will not be checked against their vocabularies.'),
     '#suffix' => '</p>',
   );
   $form['legend'] = array(
