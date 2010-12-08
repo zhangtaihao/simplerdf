@@ -474,9 +474,13 @@ function simplerdf_taxonomy_settings_form_validate($form, $form_state) {
 /**
  * Injected submit handler for Simple RDF settings form.
  */
-function simplerdf_taxonomy_settings_form_submit($form, $form_state) {
-  // Save path
-  variable_set('simplerdf_taxonomy_term_view_path', $form_state['values']['taxonomy_term_path']);
+function simplerdf_taxonomy_settings_form_submit($form, &$form_state) {
+  $path = $form_state['values']['taxonomy_term_path'];
+  if ($path != variable_get('simplerdf_taxonomy_term_view_path', 'rdf')) {
+    // Save path
+    variable_set('simplerdf_taxonomy_term_view_path', $path);
+    $form_state['redirect'] = 'admin/build/simplerdf/settings/rebuild';
+  }
   simplerdf_clear_cache('term');
 }
 

@@ -96,6 +96,13 @@ function _simplerdf_menu() {
     'file' => 'includes/simplerdf.admin.inc',
     'weight' => 5,
   );
+  $items['admin/build/simplerdf/settings/rebuild'] = array(
+    'title' => 'Rebuild menu',
+    'type' => MENU_CALLBACK,
+    'page callback' => '_simplerdf_admin_rebuild',
+    'access arguments' => array('administer simplerdf settings'),
+    'file' => 'includes/simplerdf.admin.inc',
+  );
 
   // Autocomplete callbacks
   $items['simplerdf/autocomplete/%'] = array(

@@ -679,9 +679,25 @@ function simplerdf_admin_settings_form_validate($form, &$form_state) {
  */
 function simplerdf_admin_settings_form_submit($form, &$form_state) {
   extract($form_state['values']);
-  variable_set('simplerdf_view_path', $path);
-  variable_set('simplerdf_view_tab', $tab);
-  variable_set('simplerdf_view_title', $title);
+
+  $rebuild = FALSE;
+  if ($path != variable_get('simplerdf_view_path', 'rdf')) {
+    variable_set('simplerdf_view_path', $path);
+    $rebuild = TRUE;
+  }
+  if ($tab != variable_get('simplerdf_view_tab', TRUE)) {
+    variable_set('simplerdf_view_tab', $tab);
+    $rebuild = TRUE;
+  }
+  if ($title != variable_get('simplerdf_view_title', 'RDF')) {
+    variable_set('simplerdf_view_title', $title);
+    $rebuild = TRUE;
+  }
+
+  if ($rebuild) {
+    // Rebuild menu
+    $form_state['redirect'] = 'admin/build/simplerdf/settings/rebuild';
+  }
 
   // Changed format
   if ($output_format != variable_get('simplerdf_format', SIMPLERDF_DEFAULT_FORMAT)) {
@@ -691,4 +707,13 @@ function simplerdf_admin_settings_form_submit($form, &$form_state) {
   }
 
   drupal_set_message(t('The settings have been saved.'));
+}
+
+/**
+ * Rebuild menu for settings change.
+ */
+function _simplerdf_admin_rebuild() {
+  menu_rebuild();
+  drupal_set_message(t('The menu router has been rebuilt.'));
+  drupal_goto('admin/build/simplerdf/settings');
 }
