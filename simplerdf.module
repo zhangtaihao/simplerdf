@@ -183,7 +183,7 @@ function simplerdf_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
         module_load_include('inc', 'simplerdf', 'includes/simplerdf.arc');
         $format = variable_get('simplerdf_format', SIMPLERDF_DEFAULT_FORMAT);
         if ($mime_type = simplerdf_arc_get_mime_type($format)) {
-          drupal_add_link(array('rel' => 'meta', 'type' => $mime_type, 'title' => 'RDF', 'href' => 'node/' . $node->nid . '/' . $path));
+          drupal_add_link(array('rel' => 'meta', 'type' => $mime_type, 'title' => 'RDF', 'href' => url('node/' . $node->nid . '/' . $path)));
         }
       }
       break;
