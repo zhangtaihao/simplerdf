@@ -595,14 +595,14 @@ function simplerdf_admin_settings_form($form_state) {
     '#type' => 'checkbox',
     '#title' => t('Show tab'),
     '#default_value' => variable_get('simplerdf_view_tab', TRUE),
-    '#description' => t('Display tab for viewing node RDF document pages.'),
+    '#description' => t('Display tab for viewing RDF documents.'),
   );
   $form['view_tab']['title'] = array(
     '#type' => 'textfield',
     '#title' => t('Tab title'),
     '#default_value' => variable_get('simplerdf_view_title', 'RDF'),
     '#required' => TRUE,
-    '#description' => t('If "RDF view tab" is selected, set this to what should be displayed for the RDF tab label.'),
+    '#description' => t('If the checkbox "Show tab" above is selected, set this to what should be displayed for the RDF tab label.'),
   );
 
   $form['format'] = array(
