@@ -123,6 +123,8 @@ function simplerdf_taxonomy_mappings_features_export($data, &$export, $module_na
   $pipe = array();
   if (module_exists('strongarm')) {
     foreach ($data as $name) {
+      $export['features']['simplerdf_taxonomy_mappings'][$name] = $name;
+
       $var_name = 'simplerdf_taxonomy_mappings_' . $name;
       if (!is_null(variable_get($var_name, NULL))) {
         $pipe['variable'][$var_name] = $var_name;

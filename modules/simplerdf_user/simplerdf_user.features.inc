@@ -28,14 +28,15 @@ function _simplerdf_user_features_api() {
 function simplerdf_user_mappings_features_export($data, &$export, $module_name) {
   $pipe = array();
   if (module_exists('strongarm')) {
-    if (in_array('simplerdf_user', $data)) {
+    if (in_array('simplerdf_user_mappings', $data)) {
       // Export user mappings
       $var_name = 'simplerdf_user_mappings';
       if (!is_null(variable_get($var_name, NULL))) {
         $pipe['variable'][$var_name] = $var_name;
       }
+      $export['features']['simplerdf_user_mappings']['simplerdf_user_mappings'] = 'simplerdf_user_mappings';
+      $export['dependencies']['simplerdf_user'] = 'simplerdf_user';
     }
-    $export['dependencies']['simplerdf_user'] = 'simplerdf_user';
   }
   return $pipe;
 }
@@ -49,7 +50,7 @@ function simplerdf_user_mappings_features_export_options() {
   if (module_exists('strongarm')) {
     // Check mappings exist
     if (simplerdf_user_get_mappings()) {
-      $options['simplerdf_user'] = t('User mappings');
+      $options['simplerdf_user_mappings'] = t('User mappings');
     }
   }
 
