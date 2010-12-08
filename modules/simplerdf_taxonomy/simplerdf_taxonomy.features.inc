@@ -139,11 +139,13 @@ function simplerdf_taxonomy_mappings_features_export($data, &$export, $module_na
 function simplerdf_taxonomy_mappings_features_export_options() {
   $options = array();
 
-  // List vocabularies with mappings
-  foreach (taxonomy_get_vocabularies() as $vid => $vocabulary) {
-    $name = _simplerdf_taxonomy_get_vocabulary_name($vocabulary);
-    if ($name && simplerdf_taxonomy_get_mappings($vid)) {
-      $options[$name] = check_plain($vocabulary->name);
+  if (module_exists('strongarm')) {
+    // List vocabularies with mappings
+    foreach (taxonomy_get_vocabularies() as $vid => $vocabulary) {
+      $name = _simplerdf_taxonomy_get_vocabulary_name($vocabulary);
+      if ($name && simplerdf_taxonomy_get_mappings($vid)) {
+        $options[$name] = check_plain($vocabulary->name);
+      }
     }
   }
 
