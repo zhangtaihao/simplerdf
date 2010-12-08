@@ -421,6 +421,17 @@ function simplerdf_taxonomy_taxonomy($op, $type, $array) {
     // FIXME: Figure out a more efficient way to clear cache.
     simplerdf_clear_cache();
   }
+  elseif ($type == 'vocabulary') {
+    switch ($op) {
+      case 'delete':
+        // Clean up mappings
+        $machine_name = _simplerdf_taxonomy_get_vocabulary_name((object) $array);
+        if ($machine_name) {
+          variable_del('simplerdf_taxonomy_mappings_' . $machine_name);
+        }
+        break;
+    }
+  }
 }
 
 
