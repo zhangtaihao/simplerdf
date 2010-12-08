@@ -91,7 +91,7 @@ function simplerdf_arc_get_mime_type($format, ARC2_Class $serializer = NULL) {
       $types[$format] = $cache->data;
     }
     // Detect type from serializer object
-    elseif (isset($serializer) || simplerdf_arc_include() && $serializer = simplerdf_arc_get_serializer()) {
+    elseif (isset($serializer) || simplerdf_arc_include() && $serializer = simplerdf_arc_get_serializer($format)) {
       $type = !empty($serializer->content_header) ? $serializer->content_header : 'text/plain';
       $types[$format] = $type;
       cache_set('arc2_mime_types:' . $format, $type, 'cache_simplerdf');
