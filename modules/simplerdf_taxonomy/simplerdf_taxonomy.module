@@ -418,7 +418,7 @@ function simplerdf_taxonomy_taxonomy($op, $type, $array) {
 
     // Clear term RDF cache
     // FIXME: Figure out a more efficient way to clear cache.
-    simplerdf_clear_cache('term');
+    simplerdf_clear_cache();
   }
 }
 
