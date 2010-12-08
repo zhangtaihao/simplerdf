@@ -73,12 +73,14 @@ function simplerdf_flush_caches() {
  *   Type of cache to clear; if not specified, clears all cache. Can be one of:
  *   - 'node' : Node caches, with node ID optionally specified.
  *   - 'term' : Term caches, with term ID optionally specified (only if simplerdf_taxonomy is enabled).
+ *   - 'user' : User caches, with user ID optionally specified (only if simplerdf_user is enabled).
  *   - 'fields' : Fields cache, for subsequent rebuild, with content type optionally specified.
  *   - 'mappings' : Mappings cache, with content type optionally specified.
  * @param $a1
  *   Parameter to use when clearing cache, depending on $type:
- *   - If $type is 'node', this can be the node ID. If this is not specified,
- *     cache for all nodes will be cleared.
+ *   - If $type is 'node', 'term', or 'user', this can be the respective object
+ *     ID. If this is notspecified, cache for all objects of that type will be
+ *     cleared.
  *   - If $type is 'mappings', specifying the content type clears mappings
  *     cache for that type, or all types if not specified.
  */
@@ -110,6 +112,18 @@ function simplerdf_clear_cache($type = NULL, $a1 = NULL) {
     else {
       // Clear all
       cache_clear_all('term:', 'cache_simplerdf', TRUE);
+    }
+  }
+
+  // Users
+  elseif ($type == 'user') {
+    if ($a1) {
+      // Clear for user
+      cache_clear_all('user:document:' . $a1, 'cache_simplerdf');
+    }
+    else {
+      // Clear all
+      cache_clear_all('user:', 'cache_simplerdf', TRUE);
     }
   }
 
