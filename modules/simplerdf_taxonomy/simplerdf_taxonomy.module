@@ -170,9 +170,9 @@ function simplerdf_taxonomy_build_triples($term) {
   // Map fields
   $triples = array();
   $mappings = simplerdf_taxonomy_get_mappings($term->vid);
-  $termuri = simplerdf_taxonomy_get_termuri($term->tid);
+  $uri = simplerdf_taxonomy_get_termuri($term->tid);
   foreach ($mappings as $field => $properties) {
-    $triples = array_merge($triples, simplerdf_taxonomy_map_field($term, $termuri, $properties, $field));
+    $triples = array_merge($triples, simplerdf_taxonomy_map_field($term, $uri, $properties, $field));
   }
 
   // Triples postprocessing
