@@ -148,6 +148,7 @@ function simplerdf_taxonomy_render_term($tid) {
   if ($document) {
     // Display document
     drupal_set_header('Content-Type: ' . $document['type']);
+    drupal_set_header('Content-Disposition: inline; filename=term-' . $tid . '.rdf');
     echo $document['content'];
     exit;
   }

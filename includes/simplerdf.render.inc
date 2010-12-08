@@ -29,6 +29,7 @@ function simplerdf_render_node($node) {
   if ($document) {
     // Display document
     drupal_set_header('Content-Type: ' . $document['type']);
+    drupal_set_header('Content-Disposition: inline; filename=node-' . $node->nid . '.rdf');
     echo $document['content'];
     exit;
   }
