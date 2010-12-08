@@ -27,6 +27,9 @@ function _simplerdf_theme() {
   $hooks['simplerdf_admin_mappings_table'] = array(
     'file' => 'includes/simplerdf.admin.inc',
   );
+  $hooks['simplerdf_admin_basic_mappings_table'] = array(
+    'file' => 'includes/simplerdf.theme.inc',
+  );
 
   return $hooks;
 }
@@ -160,4 +163,30 @@ function theme_simplerdf_mappings_table($mappings, $mappers) {
   }
 
   return theme('table', $header, $rows, array('class' => 'simplerdf-mappings-table'));
+}
+
+/**
+ * Themes the basic RDF mappings administration table.
+ */
+function theme_simplerdf_admin_basic_mappings_table($elements) {
+  foreach (element_children($elements) as $key) {
+    $mapping = &$elements[$key];
+
+    // Prepare mapping row
+    $mapping['properties'] = $mapping['properties'][$mapping['#field_name']];
+    $mapping['field_title'] = $mapping['#field_title'];
+    $mapping['field_name'] = $mapping['#field_name'];
+
+    // Strip properties
+    foreach (element_properties($mapping) as $property) {
+      unset($mapping[$property]);
+    }
+  }
+
+  // Strip all form properties
+  foreach (element_properties($elements) as $property) {
+    unset($elements[$property]);
+  }
+
+  return theme('simplerdf_mappings_table', $elements);
 }
