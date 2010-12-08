@@ -147,7 +147,7 @@ function theme_simplerdf_taxonomy_admin_mappings_table($elements) {
 }
 
 /**
- * Mappings form validator.
+ * Mappings form submit handler.
  */
 function simplerdf_taxonomy_admin_vocabulary_mappings_form_submit(&$form, &$form_state) {
   $vid = $form_state['values']['__vocabulary']->vid;
