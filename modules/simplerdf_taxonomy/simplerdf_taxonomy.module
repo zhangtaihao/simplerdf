@@ -15,7 +15,7 @@ function simplerdf_taxonomy_init() {
   // Add taxonomy term RDF auto-discovery links
   if (count($args) == 3 && $args[0] == 'taxonomy' && $args[1] == 'term') {
     $terms = taxonomy_terms_parse_string($args[2]);
-    if ($terms['operator'] == 'or' || $terms['operator'] == 'and') {
+    if (($terms['operator'] == 'or' || $terms['operator'] == 'and') && user_access('access content')) {
       $tids = $terms['tids'];
 
       module_load_include('inc', 'simplerdf', 'includes/simplerdf.arc');
