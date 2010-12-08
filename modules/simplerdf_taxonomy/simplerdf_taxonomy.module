@@ -474,8 +474,6 @@ function simplerdf_taxonomy_settings_form_submit($form, $form_state) {
  * Implements hook_form_FORM_ID_alter() for taxonomy_form_term().
  */
 function simplerdf_taxonomy_form_taxonomy_form_term_alter(&$form, &$form_state) {
-  // Push submit buttons down
-
   // Remote URI settings
   $form['advanced']['simplerdf'] = array(
     '#type' => 'fieldset',
