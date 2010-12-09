@@ -17,7 +17,7 @@ function simplerdf_taxonomy_schema() {
     'fields' => array(
       'tid' => array(
         'type' => 'int',
-        'size' => 'medium',
+        'size' => 'normal',
         'not null' => TRUE,
         'default' => 0,
         'description' => $t('Term ID, corresponds to a term in the {term_data} table.'),
