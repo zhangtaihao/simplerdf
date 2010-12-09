@@ -41,7 +41,7 @@ function simplerdf_taxonomy_menu() {
   $items[] = array();
 
   $view_path = variable_get('simplerdf_taxonomy_term_view_path', 'rdf');
-  $administer_simplerdf = array('administer simplerdf');
+  $administer_simplerdf_mappings = array('administer simplerdf mappings');
 
   $items['taxonomy/term/%/' . $view_path] = array(
     'title' => check_plain(variable_get('simplerdf_view_title', 'RDF')),
@@ -56,7 +56,7 @@ function simplerdf_taxonomy_menu() {
     'title' => 'Simple RDF mappings',
     'description' => 'Manage RDF mappings for taxonomies.',
     'page callback' => 'simplerdf_taxonomy_admin_mappings_overview',
-    'access arguments' => $administer_simplerdf,
+    'access arguments' => $administer_simplerdf_mappings,
     'type' => MENU_LOCAL_TASK,
     'file' => 'simplerdf_taxonomy.admin.inc',
     'weight' => -1,
@@ -66,7 +66,7 @@ function simplerdf_taxonomy_menu() {
     'description' => 'Manage RDF mappings for terms in the vocabulary',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('simplerdf_taxonomy_admin_vocabulary_mappings_form', 3),
-    'access arguments' => $administer_simplerdf,
+    'access arguments' => $administer_simplerdf_mappings,
     'type' => MENU_LOCAL_TASK,
     'file' => 'simplerdf_taxonomy.admin.inc',
     'weight' => -1,

@@ -39,7 +39,6 @@ function simplerdf_user_menu() {
   $items[] = array();
 
   $view_path = variable_get('simplerdf_user_view_path', 'rdf');
-  $administer_simplerdf = array('administer simplerdf');
 
   // Check to make sure we aren't overriding RDF (should only happen when
   // RDF is installed after this module and path remains 'rdf').
@@ -60,7 +59,7 @@ function simplerdf_user_menu() {
     'description' => 'Manage RDF mappings for users.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('simplerdf_user_admin_mappings_form'),
-    'access arguments' => $administer_simplerdf,
+    'access arguments' => array('administer simplerdf mappings'),
     'type' => MENU_NORMAL_ITEM,
     'file' => 'simplerdf_user.admin.inc',
   );
