@@ -90,43 +90,6 @@ function simplerdf_clear_cache($type = NULL, $a1 = NULL) {
     cache_clear_all('*', 'cache_simplerdf', TRUE);
   }
 
-  // Node cache
-  elseif ($type == 'node') {
-    if ($a1) {
-      // Clear for node
-      cache_clear_all('node:document:' . $a1, 'cache_simplerdf');
-      cache_clear_all('node:uri:' . $a1 . ':', 'cache_simplerdf', TRUE);
-    }
-    else {
-      // Clear all
-      cache_clear_all('node:', 'cache_simplerdf', TRUE);
-    }
-  }
-
-  // Terms
-  elseif ($type == 'term') {
-    if ($a1) {
-      // Clear for term
-      cache_clear_all('term:document:' . $a1, 'cache_simplerdf');
-    }
-    else {
-      // Clear all
-      cache_clear_all('term:', 'cache_simplerdf', TRUE);
-    }
-  }
-
-  // Users
-  elseif ($type == 'user') {
-    if ($a1) {
-      // Clear for user
-      cache_clear_all('user:document:' . $a1, 'cache_simplerdf');
-    }
-    else {
-      // Clear all
-      cache_clear_all('user:', 'cache_simplerdf', TRUE);
-    }
-  }
-
   // Fields cache
   elseif ($type == 'fields') {
     if ($a1) {
@@ -151,6 +114,17 @@ function simplerdf_clear_cache($type = NULL, $a1 = NULL) {
     else {
       // Clear all
       cache_clear_all('mappings:', 'cache_simplerdf', TRUE);
+    }
+  }
+
+  // Basic object cache
+  elseif ($type && (!isset($a1) || $a1)) {
+    if (!$a1) {
+      // Clear for all
+      cache_clear_all($type . ':', 'cache_simplerdf', TRUE);
+    }
+    else {
+      cache_clear_all($type . ':' . $a1 . ':', 'cache_simplerdf', TRUE);
     }
   }
 }
@@ -873,7 +847,7 @@ function simplerdf_get_nodeuri($nid) {
   // Use active node URI generator
   $generator = variable_get('simplerdf_nodeuri_generator', SIMPLERDF_DEFAULT_NODEURI_GENERATOR);
 
-  if ($cache = cache_get('node:uri:' . $nid . ':' . $generator, 'cache_simplerdf')) {
+  if ($cache = cache_get('node:' . $nid . ':uri:' . $generator, 'cache_simplerdf')) {
     // Fetch cached URI
     return $cache->data;
   }
@@ -884,7 +858,7 @@ function simplerdf_get_nodeuri($nid) {
       // Failed; fall back to raw generator
       simplerdf_generate_nodeuri('raw', $nid);
     }
-    cache_set('node:uri:' . $nid . ':' . $generator, $uri, 'cache_simplerdf');
+    cache_set('node:' . $nid . ':uri:' . $generator, $uri, 'cache_simplerdf');
     return $uri;
   }
 }

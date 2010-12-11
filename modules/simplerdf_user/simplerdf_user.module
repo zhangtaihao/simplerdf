@@ -118,7 +118,7 @@ function simplerdf_user_user($op, &$edit, &$account, $category = NULL) {
  * Render a user RDF document.
  */
 function simplerdf_user_render_user($user) {
-  if ($cache = cache_get('user:document:' . $user->uid, 'cache_simplerdf')) {
+  if ($cache = cache_get('user:' . $user->uid . ':document', 'cache_simplerdf')) {
     // Load cached document
     $document = $cache->data;
   }
@@ -129,7 +129,7 @@ function simplerdf_user_render_user($user) {
     module_load_include('inc', 'simplerdf', 'includes/simplerdf.render');
     $triples = simplerdf_render_process_triples($triples);
     if ($document = simplerdf_render_build_document($triples)) {
-      cache_set('user:document:' . $user->uid, $document, 'cache_simplerdf');
+      cache_set('user:' . $user->uid . ':document', $document, 'cache_simplerdf');
     }
   }
 

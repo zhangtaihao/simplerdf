@@ -703,7 +703,8 @@ function simplerdf_admin_settings_form_submit($form, &$form_state) {
   if ($output_format != variable_get('simplerdf_format', SIMPLERDF_DEFAULT_FORMAT)) {
     variable_set('simplerdf_format', $output_format);
     // Clear just document cache
-    cache_clear_all('node:document:', 'cache_simplerdf', TRUE);
+    // FIXME Execute custom query to account for colon
+    cache_clear_all('%:%:document', 'cache_simplerdf', TRUE);
   }
 
   drupal_set_message(t('The settings have been saved.'));
