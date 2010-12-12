@@ -49,6 +49,11 @@ function simplerdf_content_mapper_date_fields($content_field) {
  * Map link fields.
  */
 function simplerdf_content_mapper_date_map($node, $nodeuri, $property, $field, $value, $delta) {
+  // Only map if value exists
+  if (!$value['value']) {
+    return;
+  }
+
   // Only map if date module exists
   static $date_exists;
   if (!$date_exists) {
