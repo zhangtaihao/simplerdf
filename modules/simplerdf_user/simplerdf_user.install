@@ -28,4 +28,5 @@ function simplerdf_user_uninstall() {
  */
 function simplerdf_user_update_6001(&$sandbox) {
   variable_set('simplerdf_user_rel_index', TRUE);
+  return array();
 }

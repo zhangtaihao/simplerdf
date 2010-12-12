@@ -69,4 +69,5 @@ function simplerdf_taxonomy_uninstall() {
  */
 function simplerdf_taxonomy_update_6001(&$sandbox) {
   variable_set('simplerdf_taxonomy_rel_index', TRUE);
+  return array();
 }
