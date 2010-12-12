@@ -143,13 +143,13 @@ function simplerdf_clear_cache($type = NULL, $a1 = NULL) {
     if (!$a1) {
       // Clear for all
       cache_clear_all($type . ':', 'cache_simplerdf', TRUE);
-      // All node dependencies
-      $deps = simplerdf_rel_lookup(NULL, NULL, 'node');
+      // All object dependencies
+      $deps = simplerdf_rel_lookup(NULL, NULL, $type);
     }
     else {
-      // Clear itself and dependencies
+      // Clear object and dependencies
       cache_clear_all($type . ':' . $a1 . ':', 'cache_simplerdf', TRUE);
-      $deps = simplerdf_rel_lookup(NULL, NULL, 'node', $a1);
+      $deps = simplerdf_rel_lookup(NULL, NULL, $type, $a1);
     }
     foreach ($deps as $dep) {
       cache_clear_all($dep['source_type'] . ':' . $dep['source_id'] . ':', 'cache_simplerdf', TRUE);
