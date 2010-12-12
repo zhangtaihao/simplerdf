@@ -8,14 +8,14 @@
 /**
  * Implements hook_install().
  */
-function simplerdf_taxonomy_install() {
+function simplerdf_user_install() {
   variable_set('simplerdf_user_mappings', array());
 }
 
 /**
  * Implements hook_uninstall().
  */
-function simplerdf_taxonomy_uninstall() {
+function simplerdf_user_uninstall() {
   // Clean mappings
   variable_del('simplerdf_user_mappings');
 }
