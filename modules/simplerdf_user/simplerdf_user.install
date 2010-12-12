@@ -8,14 +8,25 @@
 /**
  * Implements hook_install().
  */
-function simplerdf_taxonomy_install() {
+function simplerdf_user_install() {
   variable_set('simplerdf_user_mappings', array());
+  variable_set('simplerdf_user_rel_index', TRUE);
 }
 
 /**
  * Implements hook_uninstall().
  */
-function simplerdf_taxonomy_uninstall() {
+function simplerdf_user_uninstall() {
   // Clean mappings
   variable_del('simplerdf_user_mappings');
+  variable_del('simplerdf_user_rel_index');
+}
+
+/**
+ * Implements hook_update_N() for 6001.
+ * Trigger user object relations indexing.
+ */
+function simplerdf_user_update_6001(&$sandbox) {
+  variable_set('simplerdf_user_rel_index', TRUE);
+  return array();
 }

@@ -10,8 +10,20 @@
  * Implements hook_init().
  */
 function simplerdf_taxonomy_init() {
-  $args = arg();
+  if (variable_get('simplerdf_taxonomy_rel_index', FALSE)) {
+    variable_set('simplerdf_taxonomy_rel_index', FALSE);
+    simplerdf_clear_cache('term');
 
+    // Re-index
+    simplerdf_rel_unregister('term');
+    $result = db_query('SELECT tid FROM {term_data}');
+    while ($tid = db_result($result)) {
+      $term = taxonomy_get_term($tid, TRUE);
+      module_invoke_all('simplerdf_rel_save', 'term', $user);
+    }
+  }
+
+  $args = arg();
   // Add taxonomy term RDF auto-discovery links
   if (count($args) == 3 && $args[0] == 'taxonomy' && $args[1] == 'term') {
     $terms = taxonomy_terms_parse_string($args[2]);
@@ -120,7 +132,7 @@ function simplerdf_taxonomy_render_term($tid) {
     return drupal_not_found();
   }
 
-  if ($cache = cache_get('term:document:' . $tid, 'cache_simplerdf')) {
+  if ($cache = cache_get('term:' . $tid . ':document', 'cache_simplerdf')) {
     // Load cached document
     $document = $cache->data;
   }
@@ -131,7 +143,7 @@ function simplerdf_taxonomy_render_term($tid) {
     module_load_include('inc', 'simplerdf', 'includes/simplerdf.render');
     $triples = simplerdf_render_process_triples($triples);
     if ($document = simplerdf_render_build_document($triples)) {
-      cache_set('term:document:' . $tid, $document, 'cache_simplerdf');
+      cache_set('term:' . $tid . ':document', $document, 'cache_simplerdf');
     }
   }
 
@@ -381,8 +393,9 @@ function simplerdf_taxonomy_get_fields($vid) {
 function simplerdf_taxonomy_taxonomy($op, $type, $array) {
   if ($type == 'term') {
     switch ($op) {
-      case 'insert':
       case 'update':
+        simplerdf_clear_cache('term', $array['tid']);
+      case 'insert':
         $tid = $array['tid'];
         $remote_uri = $array['simplerdf_remote_uri'];
         if (empty($remote_uri) && $op == 'update') {
@@ -400,16 +413,17 @@ function simplerdf_taxonomy_taxonomy($op, $type, $array) {
             drupal_write_record('simplerdf_taxonomy_term', $term);
           }
         }
+
+        module_invoke_all('simplerdf_rel_save', 'term', $array);
         break;
 
       case 'delete':
         db_query("DELETE FROM {simplerdf_taxonomy_term} WHERE tid = %d", $array['tid']);
+        simplerdf_rel_unregister(NULL, NULL, 'term', $array['tid']);
+        simplerdf_rel_unregister('term', $array['tid']);
+        simplerdf_clear_cache('term', $array['tid']);
         break;
     }
-
-    // Clear term RDF cache
-    // FIXME: Figure out a more efficient way to clear cache.
-    simplerdf_clear_cache();
   }
   elseif ($type == 'vocabulary') {
     switch ($op) {
@@ -420,6 +434,38 @@ function simplerdf_taxonomy_taxonomy($op, $type, $array) {
           variable_del('simplerdf_taxonomy_mappings_' . $machine_name);
         }
         break;
+    }
+    simplerdf_clear_cache('term');
+  }
+}
+
+/**
+ * Implements hook_simplerdf_rel_save().
+ */
+function simplerdf_taxonomy_simplerdf_rel_save($type, $object) {
+  if ($type == 'node') {
+    // Prepare node fields
+    $node = &$object;
+    $nid = $node->nid;
+    $type = content_types($node->type);
+    $fields = $type['fields'];
+
+    // Register core taxonomy terms
+    if (!empty($node->taxonomy)) {
+      foreach (array_keys($node->taxonomy) as $tid) {
+        simplerdf_rel_register('node', $nid, 'term', $tid);
+      }
+    }
+
+    // Register content_taxonomy terms
+    foreach ($fields as $field_name => $field) {
+      if ($field['type'] == 'content_taxonomy' && isset($node->$field_name)) {
+        foreach ($node->$field_name as $delta => $value) {
+          if ($value) {
+            simplerdf_rel_register('node', $nid, 'term', $value['value']);
+          }
+        }
+      }
     }
   }
 }
@@ -497,6 +543,22 @@ function simplerdf_taxonomy_form_taxonomy_form_term_alter(&$form, &$form_state) 
     '#default_value' => $remote_uri,
     '#description' => t('If specified, any RDF mapping to this term will use this URI instead of the local path of this term. An example value is a DBpedia category page; nodes tagged with this term contain triples relating them to other content on the Web via the common category URI.'),
   );
+}
+
+// Re-index terms
+
+/**
+ * Implements hook_form_FORM_ID_alter() for simplerdf_admin_rel_index_form().
+ */
+function simplerdf_taxonomy_form_simplerdf_admin_rel_index_form_alter(&$form) {
+  $form['#submit'][] = 'simplerdf_taxonomy_rel_index_term';
+}
+
+/**
+ * Flag to re-index terms.
+ */
+function simplerdf_taxonomy_rel_index_term() {
+  variable_set('simplerdf_taxonomy_rel_index', TRUE);
 }
 
 

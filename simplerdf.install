@@ -90,6 +90,8 @@ function simplerdf_schema() {
     ),
   );
 
+  $schema['simplerdf_rel'] = _simplerdf_schema_rel();
+
   // Cache tables
   $cache_schema = drupal_get_schema_unprocessed('system', 'cache');
 
@@ -97,6 +99,53 @@ function simplerdf_schema() {
   $schema['cache_simplerdf']['description'] = 'Cache Simple RDF data.';
 
   return $schema;
+}
+
+/**
+ * Define object relations schema.
+ */
+function _simplerdf_schema_rel() {
+  $t = get_t();
+  return array(
+    'description' => $t('Track object dependency relations for use in functionalities like clearing cache to work out related objects to refer to and/or update. Relations defined in this table are generally assumed to be one-way.'),
+    'fields' => array(
+      'source_type' => array(
+        'description' => $t('Object type on the source end.'),
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+      ),
+      'source_id' => array(
+        'description' => $t('Object ID on the source end.'),
+        'type' => 'int',
+        'size' => 'normal',
+        'not null' => TRUE,
+      ),
+      'target_type' => array(
+        'description' => $t('Object type on the target end.'),
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+      ),
+      'target_id' => array(
+        'description' => $t('Object ID on the target end.'),
+        'type' => 'int',
+        'size' => 'normal',
+        'not null' => TRUE,
+      ),
+    ),
+    // Unique set comprised of all columns
+    'primary key' => array('source_type', 'source_id', 'target_type', 'target_id'),
+    // Index objects plus type-based object lookups
+    'indexes' => array(
+      'source' => array('source_type', 'source_id'),
+      'target' => array('target_type', 'target_id'),
+      'source_type' => array('source_type'),
+      'target_type' => array('target_type'),
+      'source_target_type' => array('source_type', 'source_id', 'target_type'),
+      'target_source_type' => array('target_type', 'target_id', 'source_type'),
+    ),
+  );
 }
 
 /**
@@ -111,6 +160,7 @@ function simplerdf_install() {
   variable_set('simplerdf_format', 'RDFXML');
   variable_set('simplerdf_nodeuri_generator', 'raw');
   variable_set('simplerdf_nodeuri_settings', array());
+  variable_set('simplerdf_rel_index', TRUE);
 }
 
 /**
@@ -125,6 +175,7 @@ function simplerdf_uninstall() {
   variable_del('simplerdf_format');
   variable_del('simplerdf_nodeuri_generator');
   variable_del('simplerdf_nodeuri_settings');
+  variable_del('simplerdf_rel_index');
 }
 
 /**
@@ -135,6 +186,21 @@ function simplerdf_update_6001(&$sandbox) {
 
   // Rename 'class' to 'rdftype'
   $ret[] = update_sql("UPDATE {simplerdf_mappings} SET field = 'rdftype' WHERE field = 'class'");
+
+  return $ret;
+}
+
+/**
+ * Implements hook_update_N() for 6002.
+ */
+function simplerdf_update_6002(&$sandbox) {
+  $ret = array();
+
+  // Install object relations table
+  db_create_table($ret, 'simplerdf_rel', _simplerdf_schema_rel());
+  variable_set('simplerdf_rel_index', TRUE);
+
+  cache_clear_all('*', 'cache_simplerdf', TRUE);
 
   return $ret;
 }

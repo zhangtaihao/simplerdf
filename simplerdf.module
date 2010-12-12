@@ -43,6 +43,24 @@ function simplerdf_menu() {
 }
 
 /**
+ * Implements hook_init().
+ */
+function simplerdf_init() {
+  if (variable_get('simplerdf_rel_index', FALSE)) {
+    variable_set('simplerdf_rel_index', FALSE);
+    simplerdf_clear_cache('node');
+
+    // Re-index
+    simplerdf_rel_unregister('node');
+    $result = db_query('SELECT nid FROM {node}');
+    while ($nid = db_result($result)) {
+      $node = node_load($nid, NULL, TRUE);
+      module_invoke_all('simplerdf_rel_save', 'node', $node);
+    }
+  }
+}
+
+/**
  * Wildcard loader for node URI generator settings.
  *
  * @param string $name
@@ -70,7 +88,10 @@ function simplerdf_flush_caches() {
  * Clear caches.
  *
  * @param string $type
- *   Type of cache to clear; if not specified, clears all cache. Can be one of:
+ *   Type of cache to clear; if not specified, clears all cache. If type is
+ *   'node', 'term', or 'user', caches for dependent objects are also cleared
+ *   (dependent objects must be registered through simplerdf_rel_register()).
+ *   Can be one of:
  *   - 'node' : Node caches, with node ID optionally specified.
  *   - 'term' : Term caches, with term ID optionally specified (only if simplerdf_taxonomy is enabled).
  *   - 'user' : User caches, with user ID optionally specified (only if simplerdf_user is enabled).
@@ -88,43 +109,6 @@ function simplerdf_clear_cache($type = NULL, $a1 = NULL) {
   // Clear all caches
   if (!$type) {
     cache_clear_all('*', 'cache_simplerdf', TRUE);
-  }
-
-  // Node cache
-  elseif ($type == 'node') {
-    if ($a1) {
-      // Clear for node
-      cache_clear_all('node:document:' . $a1, 'cache_simplerdf');
-      cache_clear_all('node:uri:' . $a1 . ':', 'cache_simplerdf', TRUE);
-    }
-    else {
-      // Clear all
-      cache_clear_all('node:', 'cache_simplerdf', TRUE);
-    }
-  }
-
-  // Terms
-  elseif ($type == 'term') {
-    if ($a1) {
-      // Clear for term
-      cache_clear_all('term:document:' . $a1, 'cache_simplerdf');
-    }
-    else {
-      // Clear all
-      cache_clear_all('term:', 'cache_simplerdf', TRUE);
-    }
-  }
-
-  // Users
-  elseif ($type == 'user') {
-    if ($a1) {
-      // Clear for user
-      cache_clear_all('user:document:' . $a1, 'cache_simplerdf');
-    }
-    else {
-      // Clear all
-      cache_clear_all('user:', 'cache_simplerdf', TRUE);
-    }
   }
 
   // Fields cache
@@ -153,6 +137,24 @@ function simplerdf_clear_cache($type = NULL, $a1 = NULL) {
       cache_clear_all('mappings:', 'cache_simplerdf', TRUE);
     }
   }
+
+  // Basic object cache
+  elseif ($type && (!isset($a1) || $a1)) {
+    if (!$a1) {
+      // Clear for all
+      cache_clear_all($type . ':', 'cache_simplerdf', TRUE);
+      // All object dependencies
+      $deps = simplerdf_rel_lookup(NULL, NULL, $type);
+    }
+    else {
+      // Clear object and dependencies
+      cache_clear_all($type . ':' . $a1 . ':', 'cache_simplerdf', TRUE);
+      $deps = simplerdf_rel_lookup(NULL, NULL, $type, $a1);
+    }
+    foreach ($deps as $dep) {
+      cache_clear_all($dep['source_type'] . ':' . $dep['source_id'] . ':', 'cache_simplerdf', TRUE);
+    }
+  }
 }
 
 /**
@@ -164,16 +166,146 @@ function simplerdf_clear_cache_all() {
 }
 
 /**
+ * Register an object dependency relation.
+ *
+ * @param $source_type
+ *   Source object type (e.g. node).
+ * @param $source_id
+ *   Source object ID.
+ * @param $target_type
+ *   Target object type (e.g. node).
+ * @param $target_id
+ *   Target object ID.
+ *
+ * @see simplerdf_rel_unregister()
+ * @see simplerdf_rel_lookup()
+ */
+function simplerdf_rel_register($source_type, $source_id, $target_type, $target_id) {
+  if ($source_type && $source_id && $target_type && $target_id) {
+    @db_query("INSERT INTO {simplerdf_rel} (source_type, source_id, target_type, target_id) VALUES ('%s', '%s', '%s', '%s')", $source_type, $source_id, $target_type, $target_id);
+  }
+}
+
+/**
+ * Unregister object relation(s).
+ *
+ * @param $source_type
+ *   Source object type (e.g. node).
+ * @param $source_id
+ *   Source object ID.
+ * @param $target_type
+ *   Target object type (e.g. node).
+ * @param $target_id
+ *   Target object ID.
+ *
+ * @see simplerdf_rel_register()
+ * @see simplerdf_rel_lookup()
+ */
+function simplerdf_rel_unregister($source_type = NULL, $source_id = NULL, $target_type = NULL, $target_id = NULL) {
+  $source_id = (int) $source_id;
+  $target_id = (int) $target_id;
+  $filters = array_filter(compact('source_type', 'source_id', 'target_type', 'target_id'));
+  if ($filter_string = _simplerdf_rel_get_filter_string($filters)) {
+    $filter_string = "WHERE $filter_string";
+    @db_query("DELETE FROM {simplerdf_rel} $filter_string");
+  }
+}
+
+/**
+ * Look up object relation(s).
+ *
+ * @param $source_type
+ *   Source object type (e.g. node).
+ * @param $source_id
+ *   Source object ID.
+ * @param $target_type
+ *   Target object type (e.g. node).
+ * @param $target_id
+ *   Target object ID.
+ *
+ * @return array
+ *   Array of relation rows filtered by given arguments.
+ *
+ * @see simplerdf_rel_register()
+ * @see simplerdf_rel_unregister()
+ */
+function simplerdf_rel_lookup($source_type = NULL, $source_id = NULL, $target_type = NULL, $target_id = NULL) {
+  $source_id = (int) $source_id;
+  $target_id = (int) $target_id;
+  $filters = array_filter(compact('source_type', 'source_id', 'target_type', 'target_id'));
+  if ($filter_string = _simplerdf_rel_get_filter_string($filters)) {
+    $filter_string = "WHERE $filter_string";
+  }
+  $result = db_query("SELECT * FROM {simplerdf_rel} $filter_string");
+
+  $rels = array();
+  while ($rel = db_fetch_array($result)) {
+    $rels[] = $rel;
+  }
+  return $rels;
+}
+
+/**
+ * Prepare query filter conditions.
+ */
+function _simplerdf_rel_prepare_filters($raw_filters) {
+  $filters = array();
+  foreach (array('source_type', 'source_id', 'target_type', 'target_id') as $name) {
+    if ($raw_filters[$name]) {
+      $filters[$name] = $raw_filters[$name];
+    }
+  }
+  return $filters;
+}
+
+/**
+ * Render query filter string from condition array.
+ */
+function _simplerdf_rel_get_filter_string($filters) {
+  $string = '';
+  foreach ($filters as $name => $value) {
+    // Prepare value
+    $param = is_integer($value) ? '%d' : "'%s'";
+    if (is_integer($value)) {
+      $param = $value;
+    }
+    else {
+      $param = "'" . db_escape_string($value) . "'";
+    }
+    // Construct string
+    if (empty($string)) {
+      $string = $name . ' = ' . $param;
+    }
+    else {
+      $string .= ' AND ' . $name . ' = ' . $param;
+    }
+  }
+  return $string;
+}
+
+/**
  * Implements hook_nodeapi().
  */
 function simplerdf_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
   switch ($op) {
+    case 'presave':
+      if (!empty($node->nid)) {
+        // Clear relations
+        simplerdf_rel_unregister('node', $node->nid);
+      }
+      break;
+
     case 'update':
+      simplerdf_clear_cache('node', $node->nid);
+    case 'insert':
+      module_invoke_all('simplerdf_rel_save', 'node', $node);
+      break;
+
     case 'delete':
       // Clear cache
-      //simplerdf_clear_cache('node', $node->nid);
-      // FIXME: Force clear all cache
-      simplerdf_clear_cache('node');
+      simplerdf_clear_cache('node', $node->nid);
+      simplerdf_rel_unregister(NULL, NULL, 'node', $node->nid);
+      simplerdf_rel_unregister('node', $node->nid);
       break;
 
     case 'view':
@@ -187,6 +319,30 @@ function simplerdf_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
         }
       }
       break;
+  }
+}
+
+/**
+ * Implements hook_simplerdf_rel_save().
+ */
+function simplerdf_simplerdf_rel_save($type, $object) {
+  if ($type == 'node') {
+    // Prepare node fields
+    $node = &$object;
+    $nid = $node->nid;
+    $type = content_types($node->type);
+    $fields = $type['fields'];
+
+    // Register nodereference links
+    foreach ($fields as $field_name => $field) {
+      if ($field['type'] == 'nodereference' && isset($node->$field_name)) {
+        foreach ($node->$field_name as $delta => $value) {
+          if ($value) {
+            simplerdf_rel_register('node', $nid, 'node', $value['nid']);
+          }
+        }
+      }
+    }
   }
 }
 
@@ -873,7 +1029,7 @@ function simplerdf_get_nodeuri($nid) {
   // Use active node URI generator
   $generator = variable_get('simplerdf_nodeuri_generator', SIMPLERDF_DEFAULT_NODEURI_GENERATOR);
 
-  if ($cache = cache_get('node:uri:' . $nid . ':' . $generator, 'cache_simplerdf')) {
+  if ($cache = cache_get('node:' . $nid . ':uri:' . $generator, 'cache_simplerdf')) {
     // Fetch cached URI
     return $cache->data;
   }
@@ -884,7 +1040,7 @@ function simplerdf_get_nodeuri($nid) {
       // Failed; fall back to raw generator
       simplerdf_generate_nodeuri('raw', $nid);
     }
-    cache_set('node:uri:' . $nid . ':' . $generator, $uri, 'cache_simplerdf');
+    cache_set('node:' . $nid . ':uri:' . $generator, $uri, 'cache_simplerdf');
     return $uri;
   }
 }

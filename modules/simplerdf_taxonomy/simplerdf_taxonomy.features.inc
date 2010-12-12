@@ -112,7 +112,7 @@ function simplerdf_taxonomy_term_features_rebuild($module) {
       }
     }
     // Flush cache
-    simplerdf_clear_cache_all();
+    simplerdf_clear_cache('term');
   }
 }
 

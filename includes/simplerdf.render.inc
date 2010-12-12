@@ -13,7 +13,7 @@
  */
 function simplerdf_render_node($node) {
   // Fetch cache
-  if ($cache = cache_get('node:document:' . $node->nid, 'cache_simplerdf')) {
+  if ($cache = cache_get('node:' . $node->nid . ':document', 'cache_simplerdf')) {
     $document = $cache->data;
   }
   else {
@@ -22,7 +22,7 @@ function simplerdf_render_node($node) {
     $triples = simplerdf_render_process_triples($triples);
     $document = simplerdf_render_build_document($triples);
     if ($document) {
-      cache_set('node:document:' . $node->nid, $document, 'cache_simplerdf');
+      cache_set('node:' . $node->nid . ':document', $document, 'cache_simplerdf');
     }
   }
 

@@ -192,7 +192,9 @@ function simplerdf_admin_dashboard() {
 
   $output .= '<p>' . t('An overview of the Simple RDF configuration for this site is displayed on this page.');
 
-  $output .= '<p>' . l(t('Flush Simple RDF cache'), 'admin/build/simplerdf/flush') . '</p>';
+  $output .= '<h2>' . t('Basic actions') . '</h2>';
+  $output .= '<p>' . l(t('Flush Simple RDF cache'), 'admin/build/simplerdf/flush') . t(' (clear cached RDF documents and other temporary data)') . '</p>';
+  $output .= '<p>' . l(t('Re-index site objects'), 'admin/build/simplerdf/relindex') . t(' (rebuild auxiliary data used by Simple RDF to track site objects)') . '</p>';
 
   // Display general settings
   $output .= '<h2>' . t('General settings') . '</h2>';
@@ -325,6 +327,32 @@ function simplerdf_admin_flush() {
   simplerdf_clear_cache_all();
   drupal_set_message(t('Simple RDF caches have been cleared.'));
   drupal_goto('admin/build/simplerdf');
+}
+
+/**
+ * Re-index object relations.
+ */
+function simplerdf_admin_rel_index() {
+  $form_state = array('values' => array());
+  drupal_execute('simplerdf_admin_rel_index_form', $form_state);
+  drupal_set_message(t('Objects have been re-indexed.'));
+  drupal_goto('admin/build/simplerdf');
+}
+
+/**
+ * Re-index node object relations.
+ */
+function simplerdf_admin_rel_index_node() {
+  variable_set('simplerdf_rel_index', TRUE);
+}
+
+/**
+ * Helper form for re-indexing relations. Extensions should alter this form
+ * to add submit handlers for additional actions.
+ */
+function simplerdf_admin_rel_index_form() {
+  $form['#submit'][] = 'simplerdf_admin_rel_index_node';
+  return $form;
 }
 
 /**
@@ -513,7 +541,7 @@ function simplerdf_admin_nodeuri_settings_form_submit($form, &$form_state) {
   $settings[$plugin['name']] = _simplerdf_admin_nodeuri_process_values($plugin['settings defaults'], $form_state['values']);
   variable_set('simplerdf_nodeuri_settings', $settings);
 
-  simplerdf_clear_cache();
+  simplerdf_clear_cache_all();
   drupal_set_message(t('Settings for %nodeuri have been saved.', array('%nodeuri' => $plugin['title'])));
 }
 
@@ -703,7 +731,8 @@ function simplerdf_admin_settings_form_submit($form, &$form_state) {
   if ($output_format != variable_get('simplerdf_format', SIMPLERDF_DEFAULT_FORMAT)) {
     variable_set('simplerdf_format', $output_format);
     // Clear just document cache
-    cache_clear_all('node:document:', 'cache_simplerdf', TRUE);
+    // FIXME Execute custom query to account for colon
+    cache_clear_all('%:%:document', 'cache_simplerdf', TRUE);
   }
 
   drupal_set_message(t('The settings have been saved.'));
