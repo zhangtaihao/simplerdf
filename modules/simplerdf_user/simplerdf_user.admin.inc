@@ -72,5 +72,5 @@ function simplerdf_user_admin_mappings_form_submit(&$form, &$form_state) {
     }
   }
   simplerdf_user_save_mappings($mappings);
-  simplerdf_clear_cache();
+  simplerdf_clear_cache('user');
 }

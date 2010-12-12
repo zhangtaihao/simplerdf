@@ -513,7 +513,7 @@ function simplerdf_admin_nodeuri_settings_form_submit($form, &$form_state) {
   $settings[$plugin['name']] = _simplerdf_admin_nodeuri_process_values($plugin['settings defaults'], $form_state['values']);
   variable_set('simplerdf_nodeuri_settings', $settings);
 
-  simplerdf_clear_cache();
+  simplerdf_clear_cache_all();
   drupal_set_message(t('Settings for %nodeuri have been saved.', array('%nodeuri' => $plugin['title'])));
 }
 

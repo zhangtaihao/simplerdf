@@ -10,8 +10,19 @@
  * Implements hook_init().
  */
 function simplerdf_user_init() {
-  $args = arg();
+  if (variable_get('simplerdf_user_rel_index', FALSE)) {
+    variable_set('simplerdf_user_rel_index', FALSE);
+    simplerdf_clear_cache('user');
 
+    // Re-index
+    $result = db_query('SELET uid FROM {user}');
+    while ($uid = db_result($result)) {
+      $user = user_load($uid);
+      module_invoke_all('simplerdf_rel_save', 'user', $user);
+    }
+  }
+
+  $args = arg();
   // Add taxonomy term RDF auto-discovery links
   if ($args[0] == 'user' && is_numeric($args[1]) && (count($args) == 2 || count($args) == 3 && $args[2] == 'view'))  {
     $user = user_load($args[1]);
@@ -107,8 +118,12 @@ function simplerdf_user_features_api() {
 function simplerdf_user_user($op, &$edit, &$account, $category = NULL) {
   switch ($op) {
     case 'update':
+      simplerdf_clear_cache('user', $account->uid);
+    case 'insert':
+      module_invoke_all('simplerdf_rel_save', 'user', $account);
+      break;
+
     case 'delete':
-      // Clear cache
       simplerdf_clear_cache('user', $account->uid);
       break;
   }

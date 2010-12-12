@@ -10,8 +10,19 @@
  * Implements hook_init().
  */
 function simplerdf_taxonomy_init() {
-  $args = arg();
+  if (variable_get('simplerdf_taxonomy_rel_index', FALSE)) {
+    variable_set('simplerdf_taxonomy_rel_index', FALSE);
+    simplerdf_clear_cache('term');
 
+    // Re-index
+    $result = db_query('SELET tid FROM {term_data}');
+    while ($tid = db_result($result)) {
+      $term = taxonomy_get_term($tid, TRUE);
+      module_invoke_all('simplerdf_rel_save', 'term', $user);
+    }
+  }
+
+  $args = arg();
   // Add taxonomy term RDF auto-discovery links
   if (count($args) == 3 && $args[0] == 'taxonomy' && $args[1] == 'term') {
     $terms = taxonomy_terms_parse_string($args[2]);
@@ -381,8 +392,9 @@ function simplerdf_taxonomy_get_fields($vid) {
 function simplerdf_taxonomy_taxonomy($op, $type, $array) {
   if ($type == 'term') {
     switch ($op) {
-      case 'insert':
       case 'update':
+        simplerdf_clear_cache('term', $array['tid']);
+      case 'insert':
         $tid = $array['tid'];
         $remote_uri = $array['simplerdf_remote_uri'];
         if (empty($remote_uri) && $op == 'update') {
@@ -400,16 +412,17 @@ function simplerdf_taxonomy_taxonomy($op, $type, $array) {
             drupal_write_record('simplerdf_taxonomy_term', $term);
           }
         }
+
+        module_invoke_all('simplerdf_rel_save', 'term', $array);
         break;
 
       case 'delete':
         db_query("DELETE FROM {simplerdf_taxonomy_term} WHERE tid = %d", $array['tid']);
+        simplerdf_rel_unregister(NULL, NULL, 'term', $array['tid']);
+        simplerdf_rel_unregister('term', $array['tid']);
+        simplerdf_clear_cache('term', $array['tid']);
         break;
     }
-
-    // Clear term RDF cache
-    // FIXME: Figure out a more efficient way to clear cache.
-    simplerdf_clear_cache();
   }
   elseif ($type == 'vocabulary') {
     switch ($op) {
@@ -421,6 +434,7 @@ function simplerdf_taxonomy_taxonomy($op, $type, $array) {
         }
         break;
     }
+    simplerdf_clear_cache('term');
   }
 }
 
