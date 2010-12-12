@@ -51,6 +51,7 @@ function simplerdf_init() {
     simplerdf_clear_cache('node');
 
     // Re-index
+    simplerdf_rel_unregister('node');
     $result = db_query('SELECT nid FROM {node}');
     while ($nid = db_result($result)) {
       $node = node_load($nid, NULL, TRUE);
