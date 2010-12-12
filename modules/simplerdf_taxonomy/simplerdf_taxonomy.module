@@ -438,6 +438,37 @@ function simplerdf_taxonomy_taxonomy($op, $type, $array) {
   }
 }
 
+/**
+ * Implements hook_simplerdf_rel_save().
+ */
+function simplerdf_taxonomy_simplerdf_rel_save($type, $object) {
+  if ($type == 'node') {
+    // Prepare node fields
+    $node = &$object;
+    $nid = $node->nid;
+    $type = content_types($node->type);
+    $fields = $type['fields'];
+
+    // Register core taxonomy terms
+    if (!empty($node->taxonomy)) {
+      foreach (array_keys($node->taxonomy) as $tid) {
+        simplerdf_rel_register('node', $nid, 'term', $tid);
+      }
+    }
+
+    // Register content_taxonomy terms
+    foreach ($fields as $field_name => $field) {
+      if ($field['type'] == 'content_taxonomy' && isset($node->$field_name)) {
+        foreach ($node->$field_name as $delta => $value) {
+          if ($value) {
+            simplerdf_rel_register('node', $nid, 'term', $value['value']);
+          }
+        }
+      }
+    }
+  }
+}
+
 
 /**********************************************************
  * Form alter hooks.

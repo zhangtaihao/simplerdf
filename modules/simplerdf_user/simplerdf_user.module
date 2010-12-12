@@ -15,7 +15,7 @@ function simplerdf_user_init() {
     simplerdf_clear_cache('user');
 
     // Re-index
-    $result = db_query('SELECT uid FROM {user}');
+    $result = db_query('SELECT uid FROM {users}');
     while ($uid = db_result($result)) {
       $user = user_load($uid);
       module_invoke_all('simplerdf_rel_save', 'user', $user);
@@ -126,6 +126,35 @@ function simplerdf_user_user($op, &$edit, &$account, $category = NULL) {
     case 'delete':
       simplerdf_clear_cache('user', $account->uid);
       break;
+  }
+}
+
+/**
+ * Implements hook_simplerdf_rel_save().
+ */
+function simplerdf_user_simplerdf_rel_save($type, $object) {
+  if ($type == 'node') {
+    // Prepare node fields
+    $node = &$object;
+    $nid = $node->nid;
+    $type = content_types($node->type);
+    $fields = $type['fields'];
+
+    // Register author link
+    if ($node->uid) {
+      simplerdf_rel_register('node', $nid, 'user', $node->uid);
+    }
+
+    // Register userreference links
+    foreach ($fields as $field_name => $field) {
+      if ($field['type'] == 'userreference' && isset($node->$field_name)) {
+        foreach ($node->$field_name as $delta => $value) {
+          if ($value) {
+            simplerdf_rel_register('node', $nid, 'user', $value['uid']);
+          }
+        }
+      }
+    }
   }
 }
 
