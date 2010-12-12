@@ -63,6 +63,13 @@ function _simplerdf_menu() {
     'access arguments' => $administer_simplerdf,
     'file' => 'includes/simplerdf.admin.inc',
   );
+  $items['admin/build/simplerdf/relindex'] = array(
+    'title' => 'Index object relation',
+    'type' => MENU_CALLBACK,
+    'page callback' => 'simplerdf_admin_rel_index',
+    'access arguments' => $administer_simplerdf,
+    'file' => 'includes/simplerdf.admin.inc',
+  );
 
   // Node URI administration
   $items['admin/build/simplerdf/nodeuri'] = array(

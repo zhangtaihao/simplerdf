@@ -192,7 +192,9 @@ function simplerdf_admin_dashboard() {
 
   $output .= '<p>' . t('An overview of the Simple RDF configuration for this site is displayed on this page.');
 
-  $output .= '<p>' . l(t('Flush Simple RDF cache'), 'admin/build/simplerdf/flush') . '</p>';
+  $output .= '<h2>' . t('Basic actions') . '</h2>';
+  $output .= '<p>' . l(t('Flush Simple RDF cache'), 'admin/build/simplerdf/flush') . t(' (clear cached RDF documents and other temporary data)') . '</p>';
+  $output .= '<p>' . l(t('Re-index site objects'), 'admin/build/simplerdf/relindex') . t(' (rebuild auxiliary data used by Simple RDF to track site objects)') . '</p>';
 
   // Display general settings
   $output .= '<h2>' . t('General settings') . '</h2>';
@@ -325,6 +327,32 @@ function simplerdf_admin_flush() {
   simplerdf_clear_cache_all();
   drupal_set_message(t('Simple RDF caches have been cleared.'));
   drupal_goto('admin/build/simplerdf');
+}
+
+/**
+ * Re-index object relations.
+ */
+function simplerdf_admin_rel_index() {
+  $form_state = array('values' => array());
+  drupal_execute('simplerdf_admin_rel_index_form', $form_state);
+  drupal_set_message(t('Objects have been re-indexed.'));
+  drupal_goto('admin/build/simplerdf');
+}
+
+/**
+ * Re-index node object relations.
+ */
+function simplerdf_admin_rel_index_node() {
+  variable_set('simplerdf_rel_index', TRUE);
+}
+
+/**
+ * Helper form for re-indexing relations. Extensions should alter this form
+ * to add submit handlers for additional actions.
+ */
+function simplerdf_admin_rel_index_form() {
+  $form['#submit'][] = 'simplerdf_admin_rel_index_node';
+  return $form;
 }
 
 /**

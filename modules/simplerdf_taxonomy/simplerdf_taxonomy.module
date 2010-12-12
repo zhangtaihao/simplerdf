@@ -545,6 +545,22 @@ function simplerdf_taxonomy_form_taxonomy_form_term_alter(&$form, &$form_state) 
   );
 }
 
+// Re-index terms
+
+/**
+ * Implements hook_form_FORM_ID_alter() for simplerdf_admin_rel_index_form().
+ */
+function simplerdf_taxonomy_form_simplerdf_admin_rel_index_form_alter(&$form) {
+  $form['#submit'][] = 'simplerdf_taxonomy_rel_index_term';
+}
+
+/**
+ * Flag to re-index terms.
+ */
+function simplerdf_taxonomy_rel_index_term() {
+  variable_set('simplerdf_taxonomy_rel_index', TRUE);
+}
+
 
 /**********************************************************
  * Helper functions.

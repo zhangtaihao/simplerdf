@@ -393,6 +393,22 @@ function simplerdf_user_settings_form_submit($form, &$form_state) {
   simplerdf_clear_cache('user');
 }
 
+// Re-index users
+
+/**
+ * Implements hook_form_FORM_ID_alter() for simplerdf_admin_rel_index_form().
+ */
+function simplerdf_user_form_simplerdf_admin_rel_index_form_alter(&$form) {
+  $form['#submit'][] = 'simplerdf_user_rel_index_user';
+}
+
+/**
+ * Flag to re-index users.
+ */
+function simplerdf_user_rel_index_user() {
+  variable_set('simplerdf_user_rel_index', TRUE);
+}
+
 
 /**********************************************************
  * Helper functions.
