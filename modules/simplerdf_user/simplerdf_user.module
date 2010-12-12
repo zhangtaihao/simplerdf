@@ -15,7 +15,7 @@ function simplerdf_user_init() {
     simplerdf_clear_cache('user');
 
     // Re-index
-    $result = db_query('SELET uid FROM {user}');
+    $result = db_query('SELECT uid FROM {user}');
     while ($uid = db_result($result)) {
       $user = user_load($uid);
       module_invoke_all('simplerdf_rel_save', 'user', $user);

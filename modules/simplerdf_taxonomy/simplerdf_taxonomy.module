@@ -15,7 +15,7 @@ function simplerdf_taxonomy_init() {
     simplerdf_clear_cache('term');
 
     // Re-index
-    $result = db_query('SELET tid FROM {term_data}');
+    $result = db_query('SELECT tid FROM {term_data}');
     while ($tid = db_result($result)) {
       $term = taxonomy_get_term($tid, TRUE);
       module_invoke_all('simplerdf_rel_save', 'term', $user);
