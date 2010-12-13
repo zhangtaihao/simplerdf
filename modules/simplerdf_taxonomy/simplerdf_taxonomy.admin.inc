@@ -139,4 +139,6 @@ function simplerdf_taxonomy_admin_vocabulary_mappings_form_submit(&$form, &$form
   }
   simplerdf_taxonomy_save_mappings($vid, $mappings);
   simplerdf_clear_cache('term');
+
+  drupal_set_message(t('RDF mappings have been updated.'));
 }
