@@ -464,7 +464,7 @@ function simplerdf_make_subject($type, $value = NULL) {
   if ($type == 'bnode' || isset($value)) {
     if ($type == 'bnode' && !isset($value)) {
       // Generate BNode ID
-      $value = '_:' . strtr(uuid_uuid(), '-', '');
+      $value = '_:' . strtr(uuid_uuid(), array('-' => ''));
     }
     return array(
       's' => $value,
@@ -512,7 +512,7 @@ function simplerdf_make_object($type, $value = NULL, $datatype = NULL, $lang = N
   if ($type == 'bnode' || isset($value)) {
     if ($type == 'bnode' && !isset($value)) {
       // Generate BNode ID
-      $value = '_:' . strtr(uuid_uuid(), '-', '');
+      $value = '_:' . strtr(uuid_uuid(), array('-' => ''));
     }
     $o = array(
       'o' => $value,
