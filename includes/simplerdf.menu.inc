@@ -9,7 +9,7 @@
  * Define menu router items.
  */
 function _simplerdf_menu() {
-  $view_path = variable_get('simplerdf_view_path', 'rdf');
+  $view_path = variable_get('simplerdf_view_path', SIMPLERDF_DEFAULT_VIEW_PATH);
   $administer_simplerdf = array('administer simplerdf');
 
   // Check to make sure we aren't overriding RDF (should only happen when

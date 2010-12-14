@@ -29,7 +29,7 @@ function simplerdf_user_init() {
     $user = user_load($args[1]);
     if ($user && user_view_access($user)) {
       module_load_include('inc', 'simplerdf', 'includes/simplerdf.arc');
-      $path = variable_get('simplerdf_view_path', 'rdf');
+      $path = variable_get('simplerdf_view_path', SIMPLERDF_DEFAULT_VIEW_PATH);
       $format = variable_get('simplerdf_format', SIMPLERDF_DEFAULT_FORMAT);
       if (($mime_type = simplerdf_arc_get_mime_type($format)) || ($mime_type = 'text/plain')) {
         foreach ($tids as $tid) {

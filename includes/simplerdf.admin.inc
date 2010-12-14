@@ -216,7 +216,7 @@ function simplerdf_admin_dashboard() {
   // View path
   $rows[] = array(
     t('RDF view path'),
-    check_plain('node/%/' . variable_get('simplerdf_view_path', 'rdf')),
+    check_plain('node/%/' . variable_get('simplerdf_view_path', SIMPLERDF_DEFAULT_VIEW_PATH)),
   );
 
   // Tab settings
@@ -607,7 +607,7 @@ function simplerdf_admin_settings_form($form_state) {
     '#type' => 'textfield',
     '#title' => t('Node RDF path'),
     '#field_prefix' => 'node/%/',
-    '#default_value' => variable_get('simplerdf_view_path', 'rdf'),
+    '#default_value' => variable_get('simplerdf_view_path', SIMPLERDF_DEFAULT_VIEW_PATH),
     '#required' => TRUE,
     '#description' => t('Internal path to display node RDF documents at.'),
   );
@@ -697,7 +697,7 @@ function simplerdf_admin_settings_form_validate($form, &$form_state) {
   if (preg_match('/[^A-Za-z0-9]/', $path)) {
     form_set_error('path', t('Invalid character detected for RDF view path. Please enter only lowercase, uppercase, and numeric characters.'));
   }
-  elseif ($path != variable_get('simplerdf_view_path', 'rdf') && db_result(db_query("SELECT 1 FROM {menu_router} WHERE path = '%s'", "node/%/$path"))) {
+  elseif ($path != variable_get('simplerdf_view_path', SIMPLERDF_DEFAULT_VIEW_PATH) && db_result(db_query("SELECT 1 FROM {menu_router} WHERE path = '%s'", "node/%/$path"))) {
     form_set_error('path', t('The specified path already exists. Please enter different one.'));
   }
 }
@@ -709,7 +709,7 @@ function simplerdf_admin_settings_form_submit($form, &$form_state) {
   extract($form_state['values']);
 
   $rebuild = FALSE;
-  if ($path != variable_get('simplerdf_view_path', 'rdf')) {
+  if ($path != variable_get('simplerdf_view_path', SIMPLERDF_DEFAULT_VIEW_PATH)) {
     variable_set('simplerdf_view_path', $path);
     $rebuild = TRUE;
   }

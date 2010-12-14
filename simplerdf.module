@@ -5,6 +5,9 @@
  * Main module file.
  */
 
+/** Default RDF view path. */
+define('SIMPLERDF_DEFAULT_VIEW_PATH', 'rdf');
+
 /** Default node URI generator. */
 define('SIMPLERDF_DEFAULT_NODEURI_GENERATOR', 'raw');
 
@@ -310,7 +313,7 @@ function simplerdf_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
 
     case 'view':
       // Add autodiscovery link if not in conflict with RDF
-      $path = variable_get('simplerdf_view_path', 'rdf');
+      $path = variable_get('simplerdf_view_path', SIMPLERDF_DEFAULT_VIEW_PATH);
       if ($a4 && !(module_exists('rdf') && $path == 'rdf')) {
         module_load_include('inc', 'simplerdf', 'includes/simplerdf.arc');
         $format = variable_get('simplerdf_format', SIMPLERDF_DEFAULT_FORMAT);

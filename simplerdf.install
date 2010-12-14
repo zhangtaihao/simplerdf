@@ -154,7 +154,7 @@ function _simplerdf_schema_rel() {
 function simplerdf_install() {
   drupal_install_schema('simplerdf');
 
-  variable_set('simplerdf_view_path', 'rdf');
+  variable_set('simplerdf_view_path', 'simplerdf');
   variable_set('simplerdf_view_tab', TRUE);
   variable_set('simplerdf_view_title', 'RDF');
   variable_set('simplerdf_format', 'RDFXML');
