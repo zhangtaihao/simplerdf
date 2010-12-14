@@ -158,6 +158,14 @@ function simplerdf_clear_cache($type = NULL, $a1 = NULL) {
       cache_clear_all($dep['source_type'] . ':' . $dep['source_id'] . ':', 'cache_simplerdf', TRUE);
     }
   }
+
+  // Invalid arguments
+  else {
+    return;
+  }
+
+  // Notify implementing modules of clearing cache
+  module_invoke_all('simplerdf_clear_cache', $type, $a1);
 }
 
 /**
@@ -467,7 +475,7 @@ function simplerdf_make_subject($type, $value = NULL) {
   if ($type == 'bnode' || isset($value)) {
     if ($type == 'bnode' && !isset($value)) {
       // Generate BNode ID
-      $value = '_:' . uuid_uuid();
+      $value = '_:' . strtr(uuid_uuid(), array('-' => ''));
     }
     return array(
       's' => $value,
@@ -499,7 +507,7 @@ function simplerdf_make_predicate($property) {
  * @param string $value
  *   Subject value, either a URI or BNode ID. If $type is 'uri', value must be
  *   specified. If type is 'bnode' and the value is not given, a UUID will be
- *   generated in its place. If
+ *   generated in its place.
  * @param string $datatype
  *   (Optional) The value data type URI.
  * @param string $lang
@@ -515,7 +523,7 @@ function simplerdf_make_object($type, $value = NULL, $datatype = NULL, $lang = N
   if ($type == 'bnode' || isset($value)) {
     if ($type == 'bnode' && !isset($value)) {
       // Generate BNode ID
-      $value = '_:' . uuid_uuid();
+      $value = '_:' . strtr(uuid_uuid(), array('-' => ''));
     }
     $o = array(
       'o' => $value,

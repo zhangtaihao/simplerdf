@@ -1,0 +1,7 @@
+; $Id$
+name = Simple RDF SPARQL
+description = SPARQL endpoint for Simple RDF data. This module is limited to node, term, and user RDF triples. To include term and user RDF data, respectively enable the Simple RDF Taxonomy and Simple RDF User modules.
+dependencies[] = simplerdf
+package = RDF
+core = 6.x
+php = 5.2

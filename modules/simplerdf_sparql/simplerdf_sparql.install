@@ -1,0 +1,40 @@
+<?php
+// $Id$
+/**
+ * @file
+ * Module installer.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function simplerdf_sparql_install() {
+  variable_set('simplerdf_sparql_path', 'simplerdf/sparql');
+  variable_set('simplerdf_sparql_index', TRUE);
+  variable_set('simplerdf_sparql_arc2_write_key', md5(time()));
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function simplerdf_sparql_uninstall() {
+  variable_del('simplerdf_sparql_path');
+  variable_del('simplerdf_sparql_index');
+  variable_del('simplerdf_sparql_arc2_write_key');
+
+  // Uninstall ARC2 tables if they exist
+  module_load_include('inc', 'simplerdf_sparql', 'simplerdf_sparql.store');
+  if ($store = simplerdf_sparql_store_get_store()) {
+    // Use ARC2 to uninstall
+    $store->drop();
+  }
+  elseif ($config = simplerdf_sparql_store_config()) {
+    // Uninstall known tables manually (might be incomplete)
+    $store_name = $config['store_name'];
+    foreach (array('triple', 'g2t', 'id2val', 's2val', 'o2val', 'setting') as $tbl) {
+      if (db_table_exists($table = db_escape_table($store_name . '_' . $tbl))) {
+        db_query("DROP TABLE $table");
+      }
+    }
+  }
+}

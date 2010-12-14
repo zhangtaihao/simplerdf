@@ -66,7 +66,7 @@ function simplerdf_mapper_node_map($node, $nodeuri, $property, $field) {
 
   switch ($field_name) {
     // Type
-    case 'class':
+    case 'rdftype':
       $p = simplerdf_make_predicate('rdf:type');
       $o = simplerdf_make_object('uri', $property);
       break;
