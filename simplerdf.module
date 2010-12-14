@@ -6,7 +6,7 @@
  */
 
 /** Default RDF view path. */
-define('SIMPLERDF_DEFAULT_VIEW_PATH', 'rdf');
+define('SIMPLERDF_DEFAULT_VIEW_PATH', 'simplerdf');
 
 /** Default node URI generator. */
 define('SIMPLERDF_DEFAULT_NODEURI_GENERATOR', 'raw');
