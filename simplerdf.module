@@ -155,6 +155,14 @@ function simplerdf_clear_cache($type = NULL, $a1 = NULL) {
       cache_clear_all($dep['source_type'] . ':' . $dep['source_id'] . ':', 'cache_simplerdf', TRUE);
     }
   }
+
+  // Invalid arguments
+  else {
+    return;
+  }
+
+  // Notify implementing modules of clearing cache
+  module_invoke_all('simplerdf_clear_cache', $type, $a1);
 }
 
 /**
