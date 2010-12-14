@@ -1,0 +1,472 @@
+<?php
+// $Id$
+/**
+ * @file
+ * Simple RDF SPARQL endpoint implementation with ARC2.
+ */
+
+/** Lock file for basic SPARQL read/write locking. */
+define('SIMPLERDF_SPARQL_LOCK_FILE', file_directory_path() . '/simplerdf_sparql/lock');
+
+/**
+ * Implements hook_perm().
+ */
+function simplerdf_sparql_perm() {
+  return array('administer simplerdf sparql', 'access simplerdf sparql endpoint');
+}
+
+/**
+ * Implements hook_menu().
+ */
+function simplerdf_sparql_menu() {
+  $path = variable_get('simplerdf_sparql_path', 'simplerdf/sparql');
+  $type = variable_get('simplerdf_sparql_menu_type', MENU_CALLBACK);
+  $valid_types = array(MENU_CALLBACK, MENU_NORMAL_ITEM, MENU_LOCAL_TASK);
+  $items[$path] = array(
+    'title' => 'SPARQL endpoint',
+    'page callback' => 'simplerdf_sparql_endpoint',
+    'access arguments' => array('access simplerdf sparql endpoint'),
+    'type' => in_array($type, $valid_types, TRUE) ? $type : MENU_CALLBACK,
+  );
+
+  $items['admin/build/simplerdf/sparql'] = array(
+    'title' => 'SPARQL',
+    'description' => 'Configure the SPARQL endpoint for Simple RDF data.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('simplerdf_sparql_admin_form'),
+    'access arguments' => array('administer simplerdf sparql'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'simplerdf_sparql.admin.inc',
+    'weight' => 3,
+  );
+
+  return $items;
+}
+
+/**
+ * SPARQL endpoint page.
+ */
+function simplerdf_sparql_endpoint() {
+  module_load_include('inc', 'simplerdf_sparql', 'simplerdf_sparql.store');
+  if ($endpoint = simplerdf_sparql_store_get_endpoint()) {
+    if (variable_get('simplerdf_sparql_index', FALSE)) {
+      // Index
+      simplerdf_sparql_index();
+    }
+    if (simplerdf_sparql_lock_shared()) {
+      $endpoint->go();
+      exit;
+    }
+  }
+  // Some kind of failure
+  drupal_not_found();
+}
+
+
+/************************************************
+ * RDF rebuild implementations.
+ ************************************************/
+
+/**
+ * Reset SPARQL database.
+ */
+function simplerdf_sparql_reset() {
+  module_load_include('inc', 'simplerdf_sparql', 'simplerdf_sparql.store');
+  $store = simplerdf_sparql_store_get_store();
+  $store->reset();
+
+  // Flag for re-indexing on next SPARQL access
+  variable_set('simplerdf_sparql_index', TRUE);
+}
+
+/**
+ * Index site for Simple RDF data.
+ */
+function simplerdf_sparql_index() {
+  module_load_include('inc', 'simplerdf_sparql', 'simplerdf_sparql.store');
+  $store = simplerdf_sparql_store_get_store();
+  variable_set('simplerdf_sparql_index', FALSE);
+
+  if (simplerdf_sparql_lock_ex()) {
+    // Build node triples
+    $result = db_query('SELECT nid FROM {node}');
+    while ($nid = db_result($result)) {
+      $node = node_load($nid, NULL, TRUE);
+      $uri = simplerdf_sparql_get_uri('node', $nid);
+      simplerdf_sparql_index_node($store, $node, $uri);
+    }
+
+    // Build term triples
+    if (module_exists('simplerdf_taxonomy')) {
+      // Index terms
+      $result = db_query('SELECT tid FROM {term_data}');
+      while ($tid = db_result($result)) {
+        $term = simplerdf_taxonomy_term_load($tid);
+        // Only index local terms
+        if (empty($term->remote_uri)) {
+          $uri = simplerdf_sparql_get_uri('term', $tid);
+          simplerdf_sparql_index_term($store, $term, $uri);
+        }
+      }
+    }
+
+    // Build user triples
+    if (module_exists('simplerdf_user')) {
+      // Index users
+      $result = db_query('SELECT uid FROM {users}');
+      while ($uid = db_result($result)) {
+        $user = user_load($uid);
+        $uri = simplerdf_sparql_get_uri('user', $uid);
+        simplerdf_sparql_index_term($store, $term, $uri);
+      }
+    }
+
+    simplerdf_sparql_lock_release();
+  }
+}
+
+/**
+ * Load an object. This is a very primitive form of an entity loader.
+ *
+ * @param string $type
+ *   Object type, one of 'node', 'term', or 'user'.
+ * @param int $id
+ *   Object ID.
+ *
+ * @return stdClass
+ *   Loaded object.
+ */
+function simplerdf_sparql_load($type, $id) {
+  static $loaders = array(
+    'node' => 'node_load',
+    'term' => 'taxonomy_get_term',
+    'user' => 'user_load',
+  );
+  if (array_key_exists($type, $loaders)) {
+    $loader = $loaders[$type];
+    return $loader($id);
+  }
+}
+
+/**
+ * Get the URI of an object.
+ *
+ * @param string $type
+ *   Object type, one of 'node', 'term', or 'user'.
+ * @param int $id
+ *   Object ID.
+ *
+ * @return string
+ *   Object URI.
+ */
+function simplerdf_sparql_get_uri($type, $id) {
+  static $getters = array(
+    'node' => 'simplerdf_get_nodeuri',
+    'term' => 'simplerdf_taxonomy_get_termuri',
+    'user' => 'simplerdf_user_get_useruri',
+  );
+  if (array_key_exists($type, $getters)) {
+    $getter = $getters[$type];
+    return $getter($id);
+  }
+}
+
+/**
+ * Update dependent objects.
+ *
+ * @param array $objects
+ *   Array containing objects described as an array keyed by 'type' and 'id'.
+ *   The type can be one of 'node', 'term', or 'user'.
+ */
+function simplerdf_sparql_update_objects(array $objects) {
+  static $types = array('node', 'term', 'user');
+
+  module_load_include('inc', 'simplerdf_sparql', 'simplerdf_sparql.store');
+  $store = simplerdf_sparql_store_get_store();
+  foreach ($objects as $object) {
+    $type = $object['type'];
+    $id = $object['id'];
+    if ($type && in_array($type, $types)) {
+      $obj = simplerdf_sparql_load($type, $id);
+      $uri = simplerdf_sparql_get_uri($type, $id);
+      $indexer = 'simplerdf_sparql_index_' . $type;
+      if ($obj && $uri && function_exists($indexer)) {
+        // Clear graph with URI
+        // It's the provider's fault if the generated URI uses bad characters
+        if ($store->getLock()) {
+          $store->query("DELETE FROM <$uri> { ?s ?p ?o }");
+          $indexer($store, $obj, $uri);
+          $store->releaseLock();
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_nodeapi().
+ */
+function simplerdf_sparql_nodeapi(&$node, $op, $a3, $a4) {
+  if (in_array($op, array('insert', 'update', 'delete'), TRUE)) {
+    _simplerdf_sparql_object_crud($op, 'node', $node->nid);
+  }
+}
+
+/**
+ * Implements hook_taxonomy().
+ */
+function simplerdf_sparql_taxonomy($op, $type, $array = NULL) {
+  if (in_array($op, array('insert', 'update', 'delete'), TRUE)) {
+    _simplerdf_sparql_object_crud($op, 'term', $array['tid']);
+  }
+}
+
+/**
+ * Implements hook_user().
+ */
+function simplerdf_sparql_user($op, &$edit, &$account, $category = NULL) {
+  if (in_array($op, array('insert', 'update', 'delete'), TRUE)) {
+    _simplerdf_sparql_object_crud($op, 'user', $account->uid);
+  }
+}
+
+/**
+ * Process CRUD triggers for each type of object.
+ */
+function _simplerdf_sparql_object_crud($op, $type, $id) {
+  static $types = array('node', 'term', 'user');
+  $update = array();
+  switch ($op) {
+    case 'update':
+      // Re-index dependent objects
+      $rels = simplerdf_rel_lookup(NULL, NULL, $type, $id);
+      foreach ($rels as $rel) {
+        if ($rel && in_array($rel, $types)) {
+          $update[] = array(
+            'type' => $rel['source_type'],
+            'id' => $rel['source_id'],
+          );
+        }
+      }
+    case 'insert':
+      // Re-index this object as well
+      $update[] = compact('type', 'id');
+      if (simplerdf_sparql_lock_shared()) {
+        simplerdf_sparql_update_objects($update);
+        simplerdf_sparql_lock_release();
+      }
+      break;
+
+    case 'delete':
+      // Reset
+      // TODO How to track objects dependent on a potentially deleted object?
+      simplerdf_sparql_reset();
+      break;
+  }
+}
+
+/**
+ * Implements hook_simplerdf_clear_cache().
+ */
+function simplerdf_sparql_simplerdf_clear_cache($type, $a1) {
+  // Reset on all cache clear
+  if (!$type) {
+    simplerdf_sparql_reset();
+  }
+}
+
+
+/************************************************
+ * Basic locking mechanism.
+ ************************************************/
+
+/**
+ * Obtain an exclusive lock to the SPARQL stores.
+ *
+ * @param int $timeout
+ *   Number of seconds to wait before giving up.
+ *
+ * @return bool
+ *   TRUE if lock has been obtained, FALSE if timed out.
+ */
+function simplerdf_sparql_lock_ex($timeout = 30) {
+  return _simplerdf_sparql_lock_delay(LOCK_EX, $timeout);
+}
+
+/**
+ * Obtain a shared lock to the SPARQL stores.
+ *
+ * @param int $timeout
+ *   Number of seconds to wait before giving up.
+ *
+ * @return bool
+ *   TRUE if lock has been obtained, FALSE if timed out or detected invalid arguments.
+ */
+function simplerdf_sparql_lock_shared($timeout = 30) {
+  return _simplerdf_sparql_lock_delay(LOCK_SH, $timeout);
+}
+
+/**
+ * Release a lock.
+ *
+ * @return bool
+ *   TRUE if lock has been release, FALSE if could not release or no lock to release.
+ */
+function simplerdf_sparql_lock_release() {
+  _simplerdf_sparql_lock(LOCK_UN);
+}
+
+/**
+ * Obtain a lock within a given time period.
+ */
+function _simplerdf_sparql_lock_delay($op, $timeout) {
+  $t1 = time();
+  if (is_int($timeout) && $timeout > 0 && in_array($op, array(LOCK_SH, LOCK_EX), TRUE)) {
+    do {
+      if (_simplerdf_sparql_lock($op)) {
+        // Lock obtained
+        return TRUE;
+      }
+      else {
+        sleep(1);
+        $t2 = time();
+      }
+    }
+    while ($t2 - $t1 < $timeout);
+    // Timed out
+    return FALSE;
+  }
+  else {
+    // Invalid arguments
+    return FALSE;
+  }
+}
+
+/**
+ * Perform a locking action.
+ *
+ * @param int $op
+ *   File locking operation. Can be one of LOCK_SH, LOCK_EX, and LOCK_UN.
+ */
+function _simplerdf_sparql_lock($op) {
+  static $lock;
+  static $num_locks = 0;
+  if (!isset($lock)) {
+    // Attempt to create the lock file if it doesn't exist
+    if (!file_exists(SIMPLERDF_SPARQL_LOCK_FILE)) {
+      if (!is_dir($lock_dir = dirname(SIMPLERDF_SPARQL_LOCK_FILE))) {
+        // Attempt to create parent path
+        @mkdir($lock_dir, 0777, TRUE);
+      }
+      @touch(SIMPLERDF_SPARQL_LOCK_FILE);
+    }
+    $lock = file_exists(SIMPLERDF_SPARQL_LOCK_FILE) ? @fopen(SIMPLERDF_SPARQL_LOCK_FILE, 'r') : FALSE;
+  }
+
+  if ($lock && in_array($op, array(LOCK_SH, LOCK_EX, LOCK_UN))) {
+    if ($op == LOCK_UN && $num_locks == 0) {
+      // No open locks to release
+      return FALSE;
+    }
+
+    $result = flock($lock, $op | LOCK_NB);
+    if ($result) {
+      // Successfully executed
+      if ($op == LOCK_UN) {
+        $num_locks --;
+      }
+      else {
+        $num_locks ++;
+      }
+    }
+    return $result;
+  }
+  else {
+    // Invalid lock handle or arguments
+    return FALSE;
+  }
+}
+
+
+/************************************************
+ * Object triple indexing functions.
+ ************************************************/
+
+/**
+ * Index node.
+ *
+ * @param ARC2_Store $store
+ *   ARC2 store instance.
+ * @param stdClass $node
+ *   Node object to index.
+ * @param string $uri
+ *   Node graph URI.
+ */
+function simplerdf_sparql_index_node(ARC2_Store $store, $node, $uri) {
+  if ($triples = simplerdf_build_triples($node)) {
+    module_load_include('inc', 'simplerdf', 'includes/simplerdf.render');
+    $triples = simplerdf_render_process_triples($triples);
+    $store->insert($triples, $uri);
+  }
+}
+
+/**
+ * Index term.
+ *
+ * @param ARC2_Store $store
+ *   ARC2 store instance.
+ * @param stdClass $term
+ *   Term object to index.
+ * @param string $uri
+ *   Term graph URI.
+ */
+function simplerdf_sparql_index_term($store, $term, $uri) {
+  if (function_exists('simplerdf_taxonomy_build_triples') && $triples = simplerdf_taxonomy_build_triples($term)) {
+    module_load_include('inc', 'simplerdf', 'includes/simplerdf.render');
+    $triples = simplerdf_render_process_triples($triples);
+    $store->insert($triples, $uri);
+  }
+}
+
+/**
+ * Index user.
+ *
+ * @param ARC2_Store $store
+ *   ARC2 store instance.
+ * @param stdClass $user
+ *   User object to index.
+ * @param string $uri
+ *   User graph URI.
+ */
+function simplerdf_sparql_index_user($store, $user, $uri) {
+  if (function_exists('simplerdf_user_build_triples') && $triples = simplerdf_user_build_triples($user)) {
+    module_load_include('inc', 'simplerdf', 'includes/simplerdf.render');
+    $triples = simplerdf_render_process_triples($triples);
+    $store->insert($triples, $uri);
+  }
+}
+
+
+/************************************************
+ * Form alter hooks.
+ ************************************************/
+
+/**
+ * Implements hook_form_alter().
+ * Reset SPARQL triple store.
+ */
+function simplerdf_sparql_form_alter(&$form, &$form_state, $form_id) {
+  switch ($form_id) {
+    // Admin dashboard
+    case 'simplerdf_admin_rel_index_form':
+    // Node URI
+    case 'simplerdf_admin_nodeuri_form':
+    case 'simplerdf_admin_nodeuri_settings_form':
+    // Mappings forms
+    case 'simplerdf_admin_mappings_form':
+    case 'simplerdf_taxonomy_admin_vocabulary_mappings_form':
+    case 'simplerdf_user_admin_mappings_form':
+      $form['#submit'][] = 'simplerdf_sparql_reset';
+      break;
+  }
+}
