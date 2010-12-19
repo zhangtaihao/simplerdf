@@ -61,20 +61,26 @@ function simplerdf_schema() {
     'description' => $t('Mappings from node field to RDF property.'),
 
     'fields' => array(
-      'content_type' => array(
-        'description' => $t('Content type for the field mapping.'),
+      'type' => array(
+        'description' => $t('Object type for the field mapping.'),
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ),
+      'classifier' => array(
+        'description' => $t('Object classifier.'),
         'type' => 'varchar',
         'length' => 32,
         'not null' => TRUE,
       ),
       'field' => array(
-        'description' => $t('Node field for mapping.'),
+        'description' => $t('Field for mapping.'),
         'type' => 'varchar',
         'length' => 100,
         'not null' => TRUE,
       ),
       'properties' => array(
-        'description' => $t('RDF properties mapped to the node field.'),
+        'description' => $t('RDF properties mapped to the field.'),
         'type' => 'text',
         'size' => 'big',
         'not null' => TRUE,
@@ -158,7 +164,7 @@ function simplerdf_install() {
   variable_set('simplerdf_view_tab', TRUE);
   variable_set('simplerdf_view_title', 'RDF');
   variable_set('simplerdf_format', 'RDFXML');
-  variable_set('simplerdf_nodeuri_generator', 'raw');
+  variable_set('simplerdf_uri_formats', array('node' => 'default', 'user' => 'default'));
   variable_set('simplerdf_nodeuri_settings', array());
   variable_set('simplerdf_rel_index', TRUE);
 }
@@ -173,7 +179,7 @@ function simplerdf_uninstall() {
   variable_del('simplerdf_view_tab');
   variable_del('simplerdf_view_title');
   variable_del('simplerdf_format');
-  variable_del('simplerdf_nodeuri_generator');
+  variable_del('simplerdf_uri_formats');
   variable_del('simplerdf_nodeuri_settings');
   variable_del('simplerdf_rel_index');
 }
@@ -203,4 +209,12 @@ function simplerdf_update_6002(&$sandbox) {
   cache_clear_all('*', 'cache_simplerdf', TRUE);
 
   return $ret;
+}
+
+/**
+ * Implements hook_update_N() for 6003.
+ */
+function simplerdf_update_6003(&$sandbox) {
+  // TODO Rename 'content_type' to 'classifier'
+  // TODO Add 'type'
 }
