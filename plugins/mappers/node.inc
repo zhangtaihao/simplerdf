@@ -10,6 +10,7 @@
  */
 $plugin = array(
   'title' => t('Core node'),
+  'object types' => array('node'),
   'description' => t('Basic node properties for the basic description of a node.'),
   'weight' => -20,
   'callback fields' => 'simplerdf_mapper_node_fields',
@@ -19,7 +20,7 @@ $plugin = array(
 /**
  * Provide core node fields.
  */
-function simplerdf_mapper_node_fields($content_type) {
+function simplerdf_mapper_node_fields($object_type = 'node', $content_type) {
   $fields = array();
   $type = node_get_types('type', $content_type);
 
@@ -58,10 +59,10 @@ function simplerdf_mapper_node_fields($content_type) {
 /**
  * Mapping callback.
  */
-function simplerdf_mapper_node_map($node, $nodeuri, $property, $field) {
+function simplerdf_mapper_node_map($object_type = 'node', $node, $uri, $property, $field) {
   $field_name = $field['name'];
 
-  $s = simplerdf_make_subject('uri', $nodeuri);
+  $s = simplerdf_make_subject('uri', $uri);
   $p = simplerdf_make_predicate($property);
 
   switch ($field_name) {

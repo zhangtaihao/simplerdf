@@ -10,7 +10,8 @@
  */
 $plugin = array(
   'title' => t('CCK'),
-  'description' => t('Basic node properties for the basic description of a field.'),
+  'object types' => array('node'),
+  'description' => t('CCK content fields.'),
   'weight' => -10,
   'callback fields' => 'simplerdf_mapper_content_fields',
   'callback map' => 'simplerdf_mapper_content_map',
@@ -19,14 +20,14 @@ $plugin = array(
 /**
  * Provide CCK fields.
  */
-function simplerdf_mapper_content_fields($content_type) {
+function simplerdf_mapper_content_fields($object_type = 'node', $content_type) {
   return simplerdf_get_content_fields($content_type);
 }
 
 /**
  * Map CCK fields.
  */
-function simplerdf_mapper_content_map($node, $nodeuri, $property, $field) {
+function simplerdf_mapper_content_map($object_type = 'node', $node, $uri, $property, $field) {
   static $plugins;
   // Initialize plugins
   if (!$plugins) {
@@ -49,7 +50,7 @@ function simplerdf_mapper_content_map($node, $nodeuri, $property, $field) {
       $triples = array();
       foreach ($values as $delta => $value) {
         if (isset($value)) {
-          $result = _simplerdf_invoke($mapper, 'callback map', $node, $nodeuri, $property, $field, $value, $delta);
+          $result = _simplerdf_invoke($mapper, 'callback map', $node, $uri, $property, $field, $value, $delta);
           if (is_array($result)) {
             $triples = array_merge($triples, $result);
           }
