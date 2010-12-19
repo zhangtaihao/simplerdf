@@ -349,6 +349,8 @@ function _simplerdf_rel_get_filter_string($filters) {
  *   Mappings keyed by field name.
  */
 function simplerdf_get_mappings($type, $classifier = NULL) {
+  $classifier = (string) $classifier;
+
   $cid = "mappings:$type:$classifier";
   if ($cache = cache_get($cid, 'cache_simplerdf')) {
     // Fetch cached mappings
@@ -359,6 +361,7 @@ function simplerdf_get_mappings($type, $classifier = NULL) {
     $result = db_query("SELECT * FROM {simplerdf_mappings} WHERE type = '%s' AND classifier = '%s' ORDER BY field ASC", $type, $classifier);
     $mappings = array();
     while ($mapping = db_fetch_object($result)) {
+
       $mappings[$mapping->field] = unserialize($mapping->properties);
     }
     cache_set($cid, $mappings, 'cache_simplerdf');
