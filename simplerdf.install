@@ -88,7 +88,7 @@ function simplerdf_schema() {
       ),
     ),
 
-    'primary key' => array('content_type', 'field'),
+    'primary key' => array('type', 'classifier', 'field'),
 
     // Index on content type
     'indexes' => array(

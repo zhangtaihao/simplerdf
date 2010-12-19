@@ -9,7 +9,7 @@
  * Core node mapper plugin definition.
  */
 $plugin = array(
-  'title' => t('Core node'),
+  'title' => t('Node'),
   'object types' => array('node'),
   'description' => t('Basic node properties for the basic description of a node.'),
   'weight' => -20,

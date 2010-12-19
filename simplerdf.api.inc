@@ -253,6 +253,51 @@ function simplerdf_get_mappings($type, $classifier = NULL) {
 }
 
 /**
+ * Save RDF mappings for a classification of objects.
+ *
+ * @param string $type
+ *   Object type; can be one of 'node', 'term', and 'user'.
+ * @param $classifier
+ *   Classification for the type of objects.
+ * @param array $mappings
+ *   Arrays of mappings in order keyed by field name.
+ */
+function simplerdf_save_mappings($type, $classifier, array $mappings) {
+  $classifier = (string) $classifier;
+
+  $info = _simplerdf_type_info();
+  $save = array();
+  if ($info['types'][$type]) {
+    // Validate mappings
+    foreach ($mappings as $field => $properties) {
+      if (!is_array($properties)) {
+        continue;
+      }
+      else {
+        foreach ($properties as $property) {
+          if (!is_string($property)) {
+            continue 2;
+          }
+        }
+        // Push for saving
+        $save[] = array(
+          'type' => $type,
+          'classifier' => (string) $classifier,
+          'field' => $field,
+          'properties' => $properties,
+        );
+      }
+    }
+    // Clear existing mappings first
+    db_query("DELETE FROM {simplerdf_mappings} WHERE type = '%s' AND classifier = '%s'", $type, $classifier);
+    // Save
+    foreach ($save as $mapping) {
+      drupal_write_record('simplerdf_mappings', $mapping);
+    }
+  }
+}
+
+/**
  * Get RDF triples for an object.
  *
  * @param string $type

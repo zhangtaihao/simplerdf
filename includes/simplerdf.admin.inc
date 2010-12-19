@@ -163,20 +163,19 @@ function simplerdf_admin_node_mappings_form_submit($form, $form_state) {
   $values = $form_state['values'];
   $content_type = $values['__content_type'];
 
-  // Clear mappings
-  db_query("DELETE FROM {simplerdf_mappings} WHERE content_type = '%s'", $content_type);
+  $mappings = array();
 
   // Add mappings
   foreach ($values['properties'] as $field => $properties) {
     // Normalize RDF properties
     $properties = array_filter(array_map('trim', preg_split('/\s*,\s*/', $properties)));
-
-    // Save
     if (!empty($properties)) {
-      $mapping = (object) compact('content_type', 'field', 'properties');
-      drupal_write_record('simplerdf_mappings', $mapping);
+      $mappings[$field] = $properties;
     }
   }
+
+  // Save
+  simplerdf_save_mappings('node', $content_type, $mappings);
 
   // Clear cache
   simplerdf_clear_cache('mappings', $content_type);
@@ -203,13 +202,13 @@ function simplerdf_admin_user_mappings_form($form_state) {
   );
 
   // Load mappings
-  $rdf_mappings = simplerdf_user_get_mappings();
+  $rdf_mappings = simplerdf_get_mappings('user');
 
   // Build mappings
   $form['mappings'] = array(
     '#theme' => 'simplerdf_admin_basic_mappings_table',
   );
-  $fields = simplerdf_user_get_fields($vid);
+  $fields = simplerdf_get_fields('user');
   foreach ($fields as $name => $field) {
     $mapping = array(
       '#field_title' => $field,
@@ -242,7 +241,7 @@ function simplerdf_admin_user_mappings_form_submit(&$form, &$form_state) {
   $values = $form_state['values'];
 
   $mappings = array();
-  $fields = simplerdf_user_get_fields();
+  $fields = simplerdf_get_fields('user');
   foreach (array_keys($fields) as $name) {
     if (!empty($values['properties'][$name])) {
       $properties = array_filter(array_map('trim', preg_split('/\s*,\s*/', $values['properties'][$name])));
@@ -251,7 +250,7 @@ function simplerdf_admin_user_mappings_form_submit(&$form, &$form_state) {
       }
     }
   }
-  simplerdf_user_save_mappings($mappings);
+  simplerdf_save_mappings('user', NULL, $mappings);
   simplerdf_clear_cache('user');
 
   drupal_set_message(t('RDF mappings have been updated.'));
@@ -766,6 +765,14 @@ function simplerdf_admin_settings_form($form_state) {
     '#required' => TRUE,
     '#description' => t('Internal path to display node RDF documents at.'),
   );
+  $form['view_path']['user_path'] = array(
+    '#type' => 'textfield',
+    '#title' => t('User RDF path'),
+    '#field_prefix' => 'user/%/',
+    '#default_value' => variable_get('simplerdf_user_view_path', 'rdf'),
+    '#required' => TRUE,
+    '#description' => t('Internal path to display user RDF documents at.'),
+  );
 
   $form['view_tab'] = array(
     '#type' => 'fieldset',
@@ -855,6 +862,13 @@ function simplerdf_admin_settings_form_validate($form, &$form_state) {
   elseif ($path != variable_get('simplerdf_view_path', SIMPLERDF_DEFAULT_VIEW_PATH) && db_result(db_query("SELECT 1 FROM {menu_router} WHERE path = '%s'", "node/%/$path"))) {
     form_set_error('path', t('The specified path already exists. Please enter different one.'));
   }
+
+  if (preg_match('/[^A-Za-z0-9]/', $user_path)) {
+    form_set_error('user_path', t('Invalid character detected for user RDF path. Please enter only lowercase, uppercase, and numeric characters.'));
+  }
+  elseif ($user_path != variable_get('simplerdf_user_view_path', 'rdf') && db_result(db_query("SELECT 1 FROM {menu_router} WHERE path = '%s'", "user/%/$user_path"))) {
+    form_set_error('user_path', t('The specified path already exists. Please enter different one.'));
+  }
 }
 
 /**
@@ -866,6 +880,10 @@ function simplerdf_admin_settings_form_submit($form, &$form_state) {
   $rebuild = FALSE;
   if ($path != variable_get('simplerdf_view_path', SIMPLERDF_DEFAULT_VIEW_PATH)) {
     variable_set('simplerdf_view_path', $path);
+    $rebuild = TRUE;
+  }
+  if ($user_path != variable_get('simplerdf_user_view_path', 'rdf')) {
+    variable_set('simplerdf_user_view_path', $user_path);
     $rebuild = TRUE;
   }
   if ($tab != variable_get('simplerdf_view_tab', TRUE)) {

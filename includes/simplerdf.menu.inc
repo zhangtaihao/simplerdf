@@ -27,7 +27,23 @@ function _simplerdf_menu() {
     );
   }
 
-  // Node field mappings
+  $view_path = variable_get('simplerdf_user_view_path', 'rdf');
+
+  // Check to make sure we aren't overriding RDF (should only happen when
+  // RDF is installed after this module and path remains 'rdf').
+  if ($view_path && !($view_path == 'rdf' && module_exists('rdf'))) {
+    $items['user/%user/' . $view_path] = array(
+      'title' => check_plain(variable_get('simplerdf_view_title', 'RDF')),
+      'description' => 'View the RDF document.',
+      'page callback' => 'simplerdf_user_render_user',
+      'page arguments' => array(1),
+      'access callback' => 'user_view_access',
+      'access arguments' => array(1),
+      'type' => variable_get('simplerdf_view_tab', TRUE) ? MENU_LOCAL_TASK : MENU_CALLBACK,
+    );
+  }
+
+  // Mapping administration
   foreach (array_keys(node_get_types()) as $type) {
     $type = str_replace('_', '-', $type);
     $items['admin/content/node-type/' . $type . '/simplerdf'] = array(
@@ -41,6 +57,15 @@ function _simplerdf_menu() {
       'weight' => 1,
     );
   }
+  $items['admin/user/simplerdf'] = array(
+    'title' => 'Simple RDF mappings',
+    'description' => 'Manage RDF mappings for users.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('simplerdf_user_admin_mappings_form'),
+    'access arguments' => array('administer simplerdf mappings'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'simplerdf_user.admin.inc',
+  );
 
   // Admin dashboard
   $items['admin/build/simplerdf'] = array(
