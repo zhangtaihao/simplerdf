@@ -368,26 +368,6 @@ function simplerdf_taxonomy_save_mappings($vid, array $mappings) {
 }
 
 /**
- * Get mapping fields for taxonomy.
- *
- * @param int $vid
- *   Vocabulary ID (ignored).
- *
- * @return array
- *   Field titles keyed by field name.
- */
-function simplerdf_taxonomy_get_fields($vid) {
-  return array(
-    'rdftype' => t('RDF class (rdf:type)'),
-    'name' => t('Term name'),
-    'description' => t('Description'),
-    'parent' => t('Parent term'),
-    'related' => t('Related term'),
-    'synonym' => t('Term synonym'),
-  );
-}
-
-/**
  * Implements hook_taxonomy().
  */
 function simplerdf_taxonomy_taxonomy($op, $type, $array) {
