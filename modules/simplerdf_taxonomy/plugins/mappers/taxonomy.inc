@@ -10,7 +10,9 @@
  */
 $plugin = array(
   'title' => t('Taxonomy'),
+  'object types' => array('node'),
   'description' => t('Core taxonomy term mapping.'),
+  'weight' => -20,
   'callback fields' => 'simplerdf_taxonomy_mapper_fields',
   'callback map' => 'simplerdf_taxonomy_mapper_map',
 );
