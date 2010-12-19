@@ -2,7 +2,7 @@
 // $Id$
 /**
  * @file
- * Custom node URI generator.
+ * Custom node URI format.
  */
 
 /**
@@ -10,31 +10,31 @@
  */
 $plugin = array(
   'title' => t('Custom URI'),
-  'description' => t('Generate node URIs from custom patterns using tokens. The Token module must be enabled for this to work.'),
-  'callback generate' => 'simplerdf_nodeuri_custom_generate',
+  'description' => t('Format URIs from custom patterns using tokens. The Token module must be enabled for this to work.'),
+  'internal' => TRUE,
+  'callback format' => 'simplerdf_uri_token_format',
   'settings defaults' => array(
-    'pattern' => 'node/[nid]',
+    'pattern' => '',
   ),
-  'settings form' => 'simplerdf_nodeuri_custom_settings',
-  'weight' => 10,
+  'settings form' => 'simplerdf_uri_token_custom_settings',
 );
 
 /**
- * Generate custom node URI.
+ * Format custom node URI.
  */
-function simplerdf_nodeuri_custom_generate($nid, $settings) {
-  if (module_exists('token')) {  // Just to make sure Token is available
+function simplerdf_uri_token_format($type, $id, $object, array $settings = array()) {
+  if (function_exists('token_replace')) {  // Just to make sure Token is available
     $pattern = $settings['pattern'];
-    return url(token_replace($pattern, 'node', node_load($nid)), array('absolute' => TRUE, 'alias' => TRUE));
+    return url(token_replace($pattern, $type, $object, array('alias' => TRUE)));
   }
 }
 
 /**
  * Settings form.
  */
-function simplerdf_nodeuri_custom_settings($form_state) {
+function simplerdf_uri_token_custom_settings($form_state, $type) {
   $form['pattern'] = array(
-    '#title' => 'Node URI pattern',
+    '#title' => 'Pattern',
     '#type' => 'textfield',
     '#field_prefix' => url(NULL, array('absolute' => TRUE)),
     '#default_value' => $form_state['values']['pattern'],
