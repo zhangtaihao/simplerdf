@@ -32,9 +32,9 @@ function _simplerdf_menu() {
     $type = str_replace('_', '-', $type);
     $items['admin/content/node-type/' . $type . '/simplerdf'] = array(
       'title' => 'Simple RDF mappings',
-      'description' => 'Configure node property mappings.',
+      'description' => 'Configure node RDF property mappings.',
       'page callback' => 'drupal_get_form',
-      'page arguments' => array('simplerdf_admin_mappings_form', 3),
+      'page arguments' => array('simplerdf_admin_node_mappings_form', 3),
       'type' => MENU_LOCAL_TASK,
       'access arguments' => array('administer simplerdf mappings'),
       'file' => 'includes/simplerdf.admin.inc',
@@ -71,23 +71,32 @@ function _simplerdf_menu() {
     'file' => 'includes/simplerdf.admin.inc',
   );
 
-  // Node URI administration
-  $items['admin/build/simplerdf/nodeuri'] = array(
+  // URI generator administration
+  $items['admin/build/simplerdf/uri'] = array(
     'title' => 'Node URI format',
-    'description' => 'Select and configure settings for generation of node URIs for RDF documents.',
+    'description' => 'Select and configure settings for generation of URIs for RDF data.',
     'type' => MENU_NORMAL_ITEM,
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('simplerdf_admin_nodeuri_form'),
+    'page callback' => 'simplerdf_admin_uri_overview',
     'access arguments' => $administer_simplerdf,
     'file' => 'includes/simplerdf.admin.inc',
     'weight' => 1,
   );
-  $items['admin/build/simplerdf/nodeuri/%simplerdf_nodeuri_settings'] = array(
-    'title' => 'Node URI generator',
-    'description' => 'Configure settings for the node URI generator.',
+  $items['admin/build/simplerdf/uri/%'] = array(
+    'title' => 'Node URI format',
+    'description' => 'Select and configure settings for generation of URIs for RDF data.',
+    'type' => MENU_NORMAL_ITEM,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('simplerdf_admin_uri_form', 4),
+    'access arguments' => $administer_simplerdf,
+    'file' => 'includes/simplerdf.admin.inc',
+    'weight' => 1,
+  );
+  $items['admin/build/simplerdf/uri/%/%'] = array(
+    'title' => 'URI generator',
+    'description' => 'Configure settings for the URI generator.',
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('simplerdf_admin_nodeuri_settings_form', 4),
+    'page arguments' => array('simplerdf_admin_uri_settings_form', 4, 5),
     'access arguments' => $administer_simplerdf,
     'file' => 'includes/simplerdf.admin.inc',
   );
@@ -112,12 +121,11 @@ function _simplerdf_menu() {
   );
 
   // Autocomplete callbacks
-  $items['simplerdf/autocomplete/%'] = array(
+  $items['simplerdf/autocomplete'] = array(
     'title' => 'Autocomplete',
     'description' => 'Autocomplete-enabled textfield helper.',
     'type' => MENU_CALLBACK,
-    'page callback' => 'simplerdf_autocomplete',
-    'page arguments' => array(2),
+    'page callback' => '_simplerdf_autocomplete',
     'access arguments' => array('administer simplerdf'),
   );
 

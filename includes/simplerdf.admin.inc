@@ -5,6 +5,11 @@
  * Admin UI forms and callbacks.
  */
 
+
+/************************************************
+ * Mapping forms.
+ ************************************************/
+
 /**
  * Insert Simple RDF mappings column.
  */
@@ -41,70 +46,6 @@ function _simplerdf_content_types_overview_alter(&$header, &$rows) {
     array_splice($row, $cell_index, 0, l(t('RDF mappings'), $path));
   }
   unset($row);
-}
-
-/**
- * @todo ???
- * Form for configuring node property mappings.
- */
-function simplerdf_admin_mappings_form($form_state, $content_type) {
-  $path = drupal_get_path('module', 'simplerdf');
-  drupal_add_css($path . '/simplerdf.admin.css');
-
-  $content_type = str_replace('-', '_', $content_type);
-  $form = array();
-
-  // Cache content type
-  if ($content_type) {
-    $form['__content_type'] = array(
-      '#type' => 'value',
-      '#value' => $content_type,
-    );
-  }
-
-  $form['help'] = array(
-    '#type' => 'markup',
-    '#prefix' => '<p>',
-    '#value' => t('Enter one or more RDF property mapping (separated by commas) for each node field listed below. The fields are grouped together by their property mappers for clarity. Namespace prefixes defined for this site are listed in the table below (open the "RDF namespaces" fieldset to view). You may use these prefixes in the property mappings. Note: specified mappings will not be checked against their vocabularies.'),
-    '#suffix' => '</p>',
-  );
-  $form['legend'] = array(
-    '#type' => 'markup',
-    '#value' => theme('simplerdf_namespaces'),
-  );
-
-  // Load mappings
-  $rdf_mappings = simplerdf_get_mappings($content_type);
-
-  // Build mappings
-  $form['mappings'] = array(
-    '#theme' => 'simplerdf_admin_mappings_table',
-  );
-  $fields = simplerdf_get_fields($content_type);
-  foreach ($fields as $name => $field) {
-    $mapping = array(
-      '#field_title' => $field['title'],
-      '#field_name' => $name,
-      'properties' => array('#tree' => TRUE),
-      '#mapper' => $field['mapper'],
-    );
-    // Mapping textfield
-    $mapping['properties'][$name] = array(
-      '#type' => 'textfield',
-      '#size' => 20,
-      '#maxlength' => 100,
-      '#default_value' => implode(', ', $rdf_mappings[$name]),
-    );
-
-    $form['mappings'][] = $mapping;
-  }
-
-  $form['save'] = array(
-    '#type' => 'submit',
-    '#value' => t('Save mappings'),
-  );
-
-  return $form;
 }
 
 /**
@@ -153,9 +94,72 @@ function theme_simplerdf_admin_mappings_table($elements) {
 }
 
 /**
- * Mapping form submit callback.
+ * Form for configuring node property mappings.
  */
-function simplerdf_admin_mappings_form_submit($form, $form_state) {
+function simplerdf_admin_node_mappings_form($form_state, $content_type) {
+  $path = drupal_get_path('module', 'simplerdf');
+  drupal_add_css($path . '/simplerdf.admin.css');
+
+  $content_type = str_replace('-', '_', $content_type);
+  $form = array();
+
+  // Cache content type
+  if ($content_type) {
+    $form['__content_type'] = array(
+      '#type' => 'value',
+      '#value' => $content_type,
+    );
+  }
+
+  $form['help'] = array(
+    '#type' => 'markup',
+    '#prefix' => '<p>',
+    '#value' => t('Enter one or more RDF property mapping (separated by commas) for each node field listed below. The fields are grouped together by their property mappers for clarity. Namespace prefixes defined for this site are listed in the table below (open the "RDF namespaces" fieldset to view). You may use these prefixes in the property mappings. Note: specified mappings will not be checked against their vocabularies.'),
+    '#suffix' => '</p>',
+  );
+  $form['legend'] = array(
+    '#type' => 'markup',
+    '#value' => theme('simplerdf_namespaces'),
+  );
+
+  // Load mappings
+  $rdf_mappings = simplerdf_get_mappings('node', $content_type);
+
+  // Build mappings
+  $form['mappings'] = array(
+    '#theme' => 'simplerdf_admin_mappings_table',
+  );
+  $fields = simplerdf_get_fields('node', $content_type);
+  foreach ($fields as $name => $field) {
+    $mapping = array(
+      '#field_title' => $field['title'],
+      '#field_name' => $name,
+      'properties' => array('#tree' => TRUE),
+      '#mapper' => $field['mapper'],
+    );
+    // Mapping textfield
+    $mapping['properties'][$name] = array(
+      '#type' => 'textfield',
+      '#size' => 20,
+      '#maxlength' => 100,
+      '#default_value' => implode(', ', $rdf_mappings[$name]),
+    );
+
+    $form['mappings'][] = $mapping;
+  }
+
+  $form['save'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save mappings'),
+  );
+
+  return $form;
+}
+
+/**
+ * Node mapping form submit callback.
+ */
+function simplerdf_admin_node_mappings_form_submit($form, $form_state) {
   $values = $form_state['values'];
   $content_type = $values['__content_type'];
 
@@ -180,6 +184,83 @@ function simplerdf_admin_mappings_form_submit($form, $form_state) {
 
   drupal_set_message(t('RDF mappings have been updated.'));
 }
+
+/**
+ * User mappings form.
+ */
+function simplerdf_admin_user_mappings_form($form_state) {
+  drupal_set_title(t('Manage user RDF mappings'));
+
+  $form['help'] = array(
+    '#type' => 'markup',
+    '#prefix' => '<p>',
+    '#value' => t('Enter one or more RDF property mapping (separated by commas) for each user field listed below. Namespace prefixes defined for this site are listed in the table below (open the "RDF namespaces" fieldset to view). You may use these prefixes in the property mappings. Note: specified mappings will not be checked against their vocabularies.'),
+    '#suffix' => '</p>',
+  );
+  $form['legend'] = array(
+    '#type' => 'markup',
+    '#value' => theme('simplerdf_namespaces'),
+  );
+
+  // Load mappings
+  $rdf_mappings = simplerdf_user_get_mappings();
+
+  // Build mappings
+  $form['mappings'] = array(
+    '#theme' => 'simplerdf_admin_basic_mappings_table',
+  );
+  $fields = simplerdf_user_get_fields($vid);
+  foreach ($fields as $name => $field) {
+    $mapping = array(
+      '#field_title' => $field,
+      '#field_name' => $name,
+      'properties' => array('#tree' => TRUE),
+    );
+    // Mapping textfield
+    $mapping['properties'][$name] = array(
+      '#type' => 'textfield',
+      '#size' => 20,
+      '#maxlength' => 100,
+      '#default_value' => implode(', ', $rdf_mappings[$name]),
+    );
+
+    $form['mappings'][] = $mapping;
+  }
+
+  $form['save'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save mappings'),
+  );
+
+  return $form;
+}
+
+/**
+ * Mappings form submit handler.
+ */
+function simplerdf_admin_user_mappings_form_submit(&$form, &$form_state) {
+  $values = $form_state['values'];
+
+  $mappings = array();
+  $fields = simplerdf_user_get_fields();
+  foreach (array_keys($fields) as $name) {
+    if (!empty($values['properties'][$name])) {
+      $properties = array_filter(array_map('trim', preg_split('/\s*,\s*/', $values['properties'][$name])));
+      if (!empty($properties)) {
+        $mappings[$name] = $properties;
+      }
+    }
+  }
+  simplerdf_user_save_mappings($mappings);
+  simplerdf_clear_cache('user');
+
+  drupal_set_message(t('RDF mappings have been updated.'));
+}
+
+
+/************************************************
+ * General administration UI.
+ ************************************************/
 
 /**
  * Administration dashboard page.
@@ -356,31 +437,82 @@ function simplerdf_admin_rel_index_form() {
 }
 
 /**
- * Node URI generator choice form.
+ * Object URI configuration overview.
  */
-function simplerdf_admin_nodeuri_form($form_state) {
+function simplerdf_admin_uri_overview() {
+  $output = '<p>' . t('The active URI format for each object type is listed in the table below. Click on "configure" to change settings for that type. If any format below is "None", please select one in order for mapping RDF for the object type to function.') . '</p>';
+
+  // Build table
+  $header = array(
+    t('Type'),
+    t('Format'),
+    t('Operations'),
+  );
+
+  $rows = array();
+  $types = simplerdf_get_types();
+  $formats = variable_get('simplerdf_uri_formats', array());
+  $plugins = simplerdf_get_plugins('uri_formats');
+  foreach ($types as $type => $type_title) {
+    // Type name
+    $row = array($type_title);
+    // Type URI format
+    $format = $formats[$type];
+    if (isset($format) && isset($plugins[$format])) {
+      $row[] = $plugins[$format]['title'];
+    }
+    else {
+      $row[] = t('%none', array('%none' => t('None')));
+    }
+    // Operations
+    $row[] = l(t('configure'), "admin/build/simplerdf/uri/$type");
+  }
+}
+
+/**
+ * Object URI format choice form.
+ */
+function simplerdf_admin_uri_form($form_state, $type) {
   $path = drupal_get_path('module', 'simplerdf');
   drupal_add_css($path . '/simplerdf.admin.css');
   drupal_add_js($path . '/simplerdf.admin.js');
 
-  $plugins = ctools_get_plugins('simplerdf', 'nodeuri_generators');
-  uasort($plugins, '_simplerdf_compare_plugin_weights');
-  $active_nodeuri = variable_get('simplerdf_nodeuri_generator', SIMPLERDF_DEFAULT_NODEURI_GENERATOR);
+  // Process object type
+  $info = _simplerdf_type_info();
+  $types = $info['types'];
+  $map = $info['map'];
+  if ($type && array_key_exists($type, $types)) {
+    // Form entry
+    $form['__type'] = array(
+      '#type' => 'value',
+      '#value' => $type,
+    );
+  }
+  else {
+    // Invalid type
+    drupal_not_found();
+    exit;
+  }
+  $module = $map[$type];
+
+  $plugins = simplerdf_get_plugins('uri_formats');
+  $formats = (array) variable_get('simplerdf_uri_formats', array());
+  $format = $formats[$type];
 
   // Cache old setting
-  $form['__nodeuri'] = array(
+  $form['__format'] = array(
     '#type' => 'value',
-    '#value' => $active_nodeuri,
+    '#value' => $format,
   );
 
-  if (empty($form_state['values']['nodeuri'])) {
-    $form_state['values']['nodeuri'] = $active_nodeuri;
+  if (empty($form_state['values']['format'])) {
+    $form_state['values']['format'] = $format;
   }
 
-  $form['nodeuri'] = array(
+  $form['format'] = array(
     '#type' => 'item',
-    '#title' => t('Node URI format'),
-    '#description' => t('Configure the way the URI of a node is generated. If the generated URI is empty, the URI will be generated as the raw path of the node (which will always produce a URI).'),
+    '#title' => t('URI format'),
+    '#description' => t('Select the format of the URI of an object. Preview it to make sure it works properly.'),
   );
   // Populate choices
   foreach ($plugins as $plugin) {
@@ -388,15 +520,15 @@ function simplerdf_admin_nodeuri_form($form_state) {
     $title = check_plain($plugin['title']);
     if (!empty($plugin['settings form'])) {
       // Add link to settings form
-      $title .=  ' ' . l(t('(Settings)'), 'admin/build/simplerdf/nodeuri/' . $name, array('attributes' => array('class' => 'simplerdf-nodeuri-settings-link')));
+      $title .=  ' ' . l(t('(Settings)'), "admin/build/simplerdf/uri/$type/$name", array('attributes' => array('class' => 'simplerdf-nodeuri-settings-link')));
     }
-    $form['nodeuri'][$name] = array(
+    $form['format'][$name] = array(
       '#type' => 'radio',
       '#title' => $title,
       '#description' => filter_xss($plugin['description']),
-      '#attributes' => array('class' => 'simplerdf-nodeuri-button'),
-      '#parents' => array('nodeuri'),
-      '#default_value' => $form_state['values']['nodeuri'],
+      '#attributes' => array('class' => 'simplerdf-uri-button'),
+      '#parents' => array('format'),
+      '#default_value' => $form_state['values']['format'],
       '#return_value' => $name,
     );
   }
@@ -404,17 +536,27 @@ function simplerdf_admin_nodeuri_form($form_state) {
   // Preview interface
   $form['preview'] = array(
     '#type' => 'fieldset',
-    '#title' => t('Preview node URI'),
+    '#title' => t('Preview URI'),
   );
-  $form['preview']['nid'] = array(
+  $form['preview']['id'] = array(
     '#type' => 'textfield',
-    '#title' => t('Node ID'),
-    '#description' => t('Enter a node ID to preview the URI for.'),
-    '#autocomplete_path' => 'simplerdf/autocomplete/nid',
-    '#default_value' => $form_state['values']['nid'],
+    '#title' => t('@type ID', array('@type' => $types[$type])),
+    '#description' => t('Enter a ID to preview the URI for.'),
+    '#default_value' => $form_state['values']['id'],
   );
+  // Check whether type supports autocomplete
+  $autocomplete_callback = $module . '_simplerdf_' . $type . '_autocomplete';
+  if (function_exist($autocomplete_callback)) {
+    $form['preview']['id']['#autocomplete_path'] = 'simplerdf/autocomplete/preview_id';
+  }
+
   if ($form_state['storage']['preview']) {
-    $uri = simplerdf_generate_nodeuri($form_state['values']['nodeuri'], node_load($form_state['values']['nid']));
+    // Format URI and display
+    $id = $form_state['values']['id'];
+    $object = simplerdf_load($type, $id);
+    if ($object) {
+      $uri = simplerdf_format_uri($type, $id, $object);
+    }
     $form['preview']['uri'] = array(
       '#type' => 'item',
       '#title' => t('Generated URI'),
@@ -424,14 +566,14 @@ function simplerdf_admin_nodeuri_form($form_state) {
   $form['preview']['preview'] = array(
     '#type' => 'submit',
     '#value' => t('Preview URI'),
-    '#validate' => array('simplerdf_admin_nodeuri_preview'),
+    '#validate' => array('simplerdf_admin_uri_preview'),
   );
 
   $form['changed'] = array(
     '#value' => t('The settings on this form have been changed. Please save settings below to avoid losing changes.'),
     '#suffix' => '</div>',
   );
-  if ($form_state['values']['__nodeuri'] && $form_state['values']['nodeuri'] != $form_state['values']['__nodeuri']) {
+  if ($form_state['values']['__format'] && $form_state['values']['format'] != $form_state['values']['__format']) {
     $form['changed']['#prefix'] = '<div id="simplerdf-changed-message" class="changed">';
   }
   else {
@@ -447,11 +589,11 @@ function simplerdf_admin_nodeuri_form($form_state) {
 }
 
 /**
- * Node URI preview callback.
+ * URI preview callback.
  */
-function simplerdf_admin_nodeuri_preview($form, &$form_state) {
-  if (empty($form_state['values']['nid']) || !node_load($form_state['values']['nid'])) {
-    form_set_error('nid', t('Please enter a valid node ID to preview the node URI.'));
+function simplerdf_admin_uri_preview($form, &$form_state) {
+  if (empty($form_state['values']['id']) || !simplerdf_load($form_state['values']['__type'], $form_state['values']['id'])) {
+    form_set_error('id', t('Please enter a valid ID to preview the URI.'));
   }
   else {
     $form_state['storage']['preview'] = TRUE;
@@ -460,32 +602,44 @@ function simplerdf_admin_nodeuri_preview($form, &$form_state) {
 }
 
 /**
- * Node URI generator form submit callback.
+ * URI format form submit callback.
  */
-function simplerdf_admin_nodeuri_form_submit($form, $form_state) {
-  $nodeuri = $form_state['values']['nodeuri'];
-  variable_set('simplerdf_nodeuri_generator', $nodeuri);
+function simplerdf_admin_uri_form_submit($form, $form_state) {
+  $type = $form_state['values']['__type'];
+  $format = $form_state['values']['format'];
+  $formats = (array) variable_get('simplerdf_uri_formats', array());
+  $formats[$type] = $format;
+  variable_set('simplerdf_uri_formats', $formats);
 
-  simplerdf_clear_cache('node');
-  drupal_set_message(t('Node URI generator saved.'));
+  simplerdf_clear_cache($type);
+  $types = simplerdf_get_types();
+  drupal_set_message(t('@type URI format saved.', array('@type' => $types[$type])));
 }
 
 /**
- * Node URI settings form.
+ * URI settings form.
  */
-function simplerdf_admin_nodeuri_settings_form($form_state, $plugin = NULL) {
-  drupal_set_title(t('Configure %nodeuri settings', array('%nodeuri' => $plugin['title'])));
-
-  // Cache plugin
-  if ($plugin) {
+function simplerdf_admin_uri_settings_form($form_state, $type, $format) {
+  $types = simplerdf_get_types();
+  $plugin = simplerdf_get_plugins('uri_formats', $format);
+  // Sanity checks
+  if ($types[$type] && $plugin && (!$plugin['object types'] || in_array($type, $plugin['object types'])) && $plugin['settings form']) {
+    drupal_not_found();
+    exit;
+  }
+  else {
+    $form['__type'] = array(
+      '#type' => 'value',
+      '#value' => $type,
+    );
+    // Cache plugin
     $form['__plugin'] = array(
       '#type' => 'value',
       '#value' => $plugin,
     );
   }
-  elseif ($form_state['values']['__plugin']) {
-    $plugin = $form_state['values']['__plugin'];
-  }
+
+  drupal_set_title(t('Configure %format settings for %type', array('%format' => $plugin['title'], '%type' => $types[$type])));
 
   // Load plugin
   if (!empty($plugin) && !empty($plugin['file']) && file_exists($plugin_file = $plugin['path'] . '/' . $plugin['file'])) {
@@ -496,15 +650,16 @@ function simplerdf_admin_nodeuri_settings_form($form_state, $plugin = NULL) {
   if (!isset($form_state['values'])) {
     $form_state['values'] = array();
   }
-  $settings = variable_get('simplerdf_nodeuri_settings', array());
-  if (!empty($settings) && is_array($settings[$plugin['name']])) {
-    $form_state['values'] = array_merge($form_state['values'], $settings[$plugin['name']]);
+  $all_settings = (array) variable_get('simplerdf_uri_settings', array());
+  $settings = (array) $all_settings[$type][$format];
+  if (!isset($settings['settings'])) {
+    $settings['settings'] = array();
   }
-  $form_state['values'] = ((array) $form_state['values']) + $plugin['settings defaults'];
+  $form_state['values'] = $settings['settings'] + $plugin['settings defaults'];
 
   // Fetch plugin settings form
   if (function_exists($callback = $plugin['settings form'])) {
-    if (is_array($subform = $callback($form_state))) {
+    if (is_array($subform = $callback($form_state, $type))) {
       $form = array_merge($form, $subform);
     }
   }
@@ -518,9 +673,9 @@ function simplerdf_admin_nodeuri_settings_form($form_state, $plugin = NULL) {
 }
 
 /**
- * Node URI settings form validate callback.
+ * URI settings form validate callback.
  */
-function simplerdf_admin_nodeuri_settings_form_validate(&$form, &$form_state) {
+function simplerdf_admin_uri_settings_form_validate(&$form, &$form_state) {
   // Load plugin
   $plugin = $form_state['values']['__plugin'];
   if (!empty($plugin['file']) && file_exists($plugin_file = $plugin['path'] . '/' . $plugin['file'])) {
@@ -533,16 +688,16 @@ function simplerdf_admin_nodeuri_settings_form_validate(&$form, &$form_state) {
 }
 
 /**
- * Node URI settings form submit callback.
+ * URI settings form submit callback.
  */
-function simplerdf_admin_nodeuri_settings_form_submit($form, &$form_state) {
+function simplerdf_admin_uri_settings_form_submit($form, &$form_state) {
   $plugin = $form_state['values']['__plugin'];
-  $settings = (array) variable_get('simplerdf_nodeuri_settings', array());
-  $settings[$plugin['name']] = _simplerdf_admin_nodeuri_process_values($plugin['settings defaults'], $form_state['values']);
-  variable_set('simplerdf_nodeuri_settings', $settings);
+  $all_settings = (array) variable_get('simplerdf_uri_settings', array());
+  $all_settings[$type][$plugin['name']] = _simplerdf_admin_uri_process_values($plugin['settings defaults'], $form_state['values']);
+  variable_set('simplerdf_uri_settings', $all_settings);
 
   simplerdf_clear_cache_all();
-  drupal_set_message(t('Settings for %nodeuri have been saved.', array('%nodeuri' => $plugin['title'])));
+  drupal_set_message(t('Settings for %format have been saved.', array('%format' => $plugin['title'])));
 }
 
 /**
@@ -559,7 +714,7 @@ function simplerdf_admin_nodeuri_settings_form_submit($form, &$form_state) {
  * @return array
  *   Structured settings.
  */
-function _simplerdf_admin_nodeuri_process_values($defaults, $values) {
+function _simplerdf_admin_uri_process_values($defaults, $values) {
   $settings = array();
   foreach ($defaults as $key => $value) {
     // Safety: skip objects
@@ -568,7 +723,7 @@ function _simplerdf_admin_nodeuri_process_values($defaults, $values) {
     }
     // Recurse arrays
     elseif (is_array($value) && is_array($values[$key])) {
-      $settings[$key] = _simplerdf_admin_nodeuri_process_values($value, $values[$key]);
+      $settings[$key] = _simplerdf_admin_uri_process_values($value, $values[$key]);
     }
     else {
       $v = isset($values[$key]) ? $values[$key] : $value;
