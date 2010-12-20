@@ -178,7 +178,7 @@ function simplerdf_admin_node_mappings_form_submit($form, $form_state) {
   simplerdf_save_mappings('node', $content_type, $mappings);
 
   // Clear cache
-  simplerdf_clear_cache('mappings', $content_type);
+  simplerdf_clear_cache('mappings', 'node', $content_type);
   simplerdf_clear_cache('node');
 
   drupal_set_message(t('RDF mappings have been updated.'));
@@ -251,6 +251,7 @@ function simplerdf_admin_user_mappings_form_submit(&$form, &$form_state) {
     }
   }
   simplerdf_save_mappings('user', NULL, $mappings);
+  simplerdf_clear_cache('mappings', 'user');
   simplerdf_clear_cache('user');
 
   drupal_set_message(t('RDF mappings have been updated.'));

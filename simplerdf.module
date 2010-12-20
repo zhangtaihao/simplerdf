@@ -99,7 +99,7 @@ function simplerdf_flush_caches() {
  *   - If $type is 'mappings', specifying the content type clears mappings
  *     cache for that type, or all types if not specified.
  */
-function simplerdf_clear_cache($type = NULL, $a1 = NULL) {
+function simplerdf_clear_cache($type = NULL, $a1 = NULL, $a2 = NULL) {
   // Clear all caches
   if (!$type) {
     cache_clear_all('*', 'cache_simplerdf', TRUE);
@@ -108,15 +108,12 @@ function simplerdf_clear_cache($type = NULL, $a1 = NULL) {
   // Fields cache
   elseif ($type == 'fields') {
     if ($a1) {
-      cache_clear_all('fields:' . $a1, 'cache_simplerdf');
-      cache_clear_all('content_fields:' . $a1, 'cache_simplerdf');
+      cache_clear_all("fields:$a1:$a2", 'cache_simplerdf');
     }
     else {
       cache_clear_all('fields:', 'cache_simplerdf', TRUE);
-      cache_clear_all('content_fields:', 'cache_simplerdf', TRUE);
     }
     // Force rebuild
-    _simplerdf_build_content_fields(NULL, TRUE);
     _simplerdf_build_fields(NULL, TRUE);
   }
 
@@ -124,7 +121,7 @@ function simplerdf_clear_cache($type = NULL, $a1 = NULL) {
   elseif ($type == 'mappings') {
     if ($a1) {
       // Clear for type
-      cache_clear_all('mappings:' . $a1, 'cache_simplerdf');
+      cache_clear_all("mappings:$a1:$a2", 'cache_simplerdf');
     }
     else {
       // Clear all
@@ -156,7 +153,7 @@ function simplerdf_clear_cache($type = NULL, $a1 = NULL) {
   }
 
   // Notify implementing modules of clearing cache
-  module_invoke_all('simplerdf_clear_cache', $type, $a1);
+  module_invoke_all('simplerdf_clear_cache', $type, $a1, $a2);
 }
 
 /**
@@ -165,6 +162,21 @@ function simplerdf_clear_cache($type = NULL, $a1 = NULL) {
  */
 function simplerdf_clear_cache_all() {
   simplerdf_clear_cache();
+}
+
+/**
+ * Implements hook_simplerdf_clear_cache().
+ */
+function simplerdf_simplerdf_clear_cache($type, $a1, $a2) {
+  if ($type == 'fields' && $a1 == 'node') {
+    if ($a2) {
+      cache_clear_all("content_fields:$a2", 'cache_simplerdf');
+    }
+    else {
+      cache_clear_all('content_fields:', 'cache_simplerdf', TRUE);
+    }
+    _simplerdf_build_content_fields(NULL, TRUE);
+  }
 }
 
 
