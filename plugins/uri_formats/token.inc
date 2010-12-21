@@ -22,9 +22,9 @@ $plugin = array(
 /**
  * Format custom node URI.
  */
-function simplerdf_uri_token_format($type, $id, $object, array $settings = array()) {
+function simplerdf_uri_token_format($type, $id, $object, array $config = array()) {
   if (function_exists('token_replace')) {  // Just to make sure Token is available
-    $pattern = $settings['pattern'];
+    $pattern = $config['settings']['pattern'];
     if (!isset($object)) {
       // Attempt to load object
       $object = simplerdf_load($type, $id);

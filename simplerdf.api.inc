@@ -468,18 +468,18 @@ function simplerdf_format_uri($type, $id, $object = NULL) {
     if ($format && $plugin = simplerdf_get_plugins('uri_formats', $format)) {
       // Prepare format settings
       $all_settings = (array) variable_get('simplerdf_uri_settings', array());
-      $settings = (array) $all_settings[$type][$format];
-      if (!isset($settings['settings'])) {
-        $settings['settings'] = array();
+      $config = (array) $all_settings[$type][$format];
+      if (!isset($config['settings'])) {
+        $config['settings'] = array();
       }
-      $settings['settings'] += $plugin['settings defaults'];
+      $config['settings'] += $plugin['settings defaults'];
 
       // Generate
-      if ($uri = _simplerdf_invoke($plugin, 'callback format', $type, $id, $object, $settings['settings'])) {
+      if ($uri = _simplerdf_invoke($plugin, 'callback format', $type, $id, $object, $config)) {
         if ($plugin['internal']) {
           // Transform path to absolute path
           $url_options = array('absolute' => TRUE);
-          if (!$settings['alias']) {
+          if (!$config['alias']) {
             // Don't look up alias
             $url_options['alias'] = TRUE;
           }
