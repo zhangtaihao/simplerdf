@@ -476,7 +476,7 @@ function simplerdf_format_uri($type, $id, $object = NULL) {
 
       // Generate
       if ($uri = _simplerdf_invoke($plugin, 'callback format', $type, $id, $object, $settings['settings'])) {
-        if (!$plugin['absolute']) {
+        if ($plugin['internal']) {
           // Transform path to absolute path
           $url_options = array('absolute' => TRUE);
           if (!$settings['alias']) {
