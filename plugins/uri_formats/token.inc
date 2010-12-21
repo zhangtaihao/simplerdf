@@ -25,7 +25,13 @@ $plugin = array(
 function simplerdf_uri_token_format($type, $id, $object, array $settings = array()) {
   if (function_exists('token_replace')) {  // Just to make sure Token is available
     $pattern = $settings['pattern'];
-    return url(token_replace($pattern, $type, $object, array('alias' => TRUE)));
+    if (!isset($object)) {
+      // Attempt to load object
+      $object = simplerdf_load($type, $id);
+    }
+    if (is_object($object)) {
+      return url(token_replace($pattern, $type, $object, array('alias' => TRUE)));
+    }
   }
 }
 
