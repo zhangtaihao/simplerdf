@@ -22,28 +22,6 @@ function simplerdf_taxonomy_init() {
       module_invoke_all('simplerdf_rel_save', 'term', $user);
     }
   }
-
-  $args = arg();
-  // Add taxonomy term RDF auto-discovery links
-  if (count($args) == 3 && $args[0] == 'taxonomy' && $args[1] == 'term') {
-    $terms = taxonomy_terms_parse_string($args[2]);
-    if (($terms['operator'] == 'or' || $terms['operator'] == 'and') && user_access('access content')) {
-      $tids = $terms['tids'];
-
-      module_load_include('inc', 'simplerdf', 'includes/simplerdf.arc');
-      $path = variable_get('simplerdf_view_path', SIMPLERDF_DEFAULT_VIEW_PATH);
-      $format = variable_get('simplerdf_format', SIMPLERDF_DEFAULT_FORMAT);
-      if (($mime_type = simplerdf_arc_get_mime_type($format)) || ($mime_type = 'text/plain')) {
-        foreach ($tids as $tid) {
-          // Add links for only local terms
-          $term = simplerdf_taxonomy_term_load($tid);
-          if (empty($term->remote_uri)) {
-            drupal_add_link(array('rel' => 'meta', 'type' => $mime_type, 'title' => 'RDF', 'href' => url('taxonomy/term/' . $tid . '/' . $path)));
-          }
-        }
-      }
-    }
-  }
 }
 
 /**
@@ -54,15 +32,6 @@ function simplerdf_taxonomy_menu() {
 
   $view_path = variable_get('simplerdf_taxonomy_term_view_path', 'rdf');
   $administer_simplerdf_mappings = array('administer simplerdf mappings');
-
-  $items['taxonomy/term/%/' . $view_path] = array(
-    'title' => check_plain(variable_get('simplerdf_view_title', 'RDF')),
-    'description' => 'View the RDF document.',
-    'page callback' => 'simplerdf_taxonomy_render_term',
-    'page arguments' => array(2),
-    'type' => MENU_CALLBACK, // Term listings don't show tabs
-    'access arguments' => array('access content'),
-  );
 
   $items['admin/content/taxonomy/simplerdf'] = array(
     'title' => 'Simple RDF mappings',
@@ -118,46 +87,6 @@ function simplerdf_taxonomy_ctools_plugin_directory($owner, $type) {
 function simplerdf_taxonomy_features_api() {
   module_load_include('inc', 'simplerdf_taxonomy', 'simplerdf_taxonomy.features');
   return _simplerdf_taxonomy_features_api();
-}
-
-/**
- * Render a term RDF document.
- */
-function simplerdf_taxonomy_render_term($tid) {
-  // Load term
-  $term = simplerdf_taxonomy_term_load($tid);
-
-  // Only render if term is not remote
-  if (!empty($term->remote_uri)) {
-    return drupal_not_found();
-  }
-
-  if ($cache = cache_get('term:' . $tid . ':document', 'cache_simplerdf')) {
-    // Load cached document
-    $document = $cache->data;
-  }
-  else {
-    $triples = simplerdf_taxonomy_build_triples($term);
-
-    // Render triples
-    module_load_include('inc', 'simplerdf', 'includes/simplerdf.render');
-    $triples = simplerdf_render_process_triples($triples);
-    if ($document = simplerdf_render_build_document($triples)) {
-      cache_set('term:' . $tid . ':document', $document, 'cache_simplerdf');
-    }
-  }
-
-  if ($document) {
-    // Display document
-    drupal_set_header('Content-Type: ' . $document['type']);
-    drupal_set_header('Content-Disposition: inline; filename=term-' . $tid . '.rdf');
-    echo $document['content'];
-    exit;
-  }
-  else {
-    // Document could not be built
-    drupal_not_found();
-  }
 }
 
 /**

@@ -1,0 +1,362 @@
+<?php
+// $Id$
+/**
+ * @file
+ * RDF view module.
+ */
+
+/** Default RDF view path. */
+define('SIMPLERDF_VIEW_DEFAULT_PATH', 'rdf');
+
+/** Default format to use for displaying RDF triples. */
+define('SIMPLERDF_VIEW_DEFAULT_FORMAT', 'RDFXML');
+
+/**
+ * Implements hook_init().
+ */
+function simplerdf_view_init() {
+  $format = variable_get('simplerdf_view_format', SIMPLERDF_VIEW_DEFAULT_FORMAT);
+
+  $args = arg();
+  // Add user RDF auto-discovery links
+  if ($args[0] == 'user' && is_numeric($args[1]) && (count($args) == 2 || count($args) == 3 && $args[2] == 'view'))  {
+    $user = user_load($args[1]);
+    if ($user && user_view_access($user)) {
+      $path = variable_get('simplerdf_view_user_path', SIMPLERDF_VIEW_DEFAULT_PATH);
+      if (($mime_type = simplerdf_arc_get_mime_type($format)) || ($mime_type = 'text/plain')) {
+        // Add links for only local users
+        $uid = $user->uid;
+        drupal_add_link(array('rel' => 'meta', 'type' => $mime_type, 'title' => 'RDF', 'href' => url("user/$uid/$path")));
+      }
+    }
+  }
+
+  // Add taxonomy term RDF auto-discovery links
+  if (module_exists('simplerdf_taxonomy') && count($args) == 3 && $args[0] == 'taxonomy' && $args[1] == 'term') {
+    $terms = taxonomy_terms_parse_string($args[2]);
+    if (($terms['operator'] == 'or' || $terms['operator'] == 'and') && user_access('access content')) {
+      $tids = $terms['tids'];
+
+      $path = variable_get('simplerdf_view_term_path', SIMPLERDF_VIEW_DEFAULT_PATH);
+      if (($mime_type = simplerdf_view_arc_get_mime_type($format)) || ($mime_type = 'text/plain')) {
+        foreach ($tids as $tid) {
+          // Add links for only local terms
+          $term = simplerdf_taxonomy_term_load($tid);
+          if (empty($term->remote_uri)) {
+            drupal_add_link(array('rel' => 'meta', 'type' => $mime_type, 'title' => 'RDF', 'href' => url('taxonomy/term/' . $tid . '/' . $path)));
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_nodeapi().
+ */
+function simplerdf_view_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+  if ($op == 'view') {
+    // Add autodiscovery link if not in conflict with RDF
+    $path = variable_get('simplerdf_view_node_path', SIMPLERDF_VIEW_DEFAULT_PATH);
+    if ($a4 && !(module_exists('rdf') && $path == 'rdf')) {
+      $format = variable_get('simplerdf_view_format', SIMPLERDF_VIEW_DEFAULT_FORMAT);
+      if ($mime_type = simplerdf_arc_get_mime_type($format)) {
+        drupal_add_link(array('rel' => 'meta', 'type' => $mime_type, 'title' => 'RDF', 'href' => url('node/' . $node->nid . '/' . $path)));
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_menu().
+ */
+function simplerdf_view_menu() {
+  // Check to make sure we aren't overriding RDF (should only happen when
+  // RDF is installed after this module and path remains 'RDF').
+  $view_path = variable_get('simplerdf_view_node_path', SIMPLERDF_VIEW_DEFAULT_PATH);
+  if ($view_path && !($view_path == 'rdf' && module_exists('rdf'))) {
+    $items['node/%/' . $view_path] = array(
+      'title' => check_plain(variable_get('simplerdf_view_title', 'RDF')),
+      'description' => 'View the RDF document.',
+      'page callback' => 'simplerdf_view_render',
+      'page arguments' => array('node', 1),
+      'type' => variable_get('simplerdf_view_tab', TRUE) ? MENU_LOCAL_TASK : MENU_CALLBACK,
+      'access callback' => 'node_access',
+      'access arguments' => array('view', 1),
+      'file' => 'includes/simplerdf.render.inc',
+    );
+  }
+
+  // Check to make sure we aren't overriding RDF (should only happen when
+  // RDF is installed after this module and path remains 'rdf').
+  $view_path = variable_get('simplerdf_view_user_path', SIMPLERDF_VIEW_DEFAULT_PATH);
+  if ($view_path && !($view_path == 'rdf' && module_exists('rdf'))) {
+    $items['user/%/' . $view_path] = array(
+      'title' => check_plain(variable_get('simplerdf_view_title', 'RDF')),
+      'description' => 'View the RDF document.',
+      'page callback' => 'simplerdf_view_render',
+      'page arguments' => array('user', 1),
+      'access callback' => 'user_view_access',
+      'access arguments' => array(1),
+      'type' => variable_get('simplerdf_view_tab', TRUE) ? MENU_LOCAL_TASK : MENU_CALLBACK,
+    );
+  }
+
+  $view_path = variable_get('simplerdf_view_term_path', SIMPLERDF_VIEW_DEFAULT_PATH);
+  $items['taxonomy/term/%/' . $view_path] = array(
+    'title' => check_plain(variable_get('simplerdf_view_title', 'RDF')),
+    'description' => 'View the RDF document.',
+    'page callback' => 'simplerdf_view_render_term',
+    'page arguments' => array(2),
+    'type' => MENU_CALLBACK, // Term listings don't show tabs
+    'access arguments' => array('access content'),
+  );
+
+  // Settings
+  $items['admin/build/simplerdf/view'] = array(
+    'title' => 'RDF view',
+    'type' => MENU_NORMAL_ITEM,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('simplerdf_view_admin_settings_form'),
+    'access arguments' => array('administer simplerdf settings'),
+    'file' => 'simplerdf_view.admin.inc',
+  );
+  $items['admin/build/simplerdf/view/rebuild'] = array(
+    'title' => 'Rebuild menu',
+    'type' => MENU_CALLBACK,
+    'page callback' => '_simplerdf_admin_rebuild',
+    'access arguments' => array('administer simplerdf settings'),
+    'file' => 'simplerdf_view.admin.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Render an object based on type and ID.
+ *
+ * @param string $type
+ *   Object type, e.g. node.
+ * @param int $id
+ *   Object ID.
+ * @param $object
+ *   (Optional) Loaded object.
+ */
+function simplerdf_view_render($type, $id, $object = NULL) {
+  if (!isset($object)) {
+    $object = simplerdf_load($type, $id);
+  }
+  // Attempt to render
+  if (is_object($object)) {
+    simplerdf_view_render_object($type, $id, $object);
+  }
+  else {
+    // Could not load object
+    drupal_not_found();
+    exit;
+  }
+}
+
+/**
+ * Render a term object.
+ *
+ * @param int $tid
+ *   Term ID.
+ */
+function simplerdf_view_render_term($tid) {
+  if (module_exists('simplerdf_taxonomy')) {
+    $term = simplerdf_taxonomy_term_load($tid);
+    // Only render local terms
+    if (is_object($term) && empty($term->remote_uri)) {
+      simplerdf_view_render('term', $tid, $term);
+    }
+  }
+  // One or more problems with loading/rendering; just fail
+  drupal_not_found();
+  exit;
+}
+
+/**
+ * Renders the RDF document for an object and exit.
+ *
+ * @param string $type
+ *   Object type, e.g. node.
+ * @param int $id
+ *   Object ID.
+ * @param $object
+ *   Loaded object.
+ */
+function simplerdf_view_render_object($type, $id, $object) {
+  // Fetch cache
+  $cid = "$type:$id:document";
+  if ($cache = cache_get($cid, 'cache_simplerdf')) {
+    $document = $cache->data;
+  }
+  else {
+    // Build page
+    $triples = simplerdf_get_triples($node);
+    $triples = simplerdf_view_process_triples($triples);
+    $document = simplerdf_view_build_document($triples);
+    if ($document) {
+      cache_set($cid, $document, 'cache_simplerdf');
+    }
+  }
+
+  if ($document) {
+    // Display document
+    $filename = "$type-$id.rdf";
+    drupal_set_header('Content-Type: ' . $document['type']);
+    drupal_set_header('Content-Disposition: inline; filename=' . $filename . '.rdf');
+    echo $document['content'];
+  }
+  else {
+    // Document could not be built
+    drupal_not_found();
+  }
+  exit;
+}
+
+/**
+ * Build RDF document from RDF triples.
+ *
+ * @param array $triples
+ *   Array of processed RDF triples.
+ *
+ * @return array
+ *   RDF document, or NULL if cannot be built. The document array consists of:
+ *   - 'type' : MIME type.
+ *   - 'content' : document content.
+ */
+function simplerdf_view_build_document($triples) {
+  $namespaces = simplerdf_get_namespaces();
+
+  // Serialize document
+  $document = array();
+  module_load_include('inc', 'simplerdf', 'includes/simplerdf.arc');
+  $format = variable_get('simplerdf_format', SIMPLERDF_VIEW_DEFAULT_FORMAT);
+  if (simplerdf_view_arc_include() && $serializer = simplerdf_view_arc_get_serializer($format, array('ns' => $namespaces))) {
+    // Initialize ARC2
+    $document['type'] = simplerdf_view_arc_get_mime_type($format, $serializer);
+    $index = $serializer->toIndex($triples);
+
+    // Lookup serialization method
+    $methods = array(
+      'to' . $format,
+      'getSerializedIndex',
+      'getSerializedArray',  // Legacy
+    );
+
+    // Serialize!
+    foreach ($methods as $method) {
+      if (method_exists($serializer, $method)) {
+        $document['content'] = $serializer->$method($index);
+        break;
+      }
+    }
+
+    if (!empty($document['content'])) {
+      return $document;
+    }
+  }
+}
+
+
+/************************************************
+ * Integration with ARC2.
+ ************************************************/
+
+/** ARC2 library path. If 'libraries' has not been loaded, assume libraries live under 'sites/all/libraries'. */
+define('SIMPLERDF_VIEW_ARC_PATH', function_exists('libraries_get_path') ? libraries_get_path('arc') : 'sites/all/libraries/arc');
+
+/**
+ * Include the ARC2 class. To
+ */
+function simplerdf_view_arc_include() {
+  static $init;
+  if (!isset($init)) {
+    $arc2 = SIMPLERDF_VIEW_ARC_PATH . '/ARC2.php';
+    // Check that ARC2 exists
+    if (file_exists($arc2)) {
+      require_once $arc2;
+      $init = TRUE;
+    }
+    else {
+      $init = FALSE;
+    }
+  }
+  return $init;
+}
+
+/**
+ * Get a list of ARC2 formats.
+ *
+ * @return
+ *   An array of format names keyed by names, or NULL if ARC2 is not initialized.
+ */
+function simplerdf_view_arc_get_formats() {
+  if (class_exists('ARC2')) {
+    static $formats;
+    if (!isset($formats)) {
+      $formats = array();
+      $methods = get_class_methods('ARC2');
+      // Scan class for serializer factory methods
+      foreach ($methods as $method) {
+        if (preg_match('/^get(.+)Serializer$/', $method, $match)) {
+          $format = $match[1];
+          $formats[$format] = $format;
+        }
+      }
+      ksort($formats);
+    }
+    return $formats;
+  }
+}
+
+/**
+ * Get ARC2 serializer for format.
+ *
+ * @param string $format
+ *   Name of format as given in simplerdf_arc_get_formats().
+ * @param $conf
+ *   Configuration parameters for ARC2 classes. For example, $conf can be an
+ *   array with key 'ns' containing an array of namespaces keyed by prefixes.
+ *
+ * @return ARC2_Class
+ *   Serializer object, or NULL if specified format is invalid.
+ */
+function simplerdf_view_arc_get_serializer($format, $conf = '') {
+  $factory_method = 'get' . $format . 'Serializer';
+  if (method_exists('ARC2', $factory_method)) {
+    return ARC2::$factory_method($conf);
+  }
+}
+
+/**
+ * Get the MIME type of an ARC2 serializer.
+ *
+ * @param string $format
+ *   Name of format as given in simplerdf_arc_get_formats().
+ * @param ARC2_Class $serializer
+ *   Optional. Fully initialized ARC2 serializer object.
+ *
+ * @return string
+ *   MIME type name string, or NULL if given format is invalid.
+ */
+function simplerdf_view_arc_get_mime_type($format, ARC2_Class $serializer = NULL) {
+  static $types = array();
+
+  // Lazy detect type
+  if (!isset($types[$format])) {
+    if ($cache = cache_get('arc2_mime_types:' . $format, 'cache_simplerdf')) {
+      $types[$format] = $cache->data;
+    }
+    // Detect type from serializer object
+    elseif (isset($serializer) || simplerdf_view_arc_include() && $serializer = simplerdf_view_arc_get_serializer($format)) {
+      $type = !empty($serializer->content_header) ? $serializer->content_header : 'text/plain';
+      $types[$format] = $type;
+      cache_set('arc2_mime_types:' . $format, $type, 'cache_simplerdf');
+    }
+  }
+
+  return $types[$format] ? $types[$format] : NULL;
+}

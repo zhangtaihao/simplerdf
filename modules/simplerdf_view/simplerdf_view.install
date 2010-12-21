@@ -1,0 +1,30 @@
+<?php
+// $Id$
+/**
+ * @file
+ * Module installer.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function simplerdf_view_install() {
+  variable_set('simplerdf_view_node_path', 'rdf');
+  variable_set('simplerdf_view_user_path', 'rdf');
+  variable_set('simplerdf_view_term_path', 'rdf');
+  variable_set('simplerdf_view_tab', TRUE);
+  variable_set('simplerdf_view_title', 'RDF');
+  variable_set('simplerdf_view_format', 'RDFXML');
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function simplerdf_view_uninstall() {
+  variable_del('simplerdf_view_node_path');
+  variable_del('simplerdf_view_user_path');
+  variable_del('simplerdf_view_term_path');
+  variable_del('simplerdf_view_tab');
+  variable_del('simplerdf_view_title');
+  variable_del('simplerdf_view_format');
+}

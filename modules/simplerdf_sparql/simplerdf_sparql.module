@@ -404,8 +404,7 @@ function _simplerdf_sparql_lock($op) {
  */
 function simplerdf_sparql_index_node(ARC2_Store $store, $node, $uri) {
   if ($triples = simplerdf_build_triples($node)) {
-    module_load_include('inc', 'simplerdf', 'includes/simplerdf.render');
-    $triples = simplerdf_render_process_triples($triples);
+    $triples = simplerdf_expand_triples($triples);
     $store->insert($triples, $uri);
   }
 }
@@ -422,8 +421,7 @@ function simplerdf_sparql_index_node(ARC2_Store $store, $node, $uri) {
  */
 function simplerdf_sparql_index_term($store, $term, $uri) {
   if (function_exists('simplerdf_taxonomy_build_triples') && $triples = simplerdf_taxonomy_build_triples($term)) {
-    module_load_include('inc', 'simplerdf', 'includes/simplerdf.render');
-    $triples = simplerdf_render_process_triples($triples);
+    $triples = simplerdf_expand_triples($triples);
     $store->insert($triples, $uri);
   }
 }
@@ -440,8 +438,7 @@ function simplerdf_sparql_index_term($store, $term, $uri) {
  */
 function simplerdf_sparql_index_user($store, $user, $uri) {
   if (function_exists('simplerdf_user_build_triples') && $triples = simplerdf_user_build_triples($user)) {
-    module_load_include('inc', 'simplerdf', 'includes/simplerdf.render');
-    $triples = simplerdf_render_process_triples($triples);
+    $triples = simplerdf_expand_triples($triples);
     $store->insert($triples, $uri);
   }
 }

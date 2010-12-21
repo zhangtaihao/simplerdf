@@ -5,15 +5,6 @@
  * Main module file.
  */
 
-/** Default RDF view path. */
-define('SIMPLERDF_DEFAULT_VIEW_PATH', 'simplerdf');
-
-/** Default node URI generator. */
-define('SIMPLERDF_DEFAULT_NODEURI_GENERATOR', 'raw');
-
-/** Default format to use for displaying RDF triples. */
-define('SIMPLERDF_DEFAULT_FORMAT', 'RDFXML');
-
 /**
  * Implements hook_perm().
  */
@@ -52,22 +43,6 @@ function simplerdf_init() {
   if (variable_get('simplerdf_rel_index', FALSE)) {
     variable_set('simplerdf_rel_index', FALSE);
     simplerdf_rel_index();
-  }
-
-  $args = arg();
-  // Add taxonomy term RDF auto-discovery links
-  if ($args[0] == 'user' && is_numeric($args[1]) && (count($args) == 2 || count($args) == 3 && $args[2] == 'view'))  {
-    $user = user_load($args[1]);
-    if ($user && user_view_access($user)) {
-      module_load_include('inc', 'simplerdf', 'includes/simplerdf.arc');
-      $path = variable_get('simplerdf_view_path', SIMPLERDF_DEFAULT_VIEW_PATH);
-      $format = variable_get('simplerdf_format', SIMPLERDF_DEFAULT_FORMAT);
-      if (($mime_type = simplerdf_arc_get_mime_type($format)) || ($mime_type = 'text/plain')) {
-        // Add links for only local users
-        $uid = $user->uid;
-        drupal_add_link(array('rel' => 'meta', 'type' => $mime_type, 'title' => 'RDF', 'href' => url("user/$uid/$path")));
-      }
-    }
   }
 }
 
@@ -519,18 +494,6 @@ function simplerdf_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
       simplerdf_clear_cache('node', $node->nid);
       simplerdf_rel_unregister(NULL, NULL, 'node', $node->nid);
       simplerdf_rel_unregister('node', $node->nid);
-      break;
-
-    case 'view':
-      // Add autodiscovery link if not in conflict with RDF
-      $path = variable_get('simplerdf_view_path', SIMPLERDF_DEFAULT_VIEW_PATH);
-      if ($a4 && !(module_exists('rdf') && $path == 'rdf')) {
-        module_load_include('inc', 'simplerdf', 'includes/simplerdf.arc');
-        $format = variable_get('simplerdf_format', SIMPLERDF_DEFAULT_FORMAT);
-        if ($mime_type = simplerdf_arc_get_mime_type($format)) {
-          drupal_add_link(array('rel' => 'meta', 'type' => $mime_type, 'title' => 'RDF', 'href' => url('node/' . $node->nid . '/' . $path)));
-        }
-      }
       break;
   }
 }

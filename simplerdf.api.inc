@@ -5,6 +5,10 @@
  * Simple RDF public API. This file is loaded with the main module file.
  */
 
+/************************************************
+ * General info.
+ ************************************************/
+
 /**
  * Get a list of mappable object types.
  */
@@ -57,6 +61,47 @@ function simplerdf_load($type, $id) {
       return $object;
     }
   }
+}
+
+
+/************************************************
+ * Mapping field.
+ ************************************************/
+
+/**
+ * Map a node field to an RDF property and generate RDF triples.
+ *
+ * @param string $type
+ *   Object type, e.g. node.
+ * @param $object
+ *   Node object.
+ * @param string $uri
+ *   Object URI as RDF statement subject.
+ * @param array $properties
+ *   An array of RDF properties as predicates.
+ * @param array $field
+ *   Mapping field.
+ *
+ * @return array
+ *   RDF triples in the format specified by the ARC2 library, with the
+ *   exception of the use of the variable type for any part of the triple.
+ *
+ * @see http://arc.semsol.org/docs/v2/structures
+ */
+function simplerdf_map_field($type, $object, $uri, array $properties, array $field) {
+  ctools_include('plugins');
+
+  // Map field
+  $plugin = simplerdf_get_plugins('mappers', $field['mapper']);
+  $triples = array();
+  foreach ($properties as $property) {
+    $result = _simplerdf_invoke($plugin, 'callback map', $type, $object, $uri, $property, $field);
+    if (is_array($result) && !empty($result)) {
+      $triples = array_merge($triples, $result);
+    }
+  }
+
+  return $triples;
 }
 
 /**
@@ -223,6 +268,11 @@ function _simplerdf_build_content_fields($content_type, $reset = FALSE) {
   return isset($content_type) ? $fields[$content_type] : $fields;
 }
 
+
+/************************************************
+ * RDF generation/processing.
+ ************************************************/
+
 /**
  * Get RDF triples for an object.
  *
@@ -297,40 +347,77 @@ function simplerdf_build_triples($type, $classifier, $id, $object, $uri) {
 }
 
 /**
- * Map a node field to an RDF property and generate RDF triples.
+ * Process raw RDF triples for output to ARC2.
  *
- * @param string $type
- *   Object type, e.g. node.
- * @param $object
- *   Node object.
- * @param string $uri
- *   Object URI as RDF statement subject.
- * @param array $properties
- *   An array of RDF properties as predicates.
- * @param array $field
- *   Mapping field.
+ * @param array $triples
+ *   Array of raw RDF triples.
  *
  * @return array
- *   RDF triples in the format specified by the ARC2 library, with the
- *   exception of the use of the variable type for any part of the triple.
- *
- * @see http://arc.semsol.org/docs/v2/structures
+ *   Triples suitable for ARC2.
  */
-function simplerdf_map_field($type, $object, $uri, array $properties, array $field) {
-  ctools_include('plugins');
-
-  // Map field
-  $plugin = simplerdf_get_plugins('mappers', $field['mapper']);
-  $triples = array();
-  foreach ($properties as $property) {
-    $result = _simplerdf_invoke($plugin, 'callback map', $type, $object, $uri, $property, $field);
-    if (is_array($result) && !empty($result)) {
-      $triples = array_merge($triples, $result);
+function simplerdf_expand_triples($triples) {
+  // Expand known namespace prefixes
+  foreach ($triples as &$triple) {
+    // Subject
+    if ($triple['s_type'] == 'uri') {
+      $value = _simplerdf_expand_ns_prefix($triple['s']);
+      if (isset($value)) {
+        $triple['s'] = $value;
+      }
+    }
+    // Predicate
+    $value = _simplerdf_expand_ns_prefix($triple['p']);
+    if (isset($value)) {
+      $triple['p'] = $value;
+    }
+    // Object
+    if ($triple['o_type'] == 'uri') {
+      $value = _simplerdf_expand_ns_prefix($triple['o']);
+      if (isset($value)) {
+        $triple['o'] = $value;
+      }
+    }
+    if ($triple['o_datatype']) {
+      $datatype = _simplerdf_expand_ns_prefix($triple['o_datatype']);
+      if (isset($datatype)) {
+        $triple['o_datatype'] = $datatype;
+      }
     }
   }
+  unset($triple);
 
   return $triples;
 }
+
+/**
+ * Expand a prefixed value to its full URI
+ */
+function _simplerdf_expand_ns_prefix($value) {
+  if (($prefix = _simplerdf_extract_ns_prefix($value)) && ($ns = simplerdf_get_namespaces($prefix))) {
+    return $ns . substr($value, strlen($prefix) + 1);
+  }
+}
+
+/**
+ * Extract a possible namespace prefix.
+ */
+function _simplerdf_extract_ns_prefix($value) {
+  static $protocols = array('http', 'https', 'ftp', 'news', 'nntp', 'telnet', 'mailto', 'irc', 'ssh', 'sftp', 'webcal', 'rtsp');
+
+  // Match only against possible protocol/prefix
+  if ($segment_length = strcspn($value, ':')) {
+    $segment = substr($value, 0, $segment_length);
+    // Only return if not a protocol
+    if (!in_array($segment, $protocols)) {
+      return $segment;
+    }
+  }
+}
+
+
+/************************************************
+ * Object URI.
+ ************************************************/
 
 /**
  * Get URI of an object by its ID.

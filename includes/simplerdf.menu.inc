@@ -9,39 +9,7 @@
  * Define menu router items.
  */
 function _simplerdf_menu() {
-  $view_path = variable_get('simplerdf_view_path', SIMPLERDF_DEFAULT_VIEW_PATH);
   $administer_simplerdf = array('administer simplerdf');
-
-  // Check to make sure we aren't overriding RDF (should only happen when
-  // RDF is installed after this module and path remains 'RDF').
-  if ($view_path && !($view_path == 'rdf' && module_exists('rdf'))) {
-    $items['node/%node/' . $view_path] = array(
-      'title' => check_plain(variable_get('simplerdf_view_title', 'RDF')),
-      'description' => 'View the RDF document.',
-      'page callback' => 'simplerdf_render_node',
-      'page arguments' => array(1),
-      'type' => variable_get('simplerdf_view_tab', TRUE) ? MENU_LOCAL_TASK : MENU_CALLBACK,
-      'access callback' => 'node_access',
-      'access arguments' => array('view', 1),
-      'file' => 'includes/simplerdf.render.inc',
-    );
-  }
-
-  $view_path = variable_get('simplerdf_user_view_path', 'rdf');
-
-  // Check to make sure we aren't overriding RDF (should only happen when
-  // RDF is installed after this module and path remains 'rdf').
-  if ($view_path && !($view_path == 'rdf' && module_exists('rdf'))) {
-    $items['user/%user/' . $view_path] = array(
-      'title' => check_plain(variable_get('simplerdf_view_title', 'RDF')),
-      'description' => 'View the RDF document.',
-      'page callback' => 'simplerdf_user_render_user',
-      'page arguments' => array(1),
-      'access callback' => 'user_view_access',
-      'access arguments' => array(1),
-      'type' => variable_get('simplerdf_view_tab', TRUE) ? MENU_LOCAL_TASK : MENU_CALLBACK,
-    );
-  }
 
   // Mapping administration
   foreach (array_keys(node_get_types()) as $type) {
@@ -136,13 +104,6 @@ function _simplerdf_menu() {
     'access arguments' => array('administer simplerdf settings'),
     'file' => 'includes/simplerdf.admin.inc',
     'weight' => 5,
-  );
-  $items['admin/build/simplerdf/settings/rebuild'] = array(
-    'title' => 'Rebuild menu',
-    'type' => MENU_CALLBACK,
-    'page callback' => '_simplerdf_admin_rebuild',
-    'access arguments' => array('administer simplerdf settings'),
-    'file' => 'includes/simplerdf.admin.inc',
   );
 
   // Autocomplete callbacks
