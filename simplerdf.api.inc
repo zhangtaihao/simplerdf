@@ -427,13 +427,13 @@ function _simplerdf_extract_ns_prefix($value) {
  * @param int $id
  *   Object ID.
  * @param $object
- *   Loaded object.
+ *   (Optional) Loaded object.
  *
  * @return string
  *   Object URI, or NULL if none available.
  */
-function simplerdf_get_uri($type, $id, $object) {
-  if ($type && $id && is_object($object)) {
+function simplerdf_get_uri($type, $id, $object = NULL) {
+  if ($type && $id && (!isset($object) || is_object($object))) {
     $cid = "$type:$id:uri";
     if ($cache = cache_get($cid, 'cache_simplerdf')) {
       // Fetch cached URI
@@ -455,13 +455,13 @@ function simplerdf_get_uri($type, $id, $object) {
  * @param int $id
  *   Object ID.
  * @param $object
- *   Loaded object.
+ *   (Optional) Loaded object.
  *
  * @return string
  *   Object URI, or NULL if none generated.
  */
-function simplerdf_format_uri($type, $id, $object) {
-  if ($type && $id && is_object($object)) {
+function simplerdf_format_uri($type, $id, $object = NULL) {
+  if ($type && $id && (!isset($object) || is_object($object))) {
     // Format using active URI format for object type
     $formats = (array) variable_get('simplerdf_uri_formats', array());
     $format = $formats[$type];
