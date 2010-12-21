@@ -20,14 +20,6 @@ function _simplerdf_taxonomy_features_api() {
     'file' => $path . '/simplerdf_taxonomy.features.inc',
   );
 
-  // Pseudo-component for exporting vocabulary mappings
-  if (module_exists('strongarm')) {
-    $components['simplerdf_taxonomy_mappings'] = array(
-      'name' => t('Simple RDF taxonomy mappings'),
-      'feature_source' => TRUE,
-    );
-  }
-
   return $components;
 }
 
@@ -114,42 +106,4 @@ function simplerdf_taxonomy_term_features_rebuild($module) {
     // Flush cache
     simplerdf_clear_cache('term');
   }
-}
-
-/**
- * Implements hook_features_export() for simplerdf_taxonomy_mappings.
- */
-function simplerdf_taxonomy_mappings_features_export($data, &$export, $module_name) {
-  $pipe = array();
-  if (module_exists('strongarm')) {
-    foreach ($data as $name) {
-      $export['features']['simplerdf_taxonomy_mappings'][$name] = $name;
-
-      $var_name = 'simplerdf_taxonomy_mappings_' . $name;
-      if (!is_null(variable_get($var_name, NULL))) {
-        $pipe['variable'][$var_name] = $var_name;
-      }
-    }
-    $export['dependencies']['simplerdf_taxonomy'] = 'simplerdf_taxonomy';
-  }
-  return $pipe;
-}
-
-/**
- * Implements hook_features_export_options() for simplerdf_taxonomy_mappings.
- */
-function simplerdf_taxonomy_mappings_features_export_options() {
-  $options = array();
-
-  if (module_exists('strongarm')) {
-    // List vocabularies with mappings
-    foreach (taxonomy_get_vocabularies() as $vid => $vocabulary) {
-      $name = _simplerdf_taxonomy_get_vocabulary_name($vocabulary);
-      if ($name && simplerdf_taxonomy_get_mappings($vid)) {
-        $options[$name] = check_plain($vocabulary->name);
-      }
-    }
-  }
-
-  return $options;
 }

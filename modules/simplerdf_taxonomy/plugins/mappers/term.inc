@@ -13,8 +13,8 @@ $plugin = array(
   'object types' => array('term'),
   'description' => t('Basic term fields as available in the Taxonomy module.'),
   'weight' => -20,
-  'callback fields' => 'simplerdf_mapper_term_fields',
-  'callback map' => 'simplerdf_mapper_term_map',
+  'callback fields' => 'simplerdf_taxonomy_mapper_term_fields',
+  'callback map' => 'simplerdf_taxonomy_mapper_term_map',
 );
 
 /**
@@ -28,7 +28,7 @@ $plugin = array(
  * @return array
  *   Mapping fields keyed by field name.
  */
-function simplerdf_mapper_term_fields($object_type = 'term', $vid = NULL) {
+function simplerdf_taxonomy_mapper_term_fields($object_type = 'term', $vid = NULL) {
   return array(
     'rdftype' => array('title' => t('RDF class (rdf:type)')),
     'name' => array('title' => t('Term name')),
@@ -42,7 +42,7 @@ function simplerdf_mapper_term_fields($object_type = 'term', $vid = NULL) {
 /**
  * Mapping callback.
  */
-function simplerdf_mapper_term_map($object_type = 'term', $term, $uri, $property, $field) {
+function simplerdf_taxonomy_mapper_term_map($object_type = 'term', $term, $uri, $property, $field) {
   // Safety check: is Taxonomy actually enabled?
   static $taxonomy_exists;
   if (!isset($taxonomy_exists)) {

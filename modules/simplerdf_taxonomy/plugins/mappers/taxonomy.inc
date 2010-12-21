@@ -13,14 +13,14 @@ $plugin = array(
   'object types' => array('node'),
   'description' => t('Core taxonomy term mapping.'),
   'weight' => -20,
-  'callback fields' => 'simplerdf_taxonomy_mapper_fields',
-  'callback map' => 'simplerdf_taxonomy_mapper_map',
+  'callback fields' => 'simplerdf_taxonomy_mapper_taxonomy_fields',
+  'callback map' => 'simplerdf_taxonomy_mapper_taxonomy_map',
 );
 
 /**
  * Provide core taxonomy term field.
  */
-function simplerdf_taxonomy_mapper_fields($content_type) {
+function simplerdf_taxonomy_mapper_taxonomy_fields($content_type) {
   return array(
     'taxonomy_term' => array(
       'title' => t('Taxonomy term'),
@@ -31,7 +31,7 @@ function simplerdf_taxonomy_mapper_fields($content_type) {
 /**
  * Mapping callback.
  */
-function simplerdf_taxonomy_mapper_map($node, $nodeuri, $property, $field) {
+function simplerdf_taxonomy_mapper_taxonomy_map($node, $nodeuri, $property, $field) {
   if (!empty($node->taxonomy)) {
     $tids = array_keys($node->taxonomy);
 
@@ -40,7 +40,7 @@ function simplerdf_taxonomy_mapper_map($node, $nodeuri, $property, $field) {
 
     $triples = array();
     foreach ($tids as $tid) {
-      $triples[] = $s + $p + simplerdf_make_object('uri', simplerdf_taxonomy_get_termuri($tid));
+      $triples[] = $s + $p + simplerdf_make_object('uri', simplerdf_get_uri('term', $tid));
     }
 
     return $triples;

@@ -401,6 +401,19 @@ function simplerdf_save_mappings($type, $classifier, array $mappings) {
   }
 }
 
+/**
+ * Delete RDF mappings for a classification of objects.
+ *
+ * @param string $type
+ *   Object type; can be one of 'node', 'term', and 'user'.
+ * @param $classifier
+ *   Classification for the type of objects.
+ */
+function simplerdf_delete_mappings($type, $classifier) {
+  // For now, just set empty mappings
+  simplerdf_save_mappings($type, $classifier, array());
+}
+
 
 /************************************************
  * Node and user implementations.

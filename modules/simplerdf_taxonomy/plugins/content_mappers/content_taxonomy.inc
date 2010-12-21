@@ -20,7 +20,7 @@ function simplerdf_taxonomy_content_mapper_content_taxonomy_map($node, $nodeuri,
   if ($value['value']) {
     $s = simplerdf_make_subject('uri', $nodeuri);
     $p = simplerdf_make_predicate($property);
-    $o = simplerdf_make_object('uri', simplerdf_taxonomy_get_termuri($value['value']));
+    $o = simplerdf_make_object('uri', simplerdf_get_uri('term', $value['value']));
     return array($s + $p + $o);
   }
 }
