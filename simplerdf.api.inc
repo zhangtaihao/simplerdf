@@ -160,10 +160,6 @@ function _simplerdf_build_fields($type, $classifier = NULL, $reset = FALSE) {
           $providers[] = $plugin_name;
         }
       }
-      if (empty($providers)) {
-        // Specify default mapper
-        $providers[] = 'default';
-      }
 
       // Build field data
       $fields[$type][$classifier] = array();
