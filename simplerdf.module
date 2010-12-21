@@ -476,15 +476,9 @@ function simplerdf_simplerdf_rel_index_node() {
  */
 function simplerdf_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
   switch ($op) {
-    case 'presave':
-      if (!empty($node->nid)) {
-        // Clear relations
-        simplerdf_rel_unregister('node', $node->nid);
-      }
-      break;
-
     case 'update':
       simplerdf_clear_cache('node', $node->nid);
+      simplerdf_rel_unregister('node', $node->nid);
     case 'insert':
       simplerdf_rel_index_object('node', $node->nid, $node);
       break;
@@ -505,6 +499,7 @@ function simplerdf_user($op, &$edit, &$account, $category = NULL) {
   switch ($op) {
     case 'update':
       simplerdf_clear_cache('user', $account->uid);
+      simplerdf_rel_unregister('user', $account->uid);
     case 'insert':
       simplerdf_rel_index_object('user', $account->uid, $account);
       break;
