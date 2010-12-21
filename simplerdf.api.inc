@@ -156,7 +156,7 @@ function _simplerdf_build_fields($type, $classifier = NULL, $reset = FALSE) {
       // Lookup field providers
       $providers = array();
       foreach ($plugins as $plugin_name => $plugin) {
-        if ($plugin['object types'] && in_array($type, $plugin['object types'])) {
+        if (!$plugin['object types'] || in_array($type, $plugin['object types'])) {
           $providers[] = $plugin_name;
         }
       }
