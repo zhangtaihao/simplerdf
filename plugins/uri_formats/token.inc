@@ -30,7 +30,14 @@ function simplerdf_uri_token_format($type, $id, $object, array $settings = array
       $object = simplerdf_load($type, $id);
     }
     if (is_object($object)) {
-      return url(token_replace($pattern, $type, $object, array('alias' => TRUE)));
+      // Translate to token types
+      if ($type == 'term') {
+        $token_type = 'taxonomy';
+      }
+      else {
+        $token_type = $type;
+      }
+      return url(token_replace($pattern, $token_type, $object, array('alias' => TRUE)));
     }
   }
 }
@@ -39,6 +46,14 @@ function simplerdf_uri_token_format($type, $id, $object, array $settings = array
  * Settings form.
  */
 function simplerdf_uri_token_custom_settings($form_state, $type) {
+  // Translate to token types
+  if ($type == 'term') {
+    $token_type = 'taxonomy';
+  }
+  else {
+    $token_type = $type;
+  }
+
   $form['pattern'] = array(
     '#title' => 'Pattern',
     '#type' => 'textfield',
@@ -55,7 +70,7 @@ function simplerdf_uri_token_custom_settings($form_state, $type) {
   );
   $form['token_help']['help'] = array(
     '#type' => 'markup',
-    '#value' => theme('token_help', 'node'),
+    '#value' => theme('token_help', $token_type),
   );
 
   return $form;
