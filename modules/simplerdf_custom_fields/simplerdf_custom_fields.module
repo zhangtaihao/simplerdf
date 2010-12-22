@@ -114,7 +114,7 @@ function _simplerdf_custom_fields_build($name = NULL, $reset = FALSE) {
 /**
  * Implements hook_ctools_plugin_api().
  */
-function simplerdf_ctools_plugin_api($owner, $api) {
+function simplerdf_custom_fields_ctools_plugin_api($owner, $api) {
   if ($owner == 'simplerdf' && $api == 'mappers') {
     return array('version' => 1);
   }
