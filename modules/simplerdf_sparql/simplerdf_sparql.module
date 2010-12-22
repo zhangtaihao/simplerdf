@@ -83,16 +83,16 @@ function simplerdf_sparql_reset() {
  * Index site for Simple RDF data.
  */
 function simplerdf_sparql_index() {
+  variable_set('simplerdf_sparql_index', FALSE);
   module_load_include('inc', 'simplerdf_sparql', 'simplerdf_sparql.store');
   $store = simplerdf_sparql_store_get_store();
-  variable_set('simplerdf_sparql_index', FALSE);
 
   if (simplerdf_sparql_lock_ex()) {
     // Build node triples
     $result = db_query('SELECT nid FROM {node}');
     while ($nid = db_result($result)) {
       $node = node_load($nid, NULL, TRUE);
-      $uri = simplerdf_sparql_get_uri('node', $nid);
+      $uri = simplerdf_get_uri('node', $nid);
       simplerdf_sparql_index_node($store, $node, $uri);
     }
 
@@ -104,7 +104,7 @@ function simplerdf_sparql_index() {
         $term = simplerdf_taxonomy_term_load($tid);
         // Only index local terms
         if (empty($term->remote_uri)) {
-          $uri = simplerdf_sparql_get_uri('term', $tid);
+          $uri = simplerdf_get_uri('term', $tid);
           simplerdf_sparql_index_term($store, $term, $uri);
         }
       }
@@ -116,7 +116,7 @@ function simplerdf_sparql_index() {
       $result = db_query('SELECT uid FROM {users}');
       while ($uid = db_result($result)) {
         $user = user_load($uid);
-        $uri = simplerdf_sparql_get_uri('user', $uid);
+        $uri = simplerdf_get_uri('user', $uid);
         simplerdf_sparql_index_term($store, $term, $uri);
       }
     }
@@ -126,53 +126,8 @@ function simplerdf_sparql_index() {
 }
 
 /**
- * Load an object. This is a very primitive form of an entity loader.
- *
- * @param string $type
- *   Object type, one of 'node', 'term', or 'user'.
- * @param int $id
- *   Object ID.
- *
- * @return stdClass
- *   Loaded object.
- */
-function simplerdf_sparql_load($type, $id) {
-  static $loaders = array(
-    'node' => 'node_load',
-    'term' => 'taxonomy_get_term',
-    'user' => 'user_load',
-  );
-  if (array_key_exists($type, $loaders)) {
-    $loader = $loaders[$type];
-    return $loader($id);
-  }
-}
-
-/**
- * Get the URI of an object.
- *
- * @param string $type
- *   Object type, one of 'node', 'term', or 'user'.
- * @param int $id
- *   Object ID.
- *
- * @return string
- *   Object URI.
- */
-function simplerdf_sparql_get_uri($type, $id) {
-  static $getters = array(
-    'node' => 'simplerdf_get_nodeuri',
-    'term' => 'simplerdf_taxonomy_get_termuri',
-    'user' => 'simplerdf_user_get_useruri',
-  );
-  if (array_key_exists($type, $getters)) {
-    $getter = $getters[$type];
-    return $getter($id);
-  }
-}
-
-/**
- * Update dependent objects.
+ * Update dependent objects. This function is not concurrency-safe; acquire an
+ * exclusive lock before calling it.
  *
  * @param array $objects
  *   Array containing objects described as an array keyed by 'type' and 'id'.
@@ -187,16 +142,15 @@ function simplerdf_sparql_update_objects(array $objects) {
     $type = $object['type'];
     $id = $object['id'];
     if ($type && in_array($type, $types)) {
-      $obj = simplerdf_sparql_load($type, $id);
-      $uri = simplerdf_sparql_get_uri($type, $id);
-      $indexer = 'simplerdf_sparql_index_' . $type;
-      if ($obj && $uri && function_exists($indexer)) {
+      $obj = simplerdf_load($type, $id);
+      $uri = simplerdf_get_uri($type, $id);
+      if ($obj && $uri) {
         // Clear graph with URI
         // It's the provider's fault if the generated URI uses bad characters
-        if ($store->getLock()) {
-          $store->query("DELETE FROM <$uri> { ?s ?p ?o }");
-          $indexer($store, $obj, $uri);
-          $store->releaseLock();
+        $store->query("DELETE FROM <$uri> { ?s ?p ?o }");
+        if ($triples = simplerdf_get_triples($type, $id, $obj)) {
+          $triples = simplerdf_expand_triples($triples);
+          $store->insert($triples, $uri);
         }
       }
     }
@@ -384,62 +338,6 @@ function _simplerdf_sparql_lock($op) {
   else {
     // Invalid lock handle or arguments
     return FALSE;
-  }
-}
-
-
-/************************************************
- * Object triple indexing functions.
- ************************************************/
-
-/**
- * Index node.
- *
- * @param ARC2_Store $store
- *   ARC2 store instance.
- * @param stdClass $node
- *   Node object to index.
- * @param string $uri
- *   Node graph URI.
- */
-function simplerdf_sparql_index_node(ARC2_Store $store, $node, $uri) {
-  if ($triples = simplerdf_build_triples($node)) {
-    $triples = simplerdf_expand_triples($triples);
-    $store->insert($triples, $uri);
-  }
-}
-
-/**
- * Index term.
- *
- * @param ARC2_Store $store
- *   ARC2 store instance.
- * @param stdClass $term
- *   Term object to index.
- * @param string $uri
- *   Term graph URI.
- */
-function simplerdf_sparql_index_term($store, $term, $uri) {
-  if (function_exists('simplerdf_taxonomy_build_triples') && $triples = simplerdf_taxonomy_build_triples($term)) {
-    $triples = simplerdf_expand_triples($triples);
-    $store->insert($triples, $uri);
-  }
-}
-
-/**
- * Index user.
- *
- * @param ARC2_Store $store
- *   ARC2 store instance.
- * @param stdClass $user
- *   User object to index.
- * @param string $uri
- *   User graph URI.
- */
-function simplerdf_sparql_index_user($store, $user, $uri) {
-  if (function_exists('simplerdf_user_build_triples') && $triples = simplerdf_user_build_triples($user)) {
-    $triples = simplerdf_expand_triples($triples);
-    $store->insert($triples, $uri);
   }
 }
 
