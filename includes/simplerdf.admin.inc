@@ -501,7 +501,7 @@ function simplerdf_admin_uri_form($form_state, $type) {
   );
   // Check whether type supports autocomplete
   $autocomplete_callback = $module . '_simplerdf_' . $type . '_autocomplete';
-  if (function_exist($autocomplete_callback)) {
+  if (function_exists($autocomplete_callback)) {
     $form['preview']['id']['#autocomplete_path'] = 'simplerdf/autocomplete/preview_id';
   }
 
