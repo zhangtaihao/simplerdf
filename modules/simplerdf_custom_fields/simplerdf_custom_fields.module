@@ -15,7 +15,7 @@ function simplerdf_custom_fields_menu() {
     'title' => 'Custom fields',
     'description' => 'Define custom fields to map from objects to RDF properties.',
     'page callback' => 'simplerdf_custom_fields_admin_list',
-    'type' => MENU_LOCAL_TASK,
+    'type' => MENU_NORMAL_ITEM,
     'access arguments' => $administer_simplerdf,
     'file' => 'simplerdf_custom_fields.admin.inc',
     'weight' => 2,
@@ -30,7 +30,7 @@ function simplerdf_custom_fields_menu() {
     'description' => 'Add a custom field for mapping to RDF properties.',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('simplerdf_custom_fields_admin_edit_form'),
-    'type' => MENU_NORMAL_ITEM,
+    'type' => MENU_LOCAL_TASK,
     'access arguments' => $administer_simplerdf,
     'file' => 'simplerdf_custom_fields.admin.inc',
   );

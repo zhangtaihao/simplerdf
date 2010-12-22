@@ -94,18 +94,6 @@ function _simplerdf_menu() {
     'file' => 'includes/simplerdf.admin.inc',
   );
 
-  // Settings
-  $items['admin/build/simplerdf/settings'] = array(
-    'title' => 'Settings',
-    'description' => 'Configure general settings for Simple RDF mapping.',
-    'type' => MENU_LOCAL_TASK,
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('simplerdf_admin_settings_form'),
-    'access arguments' => array('administer simplerdf settings'),
-    'file' => 'includes/simplerdf.admin.inc',
-    'weight' => 5,
-  );
-
   // Autocomplete callbacks
   $items['simplerdf/autocomplete'] = array(
     'title' => 'Autocomplete',
