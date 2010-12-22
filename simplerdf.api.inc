@@ -457,12 +457,21 @@ function simplerdf_get_uri($type, $id, $object = NULL) {
  *   Object URI, or NULL if none generated.
  */
 function simplerdf_format_uri($type, $id, $object = NULL) {
+  static $plugins = array();
   if ($type && $id && (!isset($object) || is_object($object))) {
-    // Format using active URI format for object type
-    $formats = (array) variable_get('simplerdf_uri_formats', array());
-    $format = $formats[$type];
-    if ($format && $plugin = simplerdf_get_plugins('uri_formats', $format)) {
+    // Get active URI format for object type
+    if ($plugins[$type]) {
+      // Use cached plugin
+      $plugin = $plugins[$type];
+    }
+    elseif ($plugin = simplerdf_get_uri_format_plugin($type)) {
+      // Cache plugin for type
+      $plugins[$type] = $plugin;
+    }
+    // Format using active URI format
+    if ($plugin) {
       // Prepare format settings
+      $format = $plugin['name'];
       $all_settings = (array) variable_get('simplerdf_uri_settings', array());
       $config = (array) $all_settings[$type][$format];
       if (!isset($config['settings'])) {

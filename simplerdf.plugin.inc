@@ -222,3 +222,47 @@ function _simplerdf_sort_plugins(array &$plugins) {
 function _simplerdf_compare_plugin_weights($a, $b) {
   return $a['weight'] - $b['weight'];
 }
+
+/**
+ * Get a URI plugin.
+ *
+ * @param string $type
+ *   Object type, e.g. node.
+ *
+ * @return
+ *   Active URI plugin for the type, or the only plugin for that type if no
+ *   active format is specified.
+ */
+function simplerdf_get_uri_format_plugin($type) {
+  static $type_plugins;
+
+  // Get active format
+  $formats = (array) variable_get('simplerdf_uri_formats', array());
+  $format = $formats[$type];
+  if ($format) {
+    return simplerdf_get_plugins('uri_formats', $format);
+  }
+  else {
+    // Walk through all plugins and group by object type
+    if (!isset($type_plugins)) {
+      $type_plugins = array();
+      $plugins = simplerdf_get_plugins('uri_formats');
+      foreach ($plugins as $plugin_name => $plugin) {
+        if ($plugin['object types']) {
+          // Walk through only formats for specific types
+          foreach ($plugin['object types'] as $object_type) {
+            $type_plugins[$object_type][$plugin_name] = $plugin_name;
+          }
+        }
+      }
+    }
+    // Find the only plugin for that type
+    if (is_array($type_plugins[$type]) && count($type_plugins[$type]) == 1) {
+      $plugins = array_values($type_plugins[$type]);
+      // Set plugin as default and return
+      $formats[$type] = $plugins[0]['name'];
+      variable_set('simplerdf_uri_formats', $formats);
+      return $plugins[0];
+    }
+  }
+}

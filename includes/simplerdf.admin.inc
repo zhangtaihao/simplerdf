@@ -451,15 +451,13 @@ function simplerdf_admin_uri_overview() {
 
   $rows = array();
   $types = simplerdf_get_types();
-  $formats = variable_get('simplerdf_uri_formats', array());
-  $plugins = simplerdf_get_plugins('uri_formats');
   foreach ($types as $type => $type_title) {
     // Type name
     $row = array($type_title);
-    // Type URI format
-    $format = $formats[$type];
-    if (isset($format) && isset($plugins[$format])) {
-      $row[] = $plugins[$format]['title'];
+    // Type URI format; trigger default format detection via API
+    $plugin = simplerdf_get_uri_format_plugin($type);
+    if ($plugin) {
+      $row[] = filter_xss($plugin['title']);
     }
     else {
       $row[] = t('%none', array('%none' => t('None')));
@@ -496,8 +494,8 @@ function simplerdf_admin_uri_form($form_state, $type) {
   $module = $map[$type];
 
   $plugins = simplerdf_get_plugins('uri_formats');
-  $formats = (array) variable_get('simplerdf_uri_formats', array());
-  $format = $formats[$type];
+  $active_plugin = simplerdf_get_uri_format_plugin($type);
+  $format = $active_plugin['name'];
 
   // Cache old setting
   $form['__format'] = array(
@@ -516,6 +514,11 @@ function simplerdf_admin_uri_form($form_state, $type) {
   );
   // Populate choices
   foreach ($plugins as $plugin) {
+    // Skip incompatible plugins
+    if ($plugin['object types'] && !in_array($type, $plugin['object types'])) {
+      continue;
+    }
+
     $name = $plugin['name'];
     $title = check_plain($plugin['title']);
     if (!empty($plugin['settings form'])) {
