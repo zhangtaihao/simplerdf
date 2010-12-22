@@ -305,7 +305,7 @@ function simplerdf_update_6003(&$sandbox) {
   }
 
   // Clean up old variables
-  varaible_del('simplerdf_format');
+  variable_del('simplerdf_format');
   variable_del('simplerdf_view_path');
   variable_del('simplerdf_user_view_path');
   variable_del('simplerdf_user_rel_index');
