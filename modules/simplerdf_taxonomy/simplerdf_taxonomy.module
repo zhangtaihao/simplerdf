@@ -98,6 +98,19 @@ function simplerdf_taxonomy_simplerdf_term_load($id) {
   return taxonomy_get_term($id);
 }
 
+/**
+ * Implements hook_simplerdf_term_autocomplete().
+ */
+function simplerdf_taxonomy_simplerdf_term_autocomplete($string) {
+  // Match on term ID or name
+  $result = db_query("SELECT tid, name FROM {term_data} WHERE tid LIKE '%%%s%%' OR name LIKE '%%%s%%'", $string, $string);
+  $matches = array();
+  while ($match = db_fetch_array($result)) {
+    $matches[$match['tid']] = "$match[name] (tid: $match[tid])";
+  }
+  return $matches;
+}
+
 
 /**********************************************************
  * CRUD functions.
