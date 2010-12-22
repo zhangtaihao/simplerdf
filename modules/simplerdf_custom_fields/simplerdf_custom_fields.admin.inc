@@ -254,6 +254,9 @@ function _simplerdf_custom_fields_admin_edit_basic_form_validate($form, &$form_s
   if (empty($form_state['values']['settings']['field_key'])) {
     form_set_error('settings][field_key', t('Field key is required.'));
   }
+
+  // Filter down empty object type selections
+  $form_state['values']['object_types'] = array_filter($form_state['values']['object_types']);
 }
 
 /**
