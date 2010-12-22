@@ -92,7 +92,8 @@ function simplerdf_schema() {
 
     // Index on content type
     'indexes' => array(
-      'content_type' => array('content_type'),
+      'type' => array('type'),
+      'type_class' => array('type', 'classifier'),
     ),
   );
 
@@ -160,10 +161,6 @@ function _simplerdf_schema_rel() {
 function simplerdf_install() {
   drupal_install_schema('simplerdf');
 
-  variable_set('simplerdf_view_path', 'simplerdf');
-  variable_set('simplerdf_view_tab', TRUE);
-  variable_set('simplerdf_view_title', 'RDF');
-  variable_set('simplerdf_format', 'RDFXML');
   variable_set('simplerdf_uri_formats', array('node' => 'default', 'user' => 'default'));
   variable_set('simplerdf_nodeuri_settings', array());
   variable_set('simplerdf_rel_index', TRUE);
@@ -175,9 +172,6 @@ function simplerdf_install() {
 function simplerdf_uninstall() {
   drupal_uninstall_schema('simplerdf');
 
-  variable_del('simplerdf_view_path');
-  variable_del('simplerdf_view_tab');
-  variable_del('simplerdf_view_title');
   variable_del('simplerdf_format');
   variable_del('simplerdf_uri_formats');
   variable_del('simplerdf_nodeuri_settings');
@@ -215,6 +209,118 @@ function simplerdf_update_6002(&$sandbox) {
  * Implements hook_update_N() for 6003.
  */
 function simplerdf_update_6003(&$sandbox) {
-  // TODO Rename 'content_type' to 'classifier'
-  // TODO Add 'type'
+  // Migrate node URI settings
+  $generator = variable_get('simplerdf_nodeuri_generator', NULL);
+  if ($generator == 'custom') {
+    $node_format = 'token';
+  }
+  else {
+    $node_format = 'default';
+  }
+  if ($generator == 'alias') {
+    // Record alias as setting later
+    $aliased = TRUE;
+  }
+  $formats = array('node' => $node_format);
+  variable_set('simplerdf_uri_formats', $formats);
+  variable_del('simplerdf_nodeuri_generator');
+
+  $settings = variable_get('simplerdf_nodeuri_settings', array());
+  $all_settings = array();
+  if (isset($settings['custom'])) {
+    // Transform
+    $all_settings = array(
+      'node' => array(
+        'token' => array(
+          'settings' => $settings['custom'],
+        ),
+      ),
+    );
+    if ($aliased) {
+      $all_settings['node']['alias'] = TRUE;
+    }
+  }
+  variable_set('simplerdf_uri_settings', $all_settings);
+  variable_del('simplerdf_nodeuri_settings');
+
+  // Alter {simplerdf_mappings}
+  db_drop_index($ret, 'simplerdf_mappings', 'content_type');
+  db_drop_primary_key($ret, 'simplerdf_mappings');
+
+  // Rename 'content_type' to 'classifier'
+  db_change_field($ret, 'simplerdf_mappings', 'content_type', 'classifier',
+    array(
+      'description' => $t('Object classifier.'),
+      'type' => 'varchar',
+      'length' => 32,
+      'not null' => TRUE,
+    )
+  );
+
+  // Add 'type'
+  db_add_field($ret, 'simplerdf_mappings', 'type',
+    array(
+      'description' => $t('Object type for the field mapping.'),
+      'type' => 'varchar',
+      'length' => 32,
+      'not null' => TRUE,
+      'initial' => 'node',
+    )
+  );
+
+  // Move user mappings to {simplerdf_mappings}
+  $varname = 'simplerdf_user_mappings';
+  $mappings = variable_get($varname, array());
+  if ($mappings) {
+    // Save each field mapping
+    foreach ($mappings as $field => $properties) {
+      $update_ret = _simplerdf_update_sql("INSERT INTO {simplerdf_mappings} (type, classifier, field, properties}
+          VALUES ('user', '', '%s', '%s')", $field, serialize($properties));
+      $ret[] = $update_ret;
+    }
+  }
+  // Clear old mapping
+  variable_del('simplerdf_user_mappings');
+
+  // Move taxonomy mappings to {simplerdf_mappings}
+  $result = db_query("SELECT * FROM {vocabulary}");
+  while ($vocabulary = db_fetch_object($result)) {
+    if ($vocabulary->module && substr($vocabulary->module, 0, 9) == 'features_') {
+      $machine_name = substr($vocabulary->module, 9);
+      $varname = 'simplerdf_taxonomy_mappings_' . $machine_name;
+      $mappings = variable_get($varname, array());
+      if ($mappings) {
+        // Save each field mapping
+        foreach ($mappings as $field => $properties) {
+          $update_ret = _simplerdf_update_sql("INSERT INTO {simplerdf_mappings} (type, classifier, field, properties}
+              VALUES ('term', '%s', '%s', '%s')", $machine_name, $field, serialize($properties));
+          $ret[] = $update_ret;
+        }
+      }
+      // Clear old mapping
+      variable_del($varname);
+    }
+  }
+
+  // Clean up old variables
+  varaible_del('simplerdf_format');
+  variable_del('simplerdf_view_path');
+  variable_del('simplerdf_user_view_path');
+  variable_del('simplerdf_user_rel_index');
+}
+
+/**
+ * Custom update SQL.
+ */
+function _simplerdf_update_sql($query) {
+  $args = func_get_args();
+  array_shift($args);
+  if (is_array($args[0])) {
+    $args = $args[0];
+  }
+  $result = db_query($query, $args);
+  // Construct executed query
+  _db_query_callback($args, TRUE);
+  $query = preg_replace_callback(DB_QUERY_REGEXP, '_db_query_callback', $query);
+  return array('success' => $result !== FALSE, 'query' => check_plain($query), 'rows' => db_affected_rows());
 }

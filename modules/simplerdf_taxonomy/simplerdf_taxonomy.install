@@ -42,7 +42,6 @@ function simplerdf_taxonomy_schema() {
  */
 function simplerdf_taxonomy_install() {
   drupal_install_schema('simplerdf_taxonomy');
-  variable_set('simplerdf_taxonomy_rel_index', TRUE);
 }
 
 /**
@@ -59,8 +58,6 @@ function simplerdf_taxonomy_uninstall() {
       variable_del('simplerdf_taxonomy_mappings_' . $machine_name);
     }
   }
-
-  variable_del('simplerdf_taxonomy_rel_index');
 }
 
 /**
@@ -69,5 +66,15 @@ function simplerdf_taxonomy_uninstall() {
  */
 function simplerdf_taxonomy_update_6001(&$sandbox) {
   variable_set('simplerdf_taxonomy_rel_index', TRUE);
+  return array();
+}
+
+/**
+ * Implements hook_update_N() for 6002.
+ */
+function simplerdf_taxonomy_update_6002(&$sandbox) {
+  variable_del('simplerdf_taxonomy_rel_index');
+  variable_del('simplerdf_taxonomy_term_view_path');
+  // NOTE: mappings are moved by Simple RDF itself
   return array();
 }
