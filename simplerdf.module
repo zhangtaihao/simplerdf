@@ -641,7 +641,7 @@ function simplerdf_simplerdf_autocomplete($kind, $type, $string) {
   if ($kind == 'preview_id') {
     $info = _simplerdf_type_info();
     if ($module = $info['map'][$type]) {
-      if (function_exist($autocomplete_callback = $module . '_simplerdf_' . $type . '_autocomplete')) {
+      if (function_exists($autocomplete_callback = $module . '_simplerdf_' . $type . '_autocomplete')) {
         return $autocomplete_callback($string);
       }
     }
