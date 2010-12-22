@@ -61,3 +61,35 @@ function simplerdf_custom_fields_install() {
 function simplerdf_custom_fields_uninstall() {
   drupal_uninstall_schema('simplerdf_custom_fields');
 }
+
+/**
+ * Implements hook_update_N() for 6001.
+ */
+function simplerdf_custom_fields_update_6001(&$sandbox) {
+  $ret = array();
+
+  $result = db_query("SELECT * FROM {simplerdf_custom_fields}");
+  while ($field = db_fetch_object($result)) {
+    // Migrate basic field settings
+    if ($field->type == 'basic') {
+      $settings = unserialize($field->settings);
+      // Flag as node field
+      $settings['object_types'] = array('node' => 'node');
+      if (isset($settings['node_field'])) {
+        // Map node field key into just field key
+        $settings['field_key'] = $settings['node_field'];
+        unset($settings['node_field']);
+      }
+      // Update
+      $query = "UPDATE {simplerdf_custom_fields} SET settings = '%s' WHERE name = '%s'";
+      $args = array($field->name, serialize($field->settings));
+      $update_result = db_query($query, $args);
+      // Construct executed query
+      _db_query_callback($args, TRUE);
+      $query = preg_replace_callback(DB_QUERY_REGEXP, '_db_query_callback', $query);
+      $ret[] = array('success' => $update_result !== FALSE, 'query' => check_plain($query), 'rows' => db_affected_rows());
+    }
+  }
+
+  return $ret;
+}

@@ -219,13 +219,19 @@ function _simplerdf_custom_fields_admin_edit_apply($form, &$form_state) {
  * Basic custom field edit form.
  */
 function _simplerdf_custom_fields_admin_edit_basic_form(&$form_state) {
-  $form['settings']['node_field'] = array(
+  $form['settings']['object_types'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Applicable object types'),
+    '#options' => simplerdf_get_types(),
+    '#description' => t('Select the types of objects this field can be mapped to. If none is selected, this field will be effectively unused.'),
+  );
+  $form['settings']['field_key'] = array(
     '#type' => 'textfield',
-    '#title' => t('Node field key'),
+    '#title' => t('Field key'),
     '#size' => 30,
     '#max_length' => 64,
-    '#default_value' => $form_state['values']['settings']['node_field'],
-    '#description' => t('Enter the key of the field to access the node value by. As a PHP note, if the given key is in the variable $key, the expression $node->$key will be used to access the value. For security reasons, the value will be accessed defensively; therefore, make sure this key is valid to obtain any value from the field.'),
+    '#default_value' => $form_state['values']['settings']['field_key'],
+    '#description' => t('Enter the key of the field to access the object value by. As a PHP note, if the given key is in the variable $key, the expression $object->$key will be used to access the value. For security reasons, the value will be accessed defensively; therefore, make sure this key is valid to obtain any value from the field.'),
   );
   $form['settings']['multiple'] = array(
     '#type' => 'checkbox',
@@ -245,8 +251,8 @@ function _simplerdf_custom_fields_admin_edit_basic_form_validate($form, &$form_s
   }
 
   // Test field key is not blank
-  if (empty($form_state['values']['settings']['node_field'])) {
-    form_set_error('settings][node_field', t('Node field key is required.'));
+  if (empty($form_state['values']['settings']['field_key'])) {
+    form_set_error('settings][field_key', t('Field key is required.'));
   }
 }
 

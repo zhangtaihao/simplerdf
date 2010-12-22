@@ -112,6 +112,15 @@ function _simplerdf_custom_fields_build($name = NULL, $reset = FALSE) {
 }
 
 /**
+ * Implements hook_ctools_plugin_api().
+ */
+function simplerdf_ctools_plugin_api($owner, $api) {
+  if ($owner == 'simplerdf' && $api == 'mappers') {
+    return array('version' => 1);
+  }
+}
+
+/**
  * Implements hook_simplerdf_mappers().
  */
 function simplerdf_custom_fields_simplerdf_mappers() {
@@ -128,12 +137,15 @@ function simplerdf_custom_fields_simplerdf_mappers() {
 /**
  * Simple RDF fields callback.
  */
-function simplerdf_custom_fields_mapper_fields($content_type) {
+function simplerdf_custom_fields_mapper_fields($type, $classifier) {
   $fields = array();
   foreach (simplerdf_custom_fields_load() as $name => $field) {
-    $fields[$name] = array(
-      'title' => $field->title,
-    );
+    // Provide applicable basic field or advanced field
+    if ($field->type == 'basic' && $field->settings['object_types'][$type] || $field->type == 'advanced') {
+      $fields[$name] = array(
+        'title' => $field->title,
+      );
+    }
   }
   return $fields;
 }
@@ -141,56 +153,47 @@ function simplerdf_custom_fields_mapper_fields($content_type) {
 /**
  * Simple RDF map callback.
  */
-function simplerdf_custom_fields_mapper_map($node, $nodeuri, $property, $field) {
+function simplerdf_custom_fields_mapper_map($object_type, $object, $uri, $property, $field) {
   static $mappings = array();
   static $static = array();
 
   $field_name = $field['name'];
 
-  if (isset($mappings[$node->nid][$field_name])) {
-    $values = $mappings[$node->nid][$field_name];
+  $values = array();
+  $custom_field = simplerdf_custom_fields_load($field_name);
+  switch ($custom_field->type) {
+    // Basic field
+    case 'basic':
+      $field_key = $custom_field->settings['field_key'];
+      if (property_exists($object, $field_key)) {
+        $value = $object->$field_key;
+      }
+      break;
+
+    // Advanced field
+    case 'advanced':
+      $value = _simplerdf_custom_fields_map_eval($object_type, $object, $static, $custom_field->settings['phpcode']);
+      break;
   }
-  // Lazy map value
-  else {
-    $values = array();
-    $custom_field = simplerdf_custom_fields_load($field_name);
-    switch ($custom_field->type) {
-      // Basic field
-      case 'basic':
-        $field_key = $custom_field->settings['node_field'];
-        if (property_exists($node, $field_key)) {
-          $value = $node->$field_key;
-        }
-        break;
 
-      // Advanced field
-      case 'advanced':
-        $value = _simplerdf_custom_fields_map_eval($node, $static, $custom_field->settings['phpcode']);
-        break;
-    }
-
-    // Array value
-    if (is_array($value)) {
-      foreach ($value as $entry) {
-        // Use only non-blank unstructured value
-        if (isset($entry) && $entry !== '') {
-          $values[] = $entry;
-        }
+  // Array value
+  if (is_array($value)) {
+    foreach ($value as $entry) {
+      // Use only non-blank unstructured value
+      if (isset($entry) && $entry !== '') {
+        $values[] = $entry;
       }
     }
-    // Non-blank value
-    elseif (!is_object($value) && isset($value) && $value !== '') {
-      $values[] = $value;
-    }
-
-    // Cache values
-    $mappings[$node->nid][$field_name] = $values;
+  }
+  // Non-blank value
+  elseif (!is_object($value) && isset($value) && $value !== '') {
+    $values[] = $value;
   }
 
   // Construct triples
   $triples = array();
   if (!empty($values)) {
-    $base_statement = simplerdf_make_subject('uri', $nodeuri) + simplerdf_make_predicate($property);
+    $base_statement = simplerdf_make_subject('uri', $uri) + simplerdf_make_predicate($property);
     foreach ($values as $value) {
       // URL resource
       if ($url = simplerdf_match_url($value)) {
@@ -214,8 +217,10 @@ function simplerdf_custom_fields_mapper_map($node, $nodeuri, $property, $field) 
 /**
  * Evaluate advanced field PHP code.
  *
- * @param stdClass $node
- *   Node object.
+ * @param string $object_type
+ *   Object type, e.g. node.
+ * @param $object
+ *   Loaded object.
  * @param array $static
  *   Static array.
  * @param string $code
@@ -224,7 +229,7 @@ function simplerdf_custom_fields_mapper_map($node, $nodeuri, $property, $field) 
  * @return
  *   Evaluated field value.
  */
-function _simplerdf_custom_fields_map_eval($node, &$static) {
+function _simplerdf_custom_fields_map_eval($object_type, $object, &$static) {
   return eval(func_get_arg(2));
 }
 
