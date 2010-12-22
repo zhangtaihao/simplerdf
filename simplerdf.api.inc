@@ -33,7 +33,7 @@ function _simplerdf_type_info() {
         // Record type title
         $info['types'] = array_merge($info['types'], $result);
         // Map each provided type to module
-        foreach ($result as $type) {
+        foreach ($result as $type => $_) {
           $info['map'][$type] = $module;
         }
       }
