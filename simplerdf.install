@@ -276,7 +276,7 @@ function simplerdf_update_6003(&$sandbox) {
   if ($mappings) {
     // Save each field mapping
     foreach ($mappings as $field => $properties) {
-      $update_ret = _simplerdf_update_sql("INSERT INTO {simplerdf_mappings} (type, classifier, field, properties}
+      $update_ret = _simplerdf_update_sql("INSERT INTO {simplerdf_mappings} (type, classifier, field, properties)
           VALUES ('user', '', '%s', '%s')", $field, serialize($properties));
       $ret[] = $update_ret;
     }
@@ -294,7 +294,7 @@ function simplerdf_update_6003(&$sandbox) {
       if ($mappings) {
         // Save each field mapping
         foreach ($mappings as $field => $properties) {
-          $update_ret = _simplerdf_update_sql("INSERT INTO {simplerdf_mappings} (type, classifier, field, properties}
+          $update_ret = _simplerdf_update_sql("INSERT INTO {simplerdf_mappings} (type, classifier, field, properties)
               VALUES ('term', '%s', '%s', '%s')", $machine_name, $field, serialize($properties));
           $ret[] = $update_ret;
         }
