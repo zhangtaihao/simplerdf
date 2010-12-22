@@ -10,7 +10,7 @@
  */
 $plugin = array(
   'title' => t('Default'),
-  'description' => t('Use the object\'s path as the URI, e.g. "http://www.example.com/node/123".'),
+  'description' => t('Use the object\'s path or its alias as the URI, e.g. "http://www.example.com/node/123".'),
   'object types' => array('node', 'user'),
   'aliasable' => TRUE,
   'internal' => TRUE,
