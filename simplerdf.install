@@ -209,6 +209,8 @@ function simplerdf_update_6002(&$sandbox) {
  * Implements hook_update_N() for 6003.
  */
 function simplerdf_update_6003(&$sandbox) {
+  $t = get_t();
+
   // Migrate node URI settings
   $generator = variable_get('simplerdf_nodeuri_generator', NULL);
   if ($generator == 'custom') {
