@@ -1,0 +1,21 @@
+$Id$
+
+  How to upgrade from older versions
+=================================================
+
+If you have been using 6.x-1.0-beta2 and would like to use the latest version,
+please perform the following steps:
+
+ 1. Make sure you have Simple RDF User disabled (but NOT uninstalled).
+ 2. Remove the existing Simple RDF module tree.
+ 3. Extract the latest module to the directory.
+ 4. Run update.php to apply the latest database updates. (Naturally, you need
+    to log in as user 1, i.e. admin or superuser).
+
+After these steps have been performed in order without errors, you should be
+able to use the latest module with your existing RDF mappings.
+
+Note that any features exported with the old module will not work with the
+latest version. Because of architectural changes, all mappings are now grouped
+under Simple RDF, with each individual type prefixed in the name. You will have
+to create the features again.
