@@ -50,14 +50,8 @@ function simplerdf_taxonomy_install() {
 function simplerdf_taxonomy_uninstall() {
   drupal_uninstall_schema('simplerdf_taxonomy');
 
-  // Clean taxonomy mapping variables
-  $result = db_query("SELECT * FROM {vocabulary}");
-  while ($vocabulary = db_fetch_object($result)) {
-    if ($vocabulary->module && substr($vocabulary->module, 0, 9) == 'features_') {
-      $machine_name = substr($vocabulary->module, 9);
-      variable_del('simplerdf_taxonomy_mappings_' . $machine_name);
-    }
-  }
+  // Clean taxonomy mappings
+  db_query("DELETE FROM {simplerdf_mappings} WHERE type = 'term'");
 }
 
 /**
