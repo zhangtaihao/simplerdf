@@ -16,6 +16,7 @@ define('SIMPLERDF_VIEW_DEFAULT_FORMAT', 'RDFXML');
  */
 function simplerdf_view_init() {
   $format = variable_get('simplerdf_view_format', SIMPLERDF_VIEW_DEFAULT_FORMAT);
+  module_load_include('inc', 'simplerdf_view', 'simplerdf_view.arc');
 
   $args = arg();
   // Add user RDF auto-discovery links
@@ -23,7 +24,7 @@ function simplerdf_view_init() {
     $user = user_load($args[1]);
     if ($user && user_view_access($user)) {
       $path = variable_get('simplerdf_view_user_path', SIMPLERDF_VIEW_DEFAULT_PATH);
-      if (($mime_type = simplerdf_arc_get_mime_type($format)) || ($mime_type = 'text/plain')) {
+      if (($mime_type = simplerdf_view_arc_get_mime_type($format)) || ($mime_type = 'text/plain')) {
         // Add links for only local users
         $uid = $user->uid;
         drupal_add_link(array('rel' => 'meta', 'type' => $mime_type, 'title' => 'RDF', 'href' => url("user/$uid/$path")));
@@ -60,7 +61,8 @@ function simplerdf_view_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
     $path = variable_get('simplerdf_view_node_path', SIMPLERDF_VIEW_DEFAULT_PATH);
     if ($a4 && !(module_exists('rdf') && $path == 'rdf')) {
       $format = variable_get('simplerdf_view_format', SIMPLERDF_VIEW_DEFAULT_FORMAT);
-      if ($mime_type = simplerdf_arc_get_mime_type($format)) {
+      module_load_include('inc', 'simplerdf_view', 'simplerdf_view.arc');
+      if ($mime_type = simplerdf_view_arc_get_mime_type($format)) {
         drupal_add_link(array('rel' => 'meta', 'type' => $mime_type, 'title' => 'RDF', 'href' => url('node/' . $node->nid . '/' . $path)));
       }
     }
@@ -232,8 +234,8 @@ function simplerdf_view_build_document($triples) {
 
   // Serialize document
   $document = array();
-  module_load_include('inc', 'simplerdf', 'includes/simplerdf.arc');
   $format = variable_get('simplerdf_format', SIMPLERDF_VIEW_DEFAULT_FORMAT);
+  module_load_include('inc', 'simplerdf_view', 'simplerdf_view.arc');
   if (simplerdf_view_arc_include() && $serializer = simplerdf_view_arc_get_serializer($format, array('ns' => $namespaces))) {
     // Initialize ARC2
     $document['type'] = simplerdf_view_arc_get_mime_type($format, $serializer);
@@ -258,105 +260,4 @@ function simplerdf_view_build_document($triples) {
       return $document;
     }
   }
-}
-
-
-/************************************************
- * Integration with ARC2.
- ************************************************/
-
-/** ARC2 library path. If 'libraries' has not been loaded, assume libraries live under 'sites/all/libraries'. */
-define('SIMPLERDF_VIEW_ARC_PATH', function_exists('libraries_get_path') ? libraries_get_path('arc') : 'sites/all/libraries/arc');
-
-/**
- * Include the ARC2 class. To
- */
-function simplerdf_view_arc_include() {
-  static $init;
-  if (!isset($init)) {
-    $arc2 = SIMPLERDF_VIEW_ARC_PATH . '/ARC2.php';
-    // Check that ARC2 exists
-    if (file_exists($arc2)) {
-      require_once $arc2;
-      $init = TRUE;
-    }
-    else {
-      $init = FALSE;
-    }
-  }
-  return $init;
-}
-
-/**
- * Get a list of ARC2 formats.
- *
- * @return
- *   An array of format names keyed by names, or NULL if ARC2 is not initialized.
- */
-function simplerdf_view_arc_get_formats() {
-  if (class_exists('ARC2')) {
-    static $formats;
-    if (!isset($formats)) {
-      $formats = array();
-      $methods = get_class_methods('ARC2');
-      // Scan class for serializer factory methods
-      foreach ($methods as $method) {
-        if (preg_match('/^get(.+)Serializer$/', $method, $match)) {
-          $format = $match[1];
-          $formats[$format] = $format;
-        }
-      }
-      ksort($formats);
-    }
-    return $formats;
-  }
-}
-
-/**
- * Get ARC2 serializer for format.
- *
- * @param string $format
- *   Name of format as given in simplerdf_arc_get_formats().
- * @param $conf
- *   Configuration parameters for ARC2 classes. For example, $conf can be an
- *   array with key 'ns' containing an array of namespaces keyed by prefixes.
- *
- * @return ARC2_Class
- *   Serializer object, or NULL if specified format is invalid.
- */
-function simplerdf_view_arc_get_serializer($format, $conf = '') {
-  $factory_method = 'get' . $format . 'Serializer';
-  if (method_exists('ARC2', $factory_method)) {
-    return ARC2::$factory_method($conf);
-  }
-}
-
-/**
- * Get the MIME type of an ARC2 serializer.
- *
- * @param string $format
- *   Name of format as given in simplerdf_arc_get_formats().
- * @param ARC2_Class $serializer
- *   Optional. Fully initialized ARC2 serializer object.
- *
- * @return string
- *   MIME type name string, or NULL if given format is invalid.
- */
-function simplerdf_view_arc_get_mime_type($format, ARC2_Class $serializer = NULL) {
-  static $types = array();
-
-  // Lazy detect type
-  if (!isset($types[$format])) {
-    if ($cache = cache_get('arc2_mime_types:' . $format, 'cache_simplerdf')) {
-      $types[$format] = $cache->data;
-    }
-    // Detect type from serializer object
-    elseif (isset($serializer) || simplerdf_view_arc_include() && $serializer = simplerdf_view_arc_get_serializer($format)) {
-      $type = !empty($serializer->content_header) ? $serializer->content_header : 'text/plain';
-      $types[$format] = $type;
-      cache_set('arc2_mime_types:' . $format, $type, 'cache_simplerdf');
-    }
-  }
-
-  return $types[$format] ? $types[$format] : NULL;
 }
