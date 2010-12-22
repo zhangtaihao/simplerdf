@@ -82,7 +82,7 @@ function simplerdf_custom_fields_update_6001(&$sandbox) {
       }
       // Update
       $query = "UPDATE {simplerdf_custom_fields} SET settings = '%s' WHERE name = '%s'";
-      $args = array($field->name, serialize($field->settings));
+      $args = array(serialize($settings), $field->name);
       $update_result = db_query($query, $args);
       // Construct executed query
       _db_query_callback($args, TRUE);
