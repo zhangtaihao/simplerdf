@@ -251,7 +251,7 @@ function simplerdf_get_uri_format_plugin($type) {
         if ($plugin['object types']) {
           // Walk through only formats for specific types
           foreach ($plugin['object types'] as $object_type) {
-            $type_plugins[$object_type][$plugin_name] = $plugin_name;
+            $type_plugins[$object_type][$plugin_name] = $plugin;
           }
         }
       }
