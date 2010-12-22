@@ -27,7 +27,7 @@ $plugin = array(
  *   Term URI.
  */
 function simplerdf_taxonomy_format_term_uri($type = 'term', $id, $object, array $config = array()) {
-  $term = simplerdf_taxonomy_term_load($tid);
+  $term = simplerdf_taxonomy_term_load($id);
   if (empty($term->remote_uri)) {
     // Local URI
     $url_options = array('absolute' => TRUE);
