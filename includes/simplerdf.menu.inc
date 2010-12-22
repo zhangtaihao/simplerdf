@@ -66,7 +66,7 @@ function _simplerdf_menu() {
 
   // URI generator administration
   $items['admin/build/simplerdf/uri'] = array(
-    'title' => 'Node URI format',
+    'title' => 'URI format',
     'description' => 'Select and configure settings for generation of URIs for RDF data.',
     'type' => MENU_NORMAL_ITEM,
     'page callback' => 'simplerdf_admin_uri_overview',
@@ -75,9 +75,9 @@ function _simplerdf_menu() {
     'weight' => 1,
   );
   $items['admin/build/simplerdf/uri/%'] = array(
-    'title' => 'Node URI format',
+    'title' => 'Object URI format',
     'description' => 'Select and configure settings for generation of URIs for RDF data.',
-    'type' => MENU_NORMAL_ITEM,
+    'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('simplerdf_admin_uri_form', 4),
     'access arguments' => $administer_simplerdf,
@@ -85,7 +85,7 @@ function _simplerdf_menu() {
     'weight' => 1,
   );
   $items['admin/build/simplerdf/uri/%/%'] = array(
-    'title' => 'URI generator',
+    'title' => 'Object URI format settings',
     'description' => 'Configure settings for the URI generator.',
     'type' => MENU_CALLBACK,
     'page callback' => 'drupal_get_form',
