@@ -9,6 +9,7 @@
  * Implements hook_requirements().
  */
 function simplerdf_view_requirements($phase) {
+  module_load_include('inc', 'simplerdf_view', 'simplerdf_view.arc');
   simplerdf_view_arc_include();
 
   $t = get_t();
