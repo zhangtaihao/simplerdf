@@ -559,7 +559,7 @@ function simplerdf_admin_uri_preview($form, &$form_state) {
 /**
  * URI format form submit callback.
  */
-function simplerdf_admin_uri_form_submit($form, $form_state) {
+function simplerdf_admin_uri_form_submit($form, &$form_state) {
   $type = $form_state['values']['__type'];
   $format = $form_state['values']['format'];
   $formats = (array) variable_get('simplerdf_uri_formats', array());
@@ -569,6 +569,8 @@ function simplerdf_admin_uri_form_submit($form, $form_state) {
   simplerdf_clear_cache($type);
   $types = simplerdf_get_types();
   drupal_set_message(t('@type URI format saved.', array('@type' => $types[$type])));
+
+  $form_state['redirect'] = 'admin/build/simplerdf/uri';
 }
 
 /**
@@ -653,6 +655,8 @@ function simplerdf_admin_uri_settings_form_submit($form, &$form_state) {
 
   simplerdf_clear_cache_all();
   drupal_set_message(t('Settings for %format have been saved.', array('%format' => $plugin['title'])));
+
+  $form_state['redirect'] = 'admin/build/simplerdf/uri/' . $form_state['values']['__type'];
 }
 
 /**
