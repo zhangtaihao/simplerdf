@@ -27,7 +27,7 @@ function simplerdf_namespaces_menu() {
   $items['admin/build/simplerdf/namespaces/add'] = array(
     'title' => 'Add namespace',
     'description' => 'Add a new RDF namespace for mapping.',
-    'type' => MENU_NORMAL_ITEM,
+    'type' => MENU_LOCAL_TASK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('simplerdf_namespaces_admin_edit_form'),
     'access arguments' => array('administer simplerdf'),

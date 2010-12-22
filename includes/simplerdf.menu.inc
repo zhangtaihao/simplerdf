@@ -68,7 +68,7 @@ function _simplerdf_menu() {
   $items['admin/build/simplerdf/uri'] = array(
     'title' => 'URI format',
     'description' => 'Select and configure settings for generation of URIs for RDF data.',
-    'type' => MENU_NORMAL_ITEM,
+    'type' => MENU_LOCAL_TASK,
     'page callback' => 'simplerdf_admin_uri_overview',
     'access arguments' => $administer_simplerdf,
     'file' => 'includes/simplerdf.admin.inc',
@@ -98,7 +98,7 @@ function _simplerdf_menu() {
   $items['admin/build/simplerdf/settings'] = array(
     'title' => 'Settings',
     'description' => 'Configure general settings for Simple RDF mapping.',
-    'type' => MENU_NORMAL_ITEM,
+    'type' => MENU_LOCAL_TASK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('simplerdf_admin_settings_form'),
     'access arguments' => array('administer simplerdf settings'),

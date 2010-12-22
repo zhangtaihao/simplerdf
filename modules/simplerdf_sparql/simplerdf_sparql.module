@@ -35,7 +35,7 @@ function simplerdf_sparql_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('simplerdf_sparql_admin_form'),
     'access arguments' => array('administer simplerdf sparql'),
-    'type' => MENU_NORMAL_ITEM,
+    'type' => MENU_LOCAL_TASK,
     'file' => 'simplerdf_sparql.admin.inc',
     'weight' => 3,
   );
