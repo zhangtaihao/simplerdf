@@ -5,6 +5,9 @@
  * Main module file.
  */
 
+/** The number of entries to limit object ID preview autocomplete matches by. */
+define('SIMPLERDF_PREVIEW_ID_COUNT', 10);
+
 /**
  * Implements hook_perm().
  */
@@ -642,7 +645,8 @@ function simplerdf_simplerdf_autocomplete($kind, $type, $string) {
     $info = _simplerdf_type_info();
     if ($module = $info['map'][$type]) {
       if (function_exists($autocomplete_callback = $module . '_simplerdf_' . $type . '_autocomplete')) {
-        return $autocomplete_callback($string);
+        $matches = $autocomplete_callback($string);
+        return array_slice($matches, 0, SIMPLERDF_PREVIEW_ID_COUNT, TRUE);
       }
     }
   }
