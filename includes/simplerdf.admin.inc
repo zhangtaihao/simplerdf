@@ -411,6 +411,8 @@ function simplerdf_admin_uri_overview() {
     }
     // Operations
     $row[] = l(t('configure'), "admin/build/simplerdf/uri/$type");
+
+    $rows[] = $row;
   }
 
   $output .= theme('table', $header, $rows);
