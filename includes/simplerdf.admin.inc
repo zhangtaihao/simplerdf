@@ -581,10 +581,6 @@ function simplerdf_admin_uri_settings_form($form_state, $type, $format) {
   $plugin = simplerdf_get_plugins('uri_formats', $format);
   // Sanity checks
   if ($types[$type] && $plugin && (!$plugin['object types'] || in_array($type, $plugin['object types'])) && $plugin['settings form']) {
-    drupal_not_found();
-    exit;
-  }
-  else {
     $form['__type'] = array(
       '#type' => 'value',
       '#value' => $type,
@@ -594,6 +590,10 @@ function simplerdf_admin_uri_settings_form($form_state, $type, $format) {
       '#type' => 'value',
       '#value' => $plugin,
     );
+  }
+  else {
+    drupal_not_found();
+    exit;
   }
 
   drupal_set_title(t('Configure %format settings for %type', array('%format' => $plugin['title'], '%type' => $types[$type])));
