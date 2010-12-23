@@ -15,9 +15,9 @@ $plugin = array(
 /**
  * Map numeric field value.
  */
-function simplerdf_content_mapper_number_map($node, $nodeuri, $property, $field, $value) {
+function simplerdf_content_mapper_number_map($node, $uri, $property, $field, $value) {
   if (isset($value['value'])) {
-    $s = simplerdf_make_subject('uri', $nodeuri);
+    $s = simplerdf_make_subject('uri', $uri);
     $p = simplerdf_make_predicate($property);
 
     // Provide specific data types

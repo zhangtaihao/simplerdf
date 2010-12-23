@@ -15,12 +15,12 @@ $plugin = array(
 /**
  * Map nodereference nid value.
  */
-function simplerdf_content_mapper_nodereference_map($node, $nodeuri, $property, $field, $value) {
+function simplerdf_content_mapper_nodereference_map($node, $uri, $property, $field, $value) {
   // Map a non-empty value
   if ($value['nid'] && ($refnode = node_load($value['nid'])) && $refnode->status) {
-    $s = simplerdf_make_subject('uri', $nodeuri);
+    $s = simplerdf_make_subject('uri', $uri);
     $p = simplerdf_make_predicate($property);
-    $o = simplerdf_make_object('uri', simplerdf_get_nodeuri($value['nid']));
+    $o = simplerdf_make_object('uri', simplerdf_get_uri('node', $value['nid'], $refnode));
     return array($s + $p + $o);
   }
 }

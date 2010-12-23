@@ -42,7 +42,7 @@ function simplerdf_content_mapper_file_fields($content_field) {
 /**
  * Map link fields.
  */
-function simplerdf_content_mapper_file_map($node, $nodeuri, $property, $field, $value) {
+function simplerdf_content_mapper_file_map($node, $uri, $property, $field, $value) {
   if ($value['list']) {
     $filepath = url($value['filepath'], array('absolute' => TRUE));
 
@@ -52,7 +52,7 @@ function simplerdf_content_mapper_file_map($node, $nodeuri, $property, $field, $
     $p = simplerdf_make_predicate($property);
     if (!isset($subtype)) {
       // File URL field
-      $s = simplerdf_make_subject('uri', $nodeuri);
+      $s = simplerdf_make_subject('uri', $uri);
       $o = simplerdf_make_object('uri', url($filepath, array('absolute' => TRUE)));
       $triples[] = $s + $p + $o;
     }

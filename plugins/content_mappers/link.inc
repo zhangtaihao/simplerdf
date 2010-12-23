@@ -32,10 +32,10 @@ function simplerdf_content_mapper_link_fields($content_field) {
 /**
  * Map link fields.
  */
-function simplerdf_content_mapper_link_map($node, $nodeuri, $property, $field, $value) {
+function simplerdf_content_mapper_link_map($node, $uri, $property, $field, $value) {
   list($name, $subtype) = explode(':', $field['name']);
 
-  $s = simplerdf_make_subject('uri', $nodeuri);
+  $s = simplerdf_make_subject('uri', $uri);
   $p = simplerdf_make_predicate($property);
   $triples = array();
 

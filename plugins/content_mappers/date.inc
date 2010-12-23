@@ -48,7 +48,7 @@ function simplerdf_content_mapper_date_fields($content_field) {
 /**
  * Map link fields.
  */
-function simplerdf_content_mapper_date_map($node, $nodeuri, $property, $field, $value, $delta) {
+function simplerdf_content_mapper_date_map($node, $uri, $property, $field, $value, $delta) {
   // Only map if value exists
   if (!$value['value']) {
     return;
@@ -138,7 +138,7 @@ function simplerdf_content_mapper_date_map($node, $nodeuri, $property, $field, $
   }
 
   static $date_nodes = array();
-  $node_s = simplerdf_make_subject('uri', $nodeuri);
+  $node_s = simplerdf_make_subject('uri', $uri);
   $p = simplerdf_make_predicate($property);
   $tz = timezone_open($value['timezone']);
 
