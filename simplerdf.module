@@ -445,8 +445,8 @@ function simplerdf_simplerdf_classify($type, $object) {
 /**
  * Implements hook_simplerdf_node_load().
  */
-function simplerdf_simplerdf_node_load($id) {
-  return node_load($id);
+function simplerdf_simplerdf_node_load($id, $reset = FALSE) {
+  return node_load($id, NULL, $reset);
 }
 
 /**

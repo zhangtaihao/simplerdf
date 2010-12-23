@@ -49,14 +49,16 @@ function _simplerdf_type_info() {
  *   Object type, e.g. node.
  * @param int $id
  *   Object ID.
+ * @param boolean $reset
+ *   (Optional) Wherever applicable, whether or not to reset working cache.
  *
  * @return
  *   Loaded object, or NULL if loading failed.
  */
-function simplerdf_load($type, $id) {
+function simplerdf_load($type, $id, $reset = FALSE) {
   $info = _simplerdf_type_info();
   if ($type && $id && is_numeric($id) && ($module = $info['map'][$type]) && function_exists($callback = $module . '_simplerdf_' . $type . '_load')) {
-    $object = $callback($id);
+    $object = $callback($id, $reset);
     if (is_object($object)) {
       return $object;
     }
