@@ -56,7 +56,7 @@ function simplerdf_view_arc_get_formats() {
  * Get ARC2 serializer for format.
  *
  * @param string $format
- *   Name of format as given in simplerdf_arc_get_formats().
+ *   Name of format as given in simplerdf_view_arc_get_formats().
  * @param $conf
  *   Configuration parameters for ARC2 classes. For example, $conf can be an
  *   array with key 'ns' containing an array of namespaces keyed by prefixes.
@@ -75,7 +75,7 @@ function simplerdf_view_arc_get_serializer($format, $conf = '') {
  * Get the MIME type of an ARC2 serializer.
  *
  * @param string $format
- *   Name of format as given in simplerdf_arc_get_formats().
+ *   Name of format as given in simplerdf_view_arc_get_formats().
  * @param ARC2_Class $serializer
  *   Optional. Fully initialized ARC2 serializer object.
  *
