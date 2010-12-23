@@ -510,7 +510,7 @@ function simplerdf_admin_uri_form($form_state, $type) {
     $id = $form_state['values']['id'];
     $object = simplerdf_load($type, $id);
     if ($object) {
-      $uri = simplerdf_format_uri($type, $id, $object);
+      $uri = simplerdf_format_uri($type, $id, $object, $form_state['values']['format']);
     }
     $form['preview']['uri'] = array(
       '#type' => 'item',

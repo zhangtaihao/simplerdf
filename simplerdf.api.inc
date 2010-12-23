@@ -452,15 +452,20 @@ function simplerdf_get_uri($type, $id, $object = NULL) {
  *   Object ID.
  * @param $object
  *   (Optional) Loaded object.
+ * @param string $format
+ *   (Optional) URI format to use. If not given, the active format is used.
  *
  * @return string
  *   Object URI, or NULL if none generated.
  */
-function simplerdf_format_uri($type, $id, $object = NULL) {
+function simplerdf_format_uri($type, $id, $object = NULL, $format = NULL) {
   static $plugins = array();
   if ($type && $id && (!isset($object) || is_object($object))) {
+    if ($format) {
+      $plugin = simplerdf_get_plugins('uri_formats', $format);
+    }
     // Get active URI format for object type
-    if ($plugins[$type]) {
+    elseif ($plugins[$type]) {
       // Use cached plugin
       $plugin = $plugins[$type];
     }
