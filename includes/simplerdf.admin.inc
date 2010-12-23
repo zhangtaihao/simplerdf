@@ -448,6 +448,8 @@ function simplerdf_admin_uri_form(&$form_state, $type) {
   $plugins = simplerdf_get_plugins('uri_formats');
   $active_plugin = simplerdf_get_uri_format_plugin($type);
   $format = $active_plugin['name'];
+  $all_settings = (array) variable_get('simplerdf_uri_settings', array());
+  $type_settings = (array) $all_settings[$type];
 
   // Cache old setting
   $form['__format'] = array(
@@ -473,9 +475,13 @@ function simplerdf_admin_uri_form(&$form_state, $type) {
 
     $name = $plugin['name'];
     $title = check_plain($plugin['title']);
-    if (!empty($plugin['settings form'])) {
+    if ($plugin['aliasable'] || !empty($plugin['settings form'])) {
+      if ($plugin['aliasable'] && $type_settings[$name]['alias']) {
+        // Append alias status of format
+        $title .= t(' (aliased)');
+      }
       // Add link to settings form
-      $title .=  ' ' . l(t('(Settings)'), "admin/build/simplerdf/uri/$type/$name", array('attributes' => array('class' => 'simplerdf-nodeuri-settings-link')));
+      $title .=  ' ' . l(t('[configure]'), "admin/build/simplerdf/uri/$type/$name", array('attributes' => array('class' => 'simplerdf-nodeuri-settings-link')));
     }
     $form['format'][$name] = array(
       '#type' => 'radio',
@@ -581,7 +587,7 @@ function simplerdf_admin_uri_settings_form($form_state, $type, $format) {
   $types = simplerdf_get_types();
   $plugin = simplerdf_get_plugins('uri_formats', $format);
   // Sanity checks
-  if ($types[$type] && $plugin && (!$plugin['object types'] || in_array($type, $plugin['object types'])) && $plugin['settings form']) {
+  if ($types[$type] && $plugin && (!$plugin['object types'] || in_array($type, $plugin['object types'])) && ($plugin['aliasable'] || $plugin['settings form'])) {
     $form['__type'] = array(
       '#type' => 'value',
       '#value' => $type,
@@ -609,16 +615,32 @@ function simplerdf_admin_uri_settings_form($form_state, $type, $format) {
     $form_state['values'] = array();
   }
   $all_settings = (array) variable_get('simplerdf_uri_settings', array());
-  $settings = (array) $all_settings[$type][$format];
-  if (!isset($settings['settings'])) {
-    $settings['settings'] = array();
+  $config = (array) $all_settings[$type][$format];
+  if (!isset($config['settings'])) {
+    $config['settings'] = array();
   }
-  $form_state['values'] = $settings['settings'] + $plugin['settings defaults'];
+  if ($plugin['aliasable']) {
+    $form_state['values']['alias'] = $config['alias'];
+  }
+  $form_state['values']['settings'] = $config['settings'] + $plugin['settings defaults'];
+
+  // Alias setting
+  if ($plugin['aliasable']) {
+    $form['alias'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Aliased'),
+      '#default_value' => $form_state['values']['alias'],
+      '#description' => t('Check this option if you want Drupal to look up the resulting URI from this format for a path alias.'),
+    );
+  }
 
   // Fetch plugin settings form
+  $form['settings'] = array(
+    '#tree' => TRUE,
+  );
   if (function_exists($callback = $plugin['settings form'])) {
     if (is_array($subform = $callback($form_state, $type))) {
-      $form = array_merge($form, $subform);
+      $form['settings'] = array_merge($form['settings'], $subform);
     }
   }
 
@@ -649,15 +671,17 @@ function simplerdf_admin_uri_settings_form_validate(&$form, &$form_state) {
  * URI settings form submit callback.
  */
 function simplerdf_admin_uri_settings_form_submit($form, &$form_state) {
+  $type = $form_state['values']['__type'];
   $plugin = $form_state['values']['__plugin'];
   $all_settings = (array) variable_get('simplerdf_uri_settings', array());
-  $all_settings[$type][$plugin['name']] = _simplerdf_admin_uri_process_values($plugin['settings defaults'], $form_state['values']);
+  $all_settings[$type][$plugin['name']]['alias'] = $form_state['values']['alias'];
+  $all_settings[$type][$plugin['name']]['settings'] = _simplerdf_admin_uri_process_values($plugin['settings defaults'], $form_state['values']['settings']);
   variable_set('simplerdf_uri_settings', $all_settings);
 
   simplerdf_clear_cache_all();
   drupal_set_message(t('Settings for %format have been saved.', array('%format' => $plugin['title'])));
 
-  $form_state['redirect'] = 'admin/build/simplerdf/uri/' . $form_state['values']['__type'];
+  $form_state['redirect'] = "admin/build/simplerdf/uri/$type";
 }
 
 /**
