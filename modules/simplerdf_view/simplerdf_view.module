@@ -196,7 +196,7 @@ function simplerdf_view_render_object($type, $id, $object) {
   }
   else {
     // Build page
-    $triples = simplerdf_get_triples($node);
+    $triples = simplerdf_get_triples($type, $id, $object);
     $triples = simplerdf_expand_triples($triples);
     $document = simplerdf_view_build_document($triples);
     if ($document) {
