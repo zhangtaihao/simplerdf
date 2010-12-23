@@ -163,7 +163,8 @@ function _simplerdf_build_fields($type, $classifier = NULL, $reset = FALSE) {
 
       // Build field data
       $fields[$type][$classifier] = array();
-      foreach ($plugins as $plugin_name => $plugin) {
+      foreach ($providers as $plugin_name) {
+        $plugin = $plugins[$plugin_name];
         // Fetch fields
         foreach (_simplerdf_invoke($plugin, 'callback fields', $type, $classifier) as $name => $field) {
           $field['mapper'] = $plugin_name;
