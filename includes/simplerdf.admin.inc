@@ -422,7 +422,7 @@ function simplerdf_admin_uri_overview() {
 /**
  * Object URI format choice form.
  */
-function simplerdf_admin_uri_form($form_state, $type) {
+function simplerdf_admin_uri_form(&$form_state, $type) {
   $path = drupal_get_path('module', 'simplerdf');
   drupal_add_css($path . '/simplerdf.admin.css');
   drupal_add_js($path . '/simplerdf.admin.js');
@@ -506,6 +506,7 @@ function simplerdf_admin_uri_form($form_state, $type) {
   }
 
   if ($form_state['storage']['preview']) {
+    unset($form_state['storage']['preview']);
     // Format URI and display
     $id = $form_state['values']['id'];
     $object = simplerdf_load($type, $id);
