@@ -37,7 +37,7 @@ function simplerdf_uri_token_format($type, $id, $object, array $config = array()
       else {
         $token_type = $type;
       }
-      return url(token_replace($pattern, $token_type, $object), array('alias' => TRUE));
+      return token_replace($pattern, $token_type, $object);
     }
   }
 }
