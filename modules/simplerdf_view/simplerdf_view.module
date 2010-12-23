@@ -197,7 +197,7 @@ function simplerdf_view_render_object($type, $id, $object) {
   else {
     // Build page
     $triples = simplerdf_get_triples($node);
-    $triples = simplerdf_view_process_triples($triples);
+    $triples = simplerdf_expand_triples($triples);
     $document = simplerdf_view_build_document($triples);
     if ($document) {
       cache_set($cid, $document, 'cache_simplerdf');
@@ -208,7 +208,7 @@ function simplerdf_view_render_object($type, $id, $object) {
     // Display document
     $filename = "$type-$id.rdf";
     drupal_set_header('Content-Type: ' . $document['type']);
-    drupal_set_header('Content-Disposition: inline; filename=' . $filename . '.rdf');
+    drupal_set_header('Content-Disposition: inline; filename=' . $filename);
     echo $document['content'];
   }
   else {
@@ -234,7 +234,7 @@ function simplerdf_view_build_document($triples) {
 
   // Serialize document
   $document = array();
-  $format = variable_get('simplerdf_format', SIMPLERDF_VIEW_DEFAULT_FORMAT);
+  $format = variable_get('simplerdf_view_format', SIMPLERDF_VIEW_DEFAULT_FORMAT);
   module_load_include('inc', 'simplerdf_view', 'simplerdf_view.arc');
   if (simplerdf_view_arc_include() && $serializer = simplerdf_view_arc_get_serializer($format, array('ns' => $namespaces))) {
     // Initialize ARC2
