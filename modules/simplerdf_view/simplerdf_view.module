@@ -85,7 +85,6 @@ function simplerdf_view_menu() {
       'type' => variable_get('simplerdf_view_tab', TRUE) ? MENU_LOCAL_TASK : MENU_CALLBACK,
       'access callback' => 'node_access',
       'access arguments' => array('view', 1),
-      'file' => 'includes/simplerdf.render.inc',
     );
   }
 
