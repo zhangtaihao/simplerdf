@@ -165,15 +165,15 @@ function _simplerdf_invoke($plugin, $op) {
   $args = array_merge($args, $plugin[$op . ' arguments']);
 
   // Load plugin file
-  if (!$loaded[$plugin['name']]['plugin'] && !empty($plugin['file']) && file_exists($plugin_file = $plugin['path'] . '/' . $plugin['file'])) {
+  if (!$loaded[$plugin['plugin module']][$plugin['plugin type']][$plugin['name']]['plugin'] && !empty($plugin['file']) && file_exists($plugin_file = $plugin['path'] . '/' . $plugin['file'])) {
     _simplerdf_invoke_include($plugin_file);
-    $loaded[$plugin['name']]['plugin'] = TRUE;
+    $loaded[$plugin['plugin module']][$plugin['plugin type']][$plugin['name']]['plugin'] = TRUE;
   }
 
   // Include file
-  if (!$loaded[$plugin['name']]['ops'][$op] && isset($plugin[$op . ' file']) && file_exists($file = $plugin[$op . ' path'] . '/' . $plugin[$op . ' file'])) {
+  if (!$loaded[$plugin['plugin module']][$plugin['plugin type']][$plugin['name']]['ops'][$op] && isset($plugin[$op . ' file']) && file_exists($file = $plugin[$op . ' path'] . '/' . $plugin[$op . ' file'])) {
     _simplerdf_invoke_include($file);
-    $loaded[$plugin['name']]['ops'][$op] = TRUE;
+    $loaded[$plugin['plugin module']][$plugin['plugin type']][$plugin['name']]['ops'][$op] = TRUE;
   }
 
   // Invoke callback
