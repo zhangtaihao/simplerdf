@@ -87,7 +87,7 @@ function simplerdf_taxonomy_simplerdf_types() {
 function simplerdf_taxonomy_simplerdf_classify($type, $object) {
   // Classify node
   if ($type == 'term') {
-    return _simplerdf_taxonomy_get_vocabulary_name($object);
+    return _simplerdf_taxonomy_get_vocabulary_name($object->vid);
   }
 }
 
