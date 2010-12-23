@@ -87,8 +87,16 @@ function _simplerdf_sparql_store_get($type) {
  * Construct an ARC2 store/endpoint object.
  */
 function _simplerdf_sparql_store_make($type) {
-  module_load_include('inc', 'simplerdf', 'includes/simplerdf.arc');
-  if (simplerdf_arc_include() && $config = simplerdf_sparql_store_config()) {
+  static $init;
+  if (!$init) {
+    // Initialize ARC2
+    $arc_path = function_exists('libraries_get_path') ? libraries_get_path('arc') : 'sites/all/libraries/arc';
+    if (file_exists($arc_file = $arc_path . '/ARC2.php')) {
+      require_once $arc_file;
+      $init = TRUE;
+    }
+  }
+  if (class_exists('ARC2') && $config = simplerdf_sparql_store_config()) {
     $method = $type == 'endpoint' ? 'getStoreEndpoint' : 'getStore';
     return ARC2::$method($config);
   }

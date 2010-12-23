@@ -11,7 +11,6 @@ please perform the following steps:
  3. Extract the latest module to the directory.
  4. Run update.php to apply the latest database updates. (Naturally, you need
     to log in as user 1, i.e. admin or superuser).
- 5. If Simple RDF SPARQL is enabled, install Simple RDF View.
 
 After these steps have been performed in order without errors, you should be
 able to use the latest module with your existing RDF mappings.
