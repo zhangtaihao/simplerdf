@@ -77,14 +77,14 @@ function simplerdf_view_menu() {
   // RDF is installed after this module and path remains 'RDF').
   $view_path = variable_get('simplerdf_view_node_path', SIMPLERDF_VIEW_DEFAULT_PATH);
   if ($view_path && !($view_path == 'rdf' && module_exists('rdf'))) {
-    $items['node/%/' . $view_path] = array(
+    $items['node/%node/' . $view_path] = array(
       'title' => check_plain(variable_get('simplerdf_view_title', 'RDF')),
       'description' => 'View the RDF document.',
-      'page callback' => 'simplerdf_view_render',
-      'page arguments' => array('node', 1),
-      'type' => variable_get('simplerdf_view_tab', TRUE) ? MENU_LOCAL_TASK : MENU_CALLBACK,
+      'page callback' => 'simplerdf_view_render_node',
+      'page arguments' => array(1),
       'access callback' => 'node_access',
       'access arguments' => array('view', 1),
+      'type' => variable_get('simplerdf_view_tab', TRUE) ? MENU_LOCAL_TASK : MENU_CALLBACK,
     );
   }
 
@@ -92,11 +92,11 @@ function simplerdf_view_menu() {
   // RDF is installed after this module and path remains 'rdf').
   $view_path = variable_get('simplerdf_view_user_path', SIMPLERDF_VIEW_DEFAULT_PATH);
   if ($view_path && !($view_path == 'rdf' && module_exists('rdf'))) {
-    $items['user/%/' . $view_path] = array(
+    $items['user/%user/' . $view_path] = array(
       'title' => check_plain(variable_get('simplerdf_view_title', 'RDF')),
       'description' => 'View the RDF document.',
-      'page callback' => 'simplerdf_view_render',
-      'page arguments' => array('user', 1),
+      'page callback' => 'simplerdf_view_render_user',
+      'page arguments' => array(1),
       'access callback' => 'user_view_access',
       'access arguments' => array(1),
       'type' => variable_get('simplerdf_view_tab', TRUE) ? MENU_LOCAL_TASK : MENU_CALLBACK,
@@ -156,6 +156,26 @@ function simplerdf_view_render($type, $id, $object = NULL) {
     drupal_not_found();
     exit;
   }
+}
+
+/**
+ * Render a node object.
+ *
+ * @param int $node
+ *   Loaded node.
+ */
+function simplerdf_view_render_node($node) {
+  simplerdf_view_render('node', $node->nid, $node);
+}
+
+/**
+ * Render a user object.
+ *
+ * @param int $user
+ *   Loaded user.
+ */
+function simplerdf_view_render_user($user) {
+  simplerdf_view_render('user', $user->uid, $user);
 }
 
 /**
