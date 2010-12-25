@@ -205,7 +205,7 @@ function _simplerdf_sparql_object_crud($op, $type, $id) {
     case 'insert':
       // Re-index this object as well
       $update[] = compact('type', 'id');
-      if (simplerdf_sparql_lock_shared()) {
+      if (simplerdf_sparql_lock_ex()) {
         simplerdf_sparql_update_objects($update);
         simplerdf_sparql_lock_release();
       }
