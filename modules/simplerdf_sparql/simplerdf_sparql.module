@@ -162,7 +162,7 @@ function simplerdf_sparql_update_objects(array $objects) {
  */
 function simplerdf_sparql_nodeapi(&$node, $op, $a3, $a4) {
   if (in_array($op, array('insert', 'update', 'delete'), TRUE)) {
-    _simplerdf_sparql_object_crud($op, 'node', $node->nid);
+    simplerdf_sparql_object_crud($op, 'node', $node->nid);
   }
 }
 
@@ -171,7 +171,7 @@ function simplerdf_sparql_nodeapi(&$node, $op, $a3, $a4) {
  */
 function simplerdf_sparql_taxonomy($op, $type, $array = NULL) {
   if (in_array($op, array('insert', 'update', 'delete'), TRUE)) {
-    _simplerdf_sparql_object_crud($op, 'term', $array['tid']);
+    simplerdf_sparql_object_crud($op, 'term', $array['tid']);
   }
 }
 
@@ -180,14 +180,14 @@ function simplerdf_sparql_taxonomy($op, $type, $array = NULL) {
  */
 function simplerdf_sparql_user($op, &$edit, &$account, $category = NULL) {
   if (in_array($op, array('insert', 'update', 'delete'), TRUE)) {
-    _simplerdf_sparql_object_crud($op, 'user', $account->uid);
+    simplerdf_sparql_object_crud($op, 'user', $account->uid);
   }
 }
 
 /**
  * Process CRUD triggers for each type of object.
  */
-function _simplerdf_sparql_object_crud($op, $type, $id) {
+function simplerdf_sparql_object_crud($op, $type, $id) {
   static $types = array('node', 'term', 'user');
   $update = array();
   switch ($op) {
