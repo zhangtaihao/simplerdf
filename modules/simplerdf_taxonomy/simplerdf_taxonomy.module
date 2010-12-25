@@ -219,8 +219,7 @@ function simplerdf_taxonomy_taxonomy($op, $type, $array) {
       case 'delete':
         db_query("DELETE FROM {simplerdf_taxonomy_term} WHERE tid = %d", $array['tid']);
         simplerdf_clear_cache('term', $array['tid']);
-        simplerdf_rel_unregister(NULL, NULL, 'term', $array['tid']);
-        simplerdf_rel_unregister('term', $array['tid']);
+        simplerdf_rel_remove_object('term', $array['tid']);
         break;
     }
   }

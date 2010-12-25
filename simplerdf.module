@@ -248,6 +248,17 @@ function simplerdf_rel_index_object($type, $id, $object) {
       simplerdf_rel_register($type, $id, $rel['type'], $rel['id']);
     }
   }
+  module_invoke_all('simplerdf_rel_save', $type, $object, $rels);
+}
+
+/**
+ * Remove object.
+ */
+function simplerdf_rel_remove_object($type, $id, $object) {
+  $rels = simplerdf_rel_lookup(NULL, NULL, $type, $id);
+  module_invoke_all('simplerdf_rel_remove', $type, $object, $rels);
+  simplerdf_rel_unregister(NULL, NULL, $type, $id);
+  simplerdf_rel_unregister('node', $node->nid);
 }
 
 /**
@@ -501,8 +512,7 @@ function simplerdf_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
     case 'delete':
       // Clear cache
       simplerdf_clear_cache('node', $node->nid);
-      simplerdf_rel_unregister(NULL, NULL, 'node', $node->nid);
-      simplerdf_rel_unregister('node', $node->nid);
+      simplerdf_rel_remove_object('node', $node->nid);
       break;
   }
 }
@@ -521,6 +531,7 @@ function simplerdf_user($op, &$edit, &$account, $category = NULL) {
 
     case 'delete':
       simplerdf_clear_cache('user', $account->uid);
+      simplerdf_rel_remove_object('user', $account->uid);
       break;
   }
 }
