@@ -210,12 +210,21 @@ function _simplerdf_sparql_object_crud($op, $type, $id) {
         simplerdf_sparql_lock_release();
       }
       break;
+  }
+}
 
-    case 'delete':
-      // Reset
-      // TODO How to track objects dependent on a potentially deleted object?
-      simplerdf_sparql_reset();
-      break;
+/**
+ * Implements hook_simplerdf_rel_remove().
+ */
+function simplerdf_rel_remove($type, $object, $rels) {
+  if (simplerdf_sparql_lock_ex()) {
+    // Trigger update on dependent objects
+    $update = array();
+    foreach ($rels as $rel) {
+      $update[] = array('type' => $rel['source_type'], 'id' => $rel['source_id']);
+    }
+    simplerdf_sparql_update_objects($update);
+    simplerdf_sparql_lock_release();
   }
 }
 
