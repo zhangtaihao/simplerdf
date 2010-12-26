@@ -178,7 +178,7 @@ function simplerdf_sparql_update_objects(array $objects) {
  *   (Object) Loaded object.
  */
 function simplerdf_sparql_update_object($type, $id, $object = NULL) {
-  simplerdf_sparql_update_objects(compact('type', 'id', 'object'));
+  simplerdf_sparql_update_objects(array(compact('type', 'id', 'object')));
 }
 
 /**
