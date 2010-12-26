@@ -16,6 +16,14 @@ function simplerdf_sparql_perm() {
 }
 
 /**
+ * Implements hook_boot().
+ */
+function simplerdf_sparql_boot() {
+  // Release lock at the last minute, in case of fatal error or an implementor neglected to.
+  register_shutdown_function('simplerdf_sparql_lock_release');
+}
+
+/**
  * Implements hook_menu().
  */
 function simplerdf_sparql_menu() {
@@ -354,7 +362,7 @@ function _simplerdf_sparql_lock($op) {
       return FALSE;
     }
 
-    $result = flock($lock, $op | LOCK_NB);
+    $result = @flock($lock, $op | LOCK_NB);
     if ($result) {
       // Successfully executed
       if ($op == LOCK_UN) {
