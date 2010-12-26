@@ -149,8 +149,7 @@ function simplerdf_sparql_update_objects(array $objects) {
       if (!$obj) {
         simplerdf_load($type, $id);
       }
-      $uri = simplerdf_get_uri($type, $id);
-      if ($obj && $uri) {
+      if ($obj && $uri = simplerdf_get_uri($type, $id, $obj)) {
         // Clear graph with URI
         // It's the provider's fault if the generated URI uses bad characters
         $store->query("DELETE FROM <$uri> { ?s ?p ?o }");
