@@ -97,7 +97,7 @@ function simplerdf_sparql_index() {
  * Implements hook_simplerdf_sparql_index().
  */
 function simplerdf_sparql_simplerdf_sparql_index() {
-  // Build node triples
+  // Index nodes
   $result = db_query('SELECT nid FROM {node}');
   while ($nid = db_result($result)) {
     // Hard refresh node loader cache every time
@@ -105,7 +105,13 @@ function simplerdf_sparql_simplerdf_sparql_index() {
     simplerdf_sparql_update_object('node', $nid, $node);
   }
 
-  // Build term triples
+  // Index users
+  $result = db_query('SELECT uid FROM {users}');
+  while ($uid = db_result($result)) {
+    simplerdf_sparql_update_object('user', $uid);
+  }
+
+  // Index terms
   if (module_exists('simplerdf_taxonomy')) {
     // Index terms
     $result = db_query('SELECT tid FROM {term_data}');
@@ -114,15 +120,6 @@ function simplerdf_sparql_simplerdf_sparql_index() {
       if (empty($term->remote_uri)) {
         simplerdf_sparql_update_object('term', $tid);
       }
-    }
-  }
-
-  // Build user triples
-  if (module_exists('simplerdf_user')) {
-    // Index users
-    $result = db_query('SELECT uid FROM {users}');
-    while ($uid = db_result($result)) {
-      simplerdf_sparql_update_object('user', $uid);
     }
   }
 }
