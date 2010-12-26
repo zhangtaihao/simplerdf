@@ -77,8 +77,12 @@ function simplerdf_sparql_admin_form($form_state) {
  */
 function simplerdf_sparql_admin_settings_rebuild($form, &$form_state) {
   simplerdf_sparql_reset();
-  simplerdf_sparql_index();
-  drupal_set_message(t('All site objects have been re-indexed.'));
+  if (simplerdf_sparql_index()) {
+    drupal_set_message(t('All site objects have been re-indexed.'));
+  }
+  else {
+    drupal_set_message(t('Could not obtain lock to re-index objects.'), 'warning');
+  }
 }
 
 /**

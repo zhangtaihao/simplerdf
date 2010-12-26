@@ -95,10 +95,13 @@ function simplerdf_sparql_index() {
   module_load_include('inc', 'simplerdf_sparql', 'simplerdf_sparql.store');
   $store = simplerdf_sparql_store_get_store();
 
-  if (simplerdf_sparql_lock_ex()) {
+  if (simplerdf_sparql_lock_ex(10)) {
     module_invoke_all('simplerdf_sparql_index');
     simplerdf_sparql_lock_release();
+    return TRUE;
   }
+  // Failed to obtain lock
+  return FALSE;
 }
 
 /**
