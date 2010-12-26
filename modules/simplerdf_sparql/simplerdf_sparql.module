@@ -88,61 +88,70 @@ function simplerdf_sparql_index() {
   $store = simplerdf_sparql_store_get_store();
 
   if (simplerdf_sparql_lock_ex()) {
-    // Build node triples
-    $result = db_query('SELECT nid FROM {node}');
-    while ($nid = db_result($result)) {
-      $node = node_load($nid, NULL, TRUE);
-      $uri = simplerdf_get_uri('node', $nid);
-      simplerdf_sparql_index_node($store, $node, $uri);
-    }
-
-    // Build term triples
-    if (module_exists('simplerdf_taxonomy')) {
-      // Index terms
-      $result = db_query('SELECT tid FROM {term_data}');
-      while ($tid = db_result($result)) {
-        $term = simplerdf_taxonomy_term_load($tid);
-        // Only index local terms
-        if (empty($term->remote_uri)) {
-          $uri = simplerdf_get_uri('term', $tid);
-          simplerdf_sparql_index_term($store, $term, $uri);
-        }
-      }
-    }
-
-    // Build user triples
-    if (module_exists('simplerdf_user')) {
-      // Index users
-      $result = db_query('SELECT uid FROM {users}');
-      while ($uid = db_result($result)) {
-        $user = user_load($uid);
-        $uri = simplerdf_get_uri('user', $uid);
-        simplerdf_sparql_index_term($store, $term, $uri);
-      }
-    }
-
+    module_invoke_all('simplerdf_sparql_index');
     simplerdf_sparql_lock_release();
   }
 }
 
 /**
+ * Implements hook_simplerdf_sparql_index().
+ */
+function simplerdf_sparql_simplerdf_sparql_index() {
+  // Build node triples
+  $result = db_query('SELECT nid FROM {node}');
+  while ($nid = db_result($result)) {
+    // Hard refresh node loader cache every time
+    $node = node_load($nid, NULL, TRUE);
+    simplerdf_sparql_update_object('node', $nid, $node);
+  }
+
+  // Build term triples
+  if (module_exists('simplerdf_taxonomy')) {
+    // Index terms
+    $result = db_query('SELECT tid FROM {term_data}');
+    while ($tid = db_result($result)) {
+      // Only index local terms
+      if (empty($term->remote_uri)) {
+        simplerdf_sparql_update_object('term', $tid);
+      }
+    }
+  }
+
+  // Build user triples
+  if (module_exists('simplerdf_user')) {
+    // Index users
+    $result = db_query('SELECT uid FROM {users}');
+    while ($uid = db_result($result)) {
+      simplerdf_sparql_update_object('user', $uid);
+    }
+  }
+}
+
+/**
  * Update dependent objects. This function is not concurrency-safe; acquire an
- * exclusive lock before calling it.
+ * exclusive lock with simplerdf_sparql_lock_ex() before calling it.
  *
  * @param array $objects
  *   Array containing objects described as an array keyed by 'type' and 'id'.
- *   The type can be one of 'node', 'term', or 'user'.
+ *   The type can be one of the types using hook_simplerdf_types().
  */
 function simplerdf_sparql_update_objects(array $objects) {
-  static $types = array('node', 'term', 'user');
+  static $types;
+  if (!isset($types)) {
+    // Use declared RDF-able types
+    $types = array_keys(simplerdf_get_types());
+  }
 
   module_load_include('inc', 'simplerdf_sparql', 'simplerdf_sparql.store');
   $store = simplerdf_sparql_store_get_store();
   foreach ($objects as $object) {
     $type = $object['type'];
     $id = $object['id'];
+    $obj = $object['object'];
     if ($type && in_array($type, $types)) {
-      $obj = simplerdf_load($type, $id);
+      if (!$obj) {
+        simplerdf_load($type, $id);
+      }
       $uri = simplerdf_get_uri($type, $id);
       if ($obj && $uri) {
         // Clear graph with URI
@@ -155,6 +164,21 @@ function simplerdf_sparql_update_objects(array $objects) {
       }
     }
   }
+}
+
+/**
+ * Update an object. This function is not concurrency-safe; acquire an
+ * exclusive lock with simplerdf_sparql_lock_ex() before calling it.
+ *
+ * @param string $type
+ *   Object type, e.g. node.
+ * @param int $id
+ *   Object ID.
+ * @param $object
+ *   (Object) Loaded object.
+ */
+function simplerdf_sparql_update_object($type, $id, $object = NULL) {
+  simplerdf_sparql_update_objects(compact('type', 'id', 'object'));
 }
 
 /**
