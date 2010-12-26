@@ -265,7 +265,8 @@ function simplerdf_sparql_simplerdf_clear_cache($type, $a1) {
  ************************************************/
 
 /**
- * Obtain an exclusive lock to the SPARQL stores.
+ * Obtain an exclusive lock to the SPARQL stores. Release the lock with
+ * simplerdf_sparql_lock_release() when done.
  *
  * @param int $timeout
  *   Number of seconds to wait before giving up.
@@ -278,7 +279,8 @@ function simplerdf_sparql_lock_ex($timeout = 30) {
 }
 
 /**
- * Obtain a shared lock to the SPARQL stores.
+ * Obtain a shared lock to the SPARQL stores. Release the lock with
+ * simplerdf_sparql_lock_release() when done.
  *
  * @param int $timeout
  *   Number of seconds to wait before giving up.
