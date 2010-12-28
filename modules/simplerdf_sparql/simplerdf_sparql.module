@@ -88,14 +88,26 @@ function simplerdf_sparql_reset() {
  *   The type can be one of the types using hook_simplerdf_types().
  */
 function simplerdf_sparql_update_objects(array $objects) {
+  static $store;
+  if (!isset($store)) {
+    // Lazy initialize to lower overhead
+    module_load_include('inc', 'simplerdf_sparql', 'simplerdf_sparql.store');
+    $store = simplerdf_sparql_store_get_store();
+    if (!is_object($store)) {
+      $store = FALSE;
+    }
+  }
+  if (!$store) {
+    // Abort if store cannot be initialized
+    return;
+  }
+
   static $types;
   if (!isset($types)) {
     // Use declared RDF-able types
     $types = array_keys(simplerdf_get_types());
   }
 
-  module_load_include('inc', 'simplerdf_sparql', 'simplerdf_sparql.store');
-  $store = simplerdf_sparql_store_get_store();
   foreach ($objects as $object) {
     $type = $object['type'];
     $id = $object['id'];
