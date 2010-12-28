@@ -227,6 +227,11 @@ function simplerdf_update_6003(&$sandbox) {
     )
   );
 
+  // Add indices
+  db_add_primary_key($ret, 'simplerdf_mappings', array('type', 'classifier', 'field'));
+  db_add_index($ret, 'simplerdf_mappings', 'type', array('type'));
+  db_add_index($ret, 'simplerdf_mappings', 'type_class', array('type', 'classifier'));
+
   // Move user mappings to {simplerdf_mappings}
   $varname = 'simplerdf_user_mappings';
   $mappings = variable_get($varname, array());
