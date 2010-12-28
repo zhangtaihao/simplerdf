@@ -290,3 +290,26 @@ function _simplerdf_update_sql($query) {
   $query = preg_replace_callback(DB_QUERY_REGEXP, '_db_query_callback', $query);
   return array('success' => $result !== FALSE, 'query' => check_plain($query), 'rows' => db_affected_rows());
 }
+
+/**
+ * Utility function to delete mappings.
+ *
+ * @param string $type
+ *   Object type, e.g. node.
+ * @param string $classifier
+ *   Object classifier.
+ *
+ * @return
+ *   SQL update result as returned by update_sql() for the executed query.
+ */
+function simplerdf_install_delete_mappings($type, $classifier = FALSE) {
+  if ($classifier === FALSE) {
+    // Delete all mappings for a type
+    return update_sql("DELETE FROM {simplerdf_mappings} WHERE type = '%s'", $type);
+  }
+  else {
+    // Delete mappings for type and classifier
+    $classifier = (string) $classifier;
+    return update_sql("DELETE FROM {simplerdf_mappings} WHERE type = '%s' AND classifier = '%s'", $type, $classifier);
+  }
+}

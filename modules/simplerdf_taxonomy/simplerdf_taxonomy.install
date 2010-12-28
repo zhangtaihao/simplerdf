@@ -51,7 +51,8 @@ function simplerdf_taxonomy_uninstall() {
   drupal_uninstall_schema('simplerdf_taxonomy');
 
   // Clean taxonomy mappings
-  db_query("DELETE FROM {simplerdf_mappings} WHERE type = 'term'");
+  module_load_install('simplerdf');
+  simplerdf_install_delete_mappings('term');
 }
 
 /**
