@@ -70,11 +70,6 @@ function simplerdf_sparql_endpoint() {
   drupal_not_found();
 }
 
-
-/************************************************
- * RDF rebuild implementations.
- ************************************************/
-
 /**
  * Reset SPARQL database.
  */
@@ -82,57 +77,6 @@ function simplerdf_sparql_reset() {
   module_load_include('inc', 'simplerdf_sparql', 'simplerdf_sparql.store');
   $store = simplerdf_sparql_store_get_store();
   $store->reset();
-
-  // Flag for re-indexing on next SPARQL access
-  variable_set('simplerdf_sparql_index', TRUE);
-}
-
-/**
- * Index site for Simple RDF data.
- */
-function simplerdf_sparql_index() {
-  variable_set('simplerdf_sparql_index', FALSE);
-  module_load_include('inc', 'simplerdf_sparql', 'simplerdf_sparql.store');
-  $store = simplerdf_sparql_store_get_store();
-
-  if (simplerdf_sparql_lock_ex(10)) {
-    module_invoke_all('simplerdf_sparql_index');
-    simplerdf_sparql_lock_release();
-    return TRUE;
-  }
-  // Failed to obtain lock
-  return FALSE;
-}
-
-/**
- * Implements hook_simplerdf_sparql_index().
- */
-function simplerdf_sparql_simplerdf_sparql_index() {
-  // Index nodes
-  $result = db_query('SELECT nid FROM {node}');
-  while ($nid = db_result($result)) {
-    // Hard refresh node loader cache every time
-    $node = node_load($nid, NULL, TRUE);
-    simplerdf_sparql_update_object('node', $nid, $node);
-  }
-
-  // Index users
-  $result = db_query('SELECT uid FROM {users}');
-  while ($uid = db_result($result)) {
-    simplerdf_sparql_update_object('user', $uid);
-  }
-
-  // Index terms
-  if (module_exists('simplerdf_taxonomy')) {
-    // Index terms
-    $result = db_query('SELECT tid FROM {term_data}');
-    while ($tid = db_result($result)) {
-      // Only index local terms
-      if (empty($term->remote_uri)) {
-        simplerdf_sparql_update_object('term', $tid);
-      }
-    }
-  }
 }
 
 /**
@@ -187,6 +131,295 @@ function simplerdf_sparql_update_objects(array $objects) {
 function simplerdf_sparql_update_object($type, $id, $object = NULL) {
   simplerdf_sparql_update_objects(array(compact('type', 'id', 'object')));
 }
+
+
+/************************************************
+ * Batch indexing node/user/term.
+ ************************************************/
+
+/**
+ * Index site for Simple RDF data.
+ */
+function simplerdf_sparql_index($redirect = NULL, $process = FALSE) {
+  $types = simplerdf_get_types();
+
+  // Get a list of indexers grouped by type
+  $indexers = array();
+  foreach (module_implements('simplerdf_sparql_indexers') as $module) {
+    $result = module_invoke($module, 'simplerdf_sparql_indexers');
+    if (is_array($result)) {
+      foreach ($result as $name => $indexer) {
+        if ($indexer['type'] && $types[$indexer['type']] && function_exists($indexer['count callback']) && function_exists($indexer['load callback'])) {
+          // Map indexer by object type
+          $indexers[$indexer['type']][$name] = $indexer;
+        }
+      }
+    }
+  }
+
+  // Add indexer to batch
+  $batch = array(
+    'title' => t('Indexing site RDF'),
+    'operations' => array(),
+    'finished' => 'simplerdf_sparql_index_batch_finished',
+  );
+  foreach ($indexers as $type => $map) {
+    foreach ($map as $name => $indexer) {
+      $batch['operations'][] = array('simplerdf_sparql_index_batch', array($name, $indexer));
+    }
+  }
+
+  // Set batch to process
+  batch_set($batch);
+  if ($process) {
+    batch_process($redirect);
+  }
+}
+
+/**
+ * Batch index a type of objects.
+ */
+function simplerdf_sparql_index_batch($name, $indexer, &$context) {
+  $type = $indexer['type'];
+  $count_callback = $indexer['count callback'];
+  $load_callback = $indexer['load callback'];
+
+  // Initialize sandbox
+  if (empty($context['sandbox'])) {
+    $context['sandbox']['progress'] = 0;
+    $context['sandbox']['count'] = $count_callback();
+  }
+
+  // Load object set
+  $objects = $load_callback($context['sandbox']);
+  if (is_array($objects) && !empty($objects)) {
+    // Obtain lock
+    if (simplerdf_sparql_lock_ex(15)) {
+      // Index loaded objects
+      foreach ($objects as $id => $object) {
+        simplerdf_sparql_update_object($type, $id, $object);
+        $context['sandbox']['progress'] ++;
+      }
+      simplerdf_sparql_lock_release();
+    }
+    else {
+      die('Could not obtain lock.');
+    }
+  }
+  else {
+    // Empty or invalid results
+    die('Invalid results.');
+  }
+
+  static $messages;
+  static $old_type;
+  if (!$old_type) {
+    $old_type = $type;
+  }
+  elseif ($old_type != $type) {
+    // Reset cached parameters
+    $messages = NULL;
+    $old_type = $type;
+  }
+  // Prepare message formats
+  if (!isset($messages)) {
+    $type_singular = $indexer['type singular'];
+    $type_plural = $indexer['type plural'];
+    $t_args = array('%type' => $type);
+    // Singular messages
+    if ($type_singular) {
+      $messages['summary']['singular'] = 'Indexed @count @type.';
+      $messages['progress']['singular'] = 'Indexing @count @type.';
+      $t_args['@type'] = $type_singular;
+    }
+    else {
+      $messages['summary']['singular'] = 'Indexed @count %type object.';
+      $messages['progress']['singular'] = 'Indexing @count %type object.';
+    }
+    // Plural messages
+    if ($type_plural) {
+      $messages['summary']['plural'] = 'Indexed @count @types.';
+      $messages['progress']['plural'] = 'Indexing @index of @count @types.';
+      $t_args['@types'] = $type_plural;
+    }
+    else {
+      $messages['summary']['plural'] = 'Indexed @count %type objects.';
+      $messages['progress']['plural'] = 'Indexing @index of @count %type objects.';
+    }
+    $messages['t_args'] = $t_args;
+  }
+
+  if ($context['sandbox']['progress'] >= $context['sandbox']['count']) {
+    // Mark as complete
+    $context['finished'] = 1;
+    // Format summary
+    $summary = format_plural($context['sandbox']['progress'], $messages['summary']['singular'], $messages['summary']['plural'], $messages['t_args']);
+    $context['results']['summary'][] = $summary;
+  }
+  else {
+    // Track progress
+    $context['finished'] = $context['sandbox']['progress'] / $context['sandbox']['count'];
+    $context['message'] = format_plural($context['sandbox']['count'], $messages['progress']['singular'], $messages['progress']['plural'], $messages['t_args'] + array('@index' => $context['sandbox']['progress']));
+  }
+}
+
+/**
+ * Batch processing finish callback.
+ */
+function simplerdf_sparql_index_batch_finished($success, $results, $operations) {
+  if ($success) {
+    drupal_set_message(t('The site has been indexed.'));
+    if ($results['summary']) {
+      // Show all messages
+      drupal_set_message(theme('item_list', $results['summary']));
+    }
+  }
+  else {
+    // An error occurred.
+    $operation = reset($operations);
+    $args = $operation[1];
+
+    // Module info
+    $module = $args[0];
+    $module_file = drupal_get_path('module', $module) . '/' . $module . '.info';
+    $module_info = drupal_parse_info_file($module_file);
+    $module_name = $module_info['name'];
+
+    // Type name
+    $type = $args[1];
+    $types = simplerdf_get_types();
+    $type_title = $types[$type];
+
+    $message = t('An error occurred while processing %type with %module.', array('%type' => $type_title, '%module' => $module_name));
+    drupal_set_message($message, 'error');
+  }
+}
+
+/**
+ * Implements hook_simplerdf_sparql_indexers().
+ */
+function simplerdf_sparql_simplerdf_sparql_indexers() {
+  $indexers['node'] = array(
+    'type' => 'node',
+    'type singular' => t('node'),
+    'type plural' => t('nodes'),
+    'count callback' => 'simplerdf_sparql_index_node_count',
+    'load callback' => 'simplerdf_sparql_index_node_load',
+  );
+  $indexers['user'] = array(
+    'type' => 'user',
+    'type singular' => t('user'),
+    'type plural' => t('users'),
+    'count callback' => 'simplerdf_sparql_index_user_count',
+    'load callback' => 'simplerdf_sparql_index_user_load',
+  );
+  if (module_exists('simplerdf_taxonomy')) {
+    $indexers['term'] = array(
+      'type' => 'term',
+      'type singular' => t('term'),
+      'type plural' => t('terms'),
+      'count callback' => 'simplerdf_sparql_index_term_count',
+      'load callback' => 'simplerdf_sparql_index_term_load',
+    );
+  }
+  return $indexers;
+}
+
+/**
+ * Node count callback.
+ */
+function simplerdf_sparql_index_node_count() {
+  return db_result(db_query('SELECT COUNT(*) FROM {node}'));
+}
+
+/**
+ * Node load callback.
+ */
+function simplerdf_sparql_index_node_load(&$sandbox) {
+  static $limit = 20;
+
+  if (!isset($sandbox['current_id'])) {
+    $sandbox['current_id'] = 0;
+  }
+
+  // Load nodes
+  $result = db_query_range('SELECT nid FROM {node} WHERE nid > %d ORDER BY nid', $sandbox['current_id'], 0, $limit);
+  $nodes = array();
+  while ($nid = db_result($result)) {
+    // Hard refresh node loader cache every time
+    $nodes[$nid] = node_load($nid, NULL, TRUE);
+    $sandbox['current_id'] = $nid;
+  }
+
+  return $nodes;
+}
+
+/**
+ * User count callback.
+ */
+function simplerdf_sparql_index_user_count() {
+  return db_result(db_query('SELECT COUNT(*) FROM {users} WHERE uid > 0'));
+}
+
+/**
+ * User load callback.
+ */
+function simplerdf_sparql_index_user_load(&$sandbox) {
+  static $limit = 20;
+
+  if (!isset($sandbox['current_id'])) {
+    $sandbox['current_id'] = 0;
+  }
+
+  // Load users
+  $result = db_query_range('SELECT uid FROM {users} WHERE uid > %d ORDER BY uid', $sandbox['current_id'], 0, $limit);
+  $users = array();
+  while ($uid = db_result($result)) {
+    $users[$uid] = user_load($uid);
+    $sandbox['current_id'] = $uid;
+  }
+
+  return $users;
+}
+
+/**
+ * Term count callback.
+ */
+function simplerdf_sparql_index_term_count() {
+  // Count local terms
+  return db_result(db_query('SELECT COUNT(t.tid) FROM {term_data} t
+    LEFT OUTER JOIN {simplerdf_taxonomy_term} s ON t.tid = s.tid
+    WHERE t.tid > %d AND s.remote_uri IS NULL'));
+}
+
+/**
+ * Term load callback.
+ */
+function simplerdf_sparql_index_term_load(&$sandbox) {
+  static $limit = 20;
+
+  if (!isset($sandbox['current_id'])) {
+    $sandbox['current_id'] = 0;
+  }
+
+  // Load local terms
+  $result = db_query_range('SELECT t.tid FROM {term_data} t
+    LEFT OUTER JOIN {simplerdf_taxonomy_term} s ON t.tid = s.tid
+    WHERE t.tid > %d AND s.remote_uri IS NULL
+    ORDER BY t.tid', $sandbox['current_id'], 0, $limit);
+  $terms = array();
+  while ($tid = db_result($result)) {
+    $terms[$tid] = taxonomy_get_term($tid);
+    $sandbox['current_id'] = $tid;
+  }
+
+  return $terms;
+}
+
+
+/************************************************
+ * Node/user/term implementations.
+ ************************************************/
 
 /**
  * Implements hook_nodeapi().
