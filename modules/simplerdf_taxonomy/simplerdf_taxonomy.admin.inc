@@ -59,19 +59,10 @@ function simplerdf_taxonomy_admin_mappings_overview() {
  * Taxonomy vocabulary mappings form.
  */
 function simplerdf_taxonomy_admin_vocabulary_mappings_form($form_state, $vocabulary = NULL) {
-  if (isset($vocabulary)) {
-    $form['__vocabulary'] = array(
-      '#type' => 'value',
-      '#value' => $vocabulary,
-    );
-  }
-  elseif ($form_state['values']['__vocabulary']) {
-    $vocabulary = $form_state['values']['__vocabulary'];
-  }
-  else {
-    // Invalid page request; vocabulary does not exist
-    return array();
-  }
+  $form['__vocabulary'] = array(
+    '#type' => 'value',
+    '#value' => $vocabulary,
+  );
 
   $vid = $vocabulary->vid;
   drupal_set_title(t('Manage RDF mappings for %vocabulary', array('%vocabulary' => $vocabulary->name)));
