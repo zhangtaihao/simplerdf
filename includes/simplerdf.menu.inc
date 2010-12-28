@@ -29,10 +29,10 @@ function _simplerdf_menu() {
     'title' => 'Simple RDF mappings',
     'description' => 'Manage RDF mappings for users.',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('simplerdf_user_admin_mappings_form'),
+    'page arguments' => array('simplerdf_admin_user_mappings_form'),
     'access arguments' => array('administer simplerdf mappings'),
     'type' => MENU_NORMAL_ITEM,
-    'file' => 'simplerdf_user.admin.inc',
+    'file' => 'includes/simplerdf.admin.inc',
   );
 
   // Admin dashboard
