@@ -79,7 +79,7 @@ function simplerdf_taxonomy_admin_vocabulary_mappings_form($form_state, $vocabul
   );
 
   // Load mappings
-  $rdf_mappings = simplerdf_taxonomy_get_mappings($vid);
+  $mappings = simplerdf_taxonomy_get_mappings($vid);
 
   // Build mappings
   $form['mappings'] = array(
@@ -88,7 +88,7 @@ function simplerdf_taxonomy_admin_vocabulary_mappings_form($form_state, $vocabul
   $fields = simplerdf_taxonomy_get_fields($vid);
   foreach ($fields as $name => $field) {
     $mapping = array(
-      '#field_title' => $field,
+      '#field_title' => $field['title'],
       '#field_name' => $name,
       'properties' => array('#tree' => TRUE),
     );
@@ -97,7 +97,7 @@ function simplerdf_taxonomy_admin_vocabulary_mappings_form($form_state, $vocabul
       '#type' => 'textfield',
       '#size' => 20,
       '#maxlength' => 100,
-      '#default_value' => implode(', ', $rdf_mappings[$name]),
+      '#default_value' => implode(', ', $mappings[$name]),
     );
 
     $form['mappings'][] = $mapping;
