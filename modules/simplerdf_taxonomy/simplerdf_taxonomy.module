@@ -154,6 +154,22 @@ function simplerdf_taxonomy_vocabulary_load($vid) {
 }
 
 /**
+ * Get RDF fields for a vocabulary.
+ *
+ * @param int $vid
+ *   Vocabulary ID.
+ *
+ * @return array
+ *   Array of fields keyed by field name.
+ */
+function simplerdf_taxonomy_get_fields($vid) {
+  $machine_name = _simplerdf_taxonomy_get_vocabulary_name($vid);
+  if (!empty($machine_name)) {
+    return simplerdf_get_fields('term', $machine_name);
+  }
+}
+
+/**
  * Get RDF mappings for a vocabulary.
  *
  * @param int $vid
