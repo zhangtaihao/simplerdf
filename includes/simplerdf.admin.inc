@@ -202,7 +202,7 @@ function simplerdf_admin_user_mappings_form($form_state) {
   );
 
   // Load mappings
-  $rdf_mappings = simplerdf_get_mappings('user');
+  $mappings = simplerdf_get_mappings('user');
 
   // Build mappings
   $form['mappings'] = array(
@@ -211,7 +211,7 @@ function simplerdf_admin_user_mappings_form($form_state) {
   $fields = simplerdf_get_fields('user');
   foreach ($fields as $name => $field) {
     $mapping = array(
-      '#field_title' => $field,
+      '#field_title' => $field['title'],
       '#field_name' => $name,
       'properties' => array('#tree' => TRUE),
     );
@@ -220,7 +220,7 @@ function simplerdf_admin_user_mappings_form($form_state) {
       '#type' => 'textfield',
       '#size' => 20,
       '#maxlength' => 100,
-      '#default_value' => implode(', ', $rdf_mappings[$name]),
+      '#default_value' => implode(', ', $mappings[$name]),
     );
 
     $form['mappings'][] = $mapping;
