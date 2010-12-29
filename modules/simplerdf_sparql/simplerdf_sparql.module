@@ -5,8 +5,10 @@
  * Simple RDF SPARQL endpoint implementation with ARC2.
  */
 
-/** Lock file for basic SPARQL read/write locking. */
-define('SIMPLERDF_SPARQL_LOCK_FILE', file_directory_path() . '/simplerdf_sparql/lock');
+if (function_exists('file_directory_path')) {
+  /** Lock file for basic SPARQL read/write locking. */
+  define('SIMPLERDF_SPARQL_LOCK_FILE', file_directory_path() . '/simplerdf_sparql/lock');
+}
 
 /**
  * Implements hook_perm().
