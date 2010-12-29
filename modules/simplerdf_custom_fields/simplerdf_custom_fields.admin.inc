@@ -223,6 +223,7 @@ function _simplerdf_custom_fields_admin_edit_basic_form(&$form_state) {
     '#type' => 'checkboxes',
     '#title' => t('Applicable object types'),
     '#options' => simplerdf_get_types(),
+    '#default_value' => $form_state['values']['settings']['object_types'],
     '#description' => t('Select the types of objects this field can be mapped to. If none is selected, this field will be effectively unused.'),
   );
   $form['settings']['field_key'] = array(
@@ -256,7 +257,7 @@ function _simplerdf_custom_fields_admin_edit_basic_form_validate($form, &$form_s
   }
 
   // Filter down empty object type selections
-  $form_state['values']['object_types'] = array_filter($form_state['values']['object_types']);
+  $form_state['values']['settings']['object_types'] = array_filter($form_state['values']['settings']['object_types']);
 }
 
 /**
