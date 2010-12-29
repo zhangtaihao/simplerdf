@@ -351,7 +351,7 @@ function simplerdf_sparql_index_node_count() {
  * Node load callback.
  */
 function simplerdf_sparql_index_node_load(&$sandbox) {
-  static $limit = 20;
+  static $limit = 60;
 
   if (!isset($sandbox['current_id'])) {
     $sandbox['current_id'] = 0;
@@ -380,7 +380,7 @@ function simplerdf_sparql_index_user_count() {
  * User load callback.
  */
 function simplerdf_sparql_index_user_load(&$sandbox) {
-  static $limit = 20;
+  static $limit = 60;
 
   if (!isset($sandbox['current_id'])) {
     $sandbox['current_id'] = 0;
@@ -411,7 +411,7 @@ function simplerdf_sparql_index_term_count() {
  * Term load callback.
  */
 function simplerdf_sparql_index_term_load(&$sandbox) {
-  static $limit = 20;
+  static $limit = 60;
 
   if (!isset($sandbox['current_id'])) {
     $sandbox['current_id'] = 0;
