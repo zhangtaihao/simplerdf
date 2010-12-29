@@ -114,7 +114,7 @@ function simplerdf_sparql_update_objects(array $objects) {
     $obj = $object['object'];
     if ($type && in_array($type, $types)) {
       if (!$obj) {
-        simplerdf_load($type, $id);
+        $obj = simplerdf_load($type, $id);
       }
       if ($obj && $uri = simplerdf_get_uri($type, $id, $obj)) {
         // Clear graph with URI
