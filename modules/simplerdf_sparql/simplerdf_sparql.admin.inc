@@ -12,15 +12,23 @@ function simplerdf_sparql_admin_form($form_state) {
   // Re-index button
   $form['reindex'] = array(
     '#type' => 'fieldset',
-    '#title' => t('Re-index'),
+    '#title' => t('Re-indexing'),
     '#collapsible' => FALSE,
     '#collapsed' => FALSE,
-    '#description' => t('Rebuild the RDF database by re-indexing all site objects.'),
+  );
+  $form['reindex']['help'] = array(
+    '#value' => t('Rebuild the RDF database by re-indexing all site objects.'),
   );
   $form['reindex']['reindex'] = array(
     '#type' => 'submit',
-    '#value' => t('Re-index RDF data'),
+    '#value' => t('Manually re-index RDF data'),
     '#submit' => array('simplerdf_sparql_admin_settings_rebuild'),
+  );
+  $form['reindex']['reindex_auto'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Automatically re-index on mapping save'),
+    '#default_value' => variable_get('simplerdf_sparql_reindex_auto', TRUE),
+    '#description' => t('When this option is checked, saving mappings for a particular type of objects (e.g. node) will trigger re-indexing of that type of objects.'),
   );
 
   // Endpoint settings
@@ -62,7 +70,8 @@ function simplerdf_sparql_admin_form($form_state) {
     '#default_value' => variable_get('simplerdf_sparql_arc2_write_key', NULL),
     '#description' => t('The write key is passed through to ARC2 for basic authorization to execute SPARQL update queries.'),
   );
-  $form['endpoint']['submit'] = array(
+
+  $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Save settings'),
     '#validate' => array('simplerdf_sparql_admin_settings_validate'),
@@ -101,6 +110,7 @@ function simplerdf_sparql_admin_settings_validate($form, &$form_state) {
  */
 function simplerdf_sparql_admin_settings_submit($form, &$form_state) {
   $values = $form_state['values'];
+  variable_set('simplerdf_sparql_reindex_auto', $values['reindex_auto']);
   variable_set('simplerdf_sparql_path', $values['path']);
   variable_set('simplerdf_sparql_menu_type', $values['menu_type']);
   variable_set('simplerdf_sparql_arc2_read_key', $values['read_key']);
