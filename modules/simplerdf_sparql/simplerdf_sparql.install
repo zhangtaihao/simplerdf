@@ -54,17 +54,21 @@ function simplerdf_sparql_requirements($phase) {
  * Implements hook_install().
  */
 function simplerdf_sparql_install() {
+  variable_set('simplerdf_sparql_reindex_auto', TRUE);
   variable_set('simplerdf_sparql_path', 'simplerdf/sparql');
-  variable_set('simplerdf_sparql_index', TRUE);
-  variable_set('simplerdf_sparql_arc2_write_key', md5(time()));
+  variable_set('simplerdf_sparql_menu_type', MENU_CALLBACK);
+  variable_set('simplerdf_sparql_arc2_read_key', NULL);
+  variable_set('simplerdf_sparql_arc2_write_key', md5(time()));  // Reasonably random string
 }
 
 /**
  * Implements hook_uninstall().
  */
 function simplerdf_sparql_uninstall() {
+  variable_del('simplerdf_sparql_reindex_auto');
   variable_del('simplerdf_sparql_path');
-  variable_del('simplerdf_sparql_index');
+  variable_del('simplerdf_sparql_menu_type');
+  variable_del('simplerdf_sparql_arc2_read_key');
   variable_del('simplerdf_sparql_arc2_write_key');
 
   // Uninstall ARC2 tables if they exist
