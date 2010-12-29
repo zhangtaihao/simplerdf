@@ -646,14 +646,52 @@ function simplerdf_sparql_form_alter(&$form, &$form_state, $form_id) {
   switch ($form_id) {
     // Admin dashboard
     case 'simplerdf_admin_rel_index_form':
-    // Node URI
-    case 'simplerdf_admin_nodeuri_form':
-    case 'simplerdf_admin_nodeuri_settings_form':
-    // Mappings forms
-    case 'simplerdf_admin_mappings_form':
-    case 'simplerdf_taxonomy_admin_vocabulary_mappings_form':
-    case 'simplerdf_user_admin_mappings_form':
-      $form['#submit'][] = 'simplerdf_sparql_reset';
+    // Object URI
+    case 'simplerdf_admin_uri_form':
+    case 'simplerdf_admin_uri_settings_form':
+      // TODO Warn of possible changes and advise manual re-indexing
       break;
+
+    // Mappings forms
+    case 'simplerdf_admin_node_mappings_form':
+      if (!isset($form['simplerdf_sparql_index_type'])) {
+        $form['simplerdf_sparql_index_type'] = array(
+          '#type' => 'value',
+          '#value' => 'node',
+        );
+      }
+    case 'simplerdf_admin_user_mappings_form':
+      if (!isset($form['simplerdf_sparql_index_type'])) {
+        $form['simplerdf_sparql_index_type'] = array(
+          '#type' => 'value',
+          '#value' => 'user',
+        );
+      }
+    case 'simplerdf_taxonomy_admin_vocabulary_mappings_form':
+      if (!isset($form['simplerdf_sparql_index_type'])) {
+        $form['simplerdf_sparql_index_type'] = array(
+          '#type' => 'value',
+          '#value' => 'term',
+        );
+      }
+      $form['#submit'][] = 'simplerdf_sparql_index_type';
+      break;
+  }
+}
+
+/**
+ * Helper form submit handler to index objects of a particular type.
+ */
+function simplerdf_sparql_index_type($form, $form_state) {
+  $types = simplerdf_get_types();
+  if (($type = $form_state['values']['simplerdf_sparql_index_type']) && $types[$type]) {
+    if (variable_get('simplerdf_sparql_reindex_auto', TRUE)) {
+      // Invoke index batch
+      simplerdf_sparql_index(array($type));
+    }
+    else {
+      // Advise manual re-indexing
+      drupal_set_message(t('@type mappings have changed. To use these new mappings in Simple RDF SPARQL, please !reindex on the SPARQL settings page.', array('@type' => $types[$type], '!reindex' => l(t('re-index RDF data'), 'admin/build/simplerdf/sparql'))));
+    }
   }
 }
