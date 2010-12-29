@@ -91,8 +91,6 @@ function simplerdf_load($type, $id, $reset = FALSE) {
  * @see http://arc.semsol.org/docs/v2/structures
  */
 function simplerdf_map_field($type, $object, $uri, array $properties, array $field) {
-  ctools_include('plugins');
-
   // Map field
   $plugin = simplerdf_get_plugins('mappers', $field['mapper']);
   $triples = array();

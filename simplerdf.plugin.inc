@@ -202,6 +202,7 @@ function _simplerdf_invoke_include($file) {
  *   Specified plugin if $id is given; otherwise an array of plugins.
  */
 function simplerdf_get_plugins($type, $id = NULL) {
+  ctools_include('plugins');
   $plugins = ctools_get_plugins('simplerdf', $type, $id);
   if (!isset($id) && is_array($plugins)) {
     _simplerdf_sort_plugins($plugins);
