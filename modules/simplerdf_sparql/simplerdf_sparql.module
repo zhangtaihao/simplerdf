@@ -649,7 +649,8 @@ function simplerdf_sparql_form_alter(&$form, &$form_state, $form_id) {
     // Object URI
     case 'simplerdf_admin_uri_form':
     case 'simplerdf_admin_uri_settings_form':
-      // TODO Warn of possible changes and advise manual re-indexing
+      // Warn of possible changes and advise manual re-indexing
+      drupal_set_message(t('Changes made in the last form may have invalidated the RDF data indexed by Simple RDF SPARQL. To refresh the SPARQL database, please !reindex on the SPARQL settings page.', array('@type' => $types[$type], '!reindex' => l(t('re-index RDF data'), 'admin/build/simplerdf/sparql'))));
       break;
 
     // Mappings forms
