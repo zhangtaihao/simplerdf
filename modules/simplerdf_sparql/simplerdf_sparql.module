@@ -464,23 +464,25 @@ function simplerdf_sparql_user($op, &$edit, &$account, $category = NULL) {
  * Process CRUD triggers for each type of object.
  */
 function simplerdf_sparql_object_crud($op, $type, $id) {
-  static $types = array('node', 'term', 'user');
+  static $types;
+  if (!isset($types)) {
+    $types = array_keys(simplerdf_get_types());
+  }
+
   $update = array();
   switch ($op) {
     case 'update':
       // Re-index dependent objects
       $rels = simplerdf_rel_lookup(NULL, NULL, $type, $id);
       foreach ($rels as $rel) {
-        if ($rel && in_array($rel, $types)) {
-          $update[] = array(
-            'type' => $rel['source_type'],
-            'id' => $rel['source_id'],
-          );
-        }
+        $update[] = array(
+          'type' => $rel['source_type'],
+          'id' => $rel['source_id'],
+        );
       }
     case 'insert':
-      // Re-index this object as well
-      $update[] = compact('type', 'id');
+      // Re-index this object as well -- first
+      array_unshift($update, compact('type', 'id'));
       if (simplerdf_sparql_lock_ex()) {
         simplerdf_sparql_update_objects($update);
         simplerdf_sparql_lock_release();
