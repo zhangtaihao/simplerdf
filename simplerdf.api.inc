@@ -227,9 +227,7 @@ function _simplerdf_build_content_fields($content_type, $reset = FALSE) {
       $content_fields = $content_type_info['fields'];
       if (!empty($content_fields)) {
         // Fetch and sort plugins
-        ctools_include('plugins');
-        $plugins = ctools_get_plugins('simplerdf', 'content_mappers');
-        uasort($plugins, '_simplerdf_compare_plugin_weights');
+        $plugins = simplerdf_get_plugins('content_mappers');
 
         // Build field data
         $fields[$content_type] = array();

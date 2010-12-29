@@ -61,10 +61,8 @@ function _simplerdf_content_types_overview_alter(&$header, &$rows) {
  * @ingroup simplerdf_themeable
  */
 function theme_simplerdf_admin_mappings_table($elements) {
-  ctools_include('plugins');
-
   // Prepare mappers
-  $plugins = ctools_get_plugins('simplerdf', 'mappers');
+  $plugins = simplerdf_get_plugins('mappers');
   $mappers = array();
   foreach ($plugins as $name => $plugin) {
     $mappers[$name] = check_plain($plugin['title']);
@@ -330,7 +328,7 @@ function simplerdf_admin_dashboard() {
   $rows = array();
   foreach ($type_names as $type => $type_name) {
     $plugin_titles = array();
-    $plugins = ctools_get_plugins('simplerdf', $type);
+    $plugins = simplerdf_get_plugins($type);
     uasort($plugins, '_simplerdf_compare_plugin_weights');
     foreach ($plugins as $name => $plugin) {
       $plugin_titles[] = '<strong>' . check_plain($plugin['title']) . '</strong>' . ' (' . check_plain($name) . ')';

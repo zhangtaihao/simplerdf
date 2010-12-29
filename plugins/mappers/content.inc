@@ -31,8 +31,7 @@ function simplerdf_mapper_content_map($object_type = 'node', $node, $uri, $prope
   static $plugins;
   // Initialize plugins
   if (!$plugins) {
-    ctools_include('plugins');
-    $plugins = ctools_get_plugins('simplerdf', 'content_mappers');
+    $plugins = simplerdf_get_plugins('content_mappers');
   }
 
   $mapper = $plugins[$field['content mapper']];
