@@ -260,15 +260,24 @@ function simplerdf_taxonomy_simplerdf_rel_objects($type, $object) {
   if ($type == 'node') {
     // Prepare node fields
     $node = &$object;
-    $nid = $node->nid;
     $type = content_types($node->type);
     $fields = $type['fields'];
     $rels = array();
 
     // Register core taxonomy terms
     if (!empty($node->taxonomy)) {
-      foreach (array_keys($node->taxonomy) as $tid) {
-        $rels[] = array('type' => 'term', 'id' => $tid);
+      foreach ($node->taxonomy as $k => $v) {
+        // Are terms grouped by vid?
+        if (is_array($v)) {
+          // Yes
+          foreach ($v as $tid) {
+            $rels[] = array('type' => 'term', 'id' => $tid);
+          }
+        }
+        elseif (is_numeric($v)) {
+          // No; just the key is the tid
+          $rels[] = array('type' => 'term', 'id' => $tid);
+        }
       }
     }
 
