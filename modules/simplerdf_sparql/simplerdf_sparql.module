@@ -152,7 +152,7 @@ function simplerdf_sparql_update_object($type, $id, $object = NULL) {
 /**
  * Index site for Simple RDF data.
  */
-function simplerdf_sparql_index($redirect = NULL, $process = FALSE) {
+function simplerdf_sparql_index($index_types = NULL, $redirect = NULL, $process = FALSE) {
   $types = simplerdf_get_types();
 
   // Get a list of indexers grouped by type
@@ -176,8 +176,11 @@ function simplerdf_sparql_index($redirect = NULL, $process = FALSE) {
     'finished' => 'simplerdf_sparql_index_batch_finished',
   );
   foreach ($indexers as $type => $map) {
-    foreach ($map as $name => $indexer) {
-      $batch['operations'][] = array('simplerdf_sparql_index_batch', array($name, $indexer));
+    // Index all or only a specified set of types
+    if (!isset($index_types) || is_array($index_types) && in_array($type, $index_types)) {
+      foreach ($map as $name => $indexer) {
+        $batch['operations'][] = array('simplerdf_sparql_index_batch', array($name, $indexer));
+      }
     }
   }
 
