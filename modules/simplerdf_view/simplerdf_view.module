@@ -125,7 +125,7 @@ function simplerdf_view_menu() {
   $items['admin/build/simplerdf/view/rebuild'] = array(
     'title' => 'Rebuild menu',
     'type' => MENU_CALLBACK,
-    'page callback' => '_simplerdf_admin_rebuild',
+    'page callback' => '_simplerdf_view_admin_rebuild',
     'access arguments' => array('administer simplerdf settings'),
     'file' => 'simplerdf_view.admin.inc',
   );
