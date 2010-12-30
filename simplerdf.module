@@ -50,6 +50,61 @@ function simplerdf_init() {
 }
 
 /**
+ * Implements hook_rdf_resources().
+ */
+function simplerdf_rdf_resources($context) {
+  if (!isset($context)) {
+    // Return resources based on path; limited but it's what arto's RDF CCK relies on so let's use that
+    $args = arg();
+    $type = $args[0];
+    $id = $args[1];
+    if (count($args) == 3 && is_numeric($id) && $id && $id == (int) $id && $args[2] == 'rdf') {
+      $id = (int) $id;  // Just to make sure
+      $types = simplerdf_get_types();
+      if ($types[$type] && is_object($object = simplerdf_load($type, $id))) {
+        // Supported type
+        // XXX Need to watch in the future if this runs into any nasty problem
+        $triples = simplerdf_get_triples($type, $id, $object);
+        // Index triples
+        $index = array();
+        foreach ($triples as $triple) {
+          $s = $triple['s'];
+          $p = $triple['p'];
+          $o = $triple['o'];
+          switch ($triple['o_type']) {
+            case 'uri':
+              $index[$s][$p][] = rdf_uri($o);
+              break;
+
+            case 'bnode':
+              $nodeID = substr($o, 2);
+              $index[$s][$p][] = rdf_bnode($nodeID);
+              break;
+
+            case 'literal':
+              $index[$s][$p][] = rdf_literal($o, $triple['o_lang'], $triple['o_datatype']);
+              break;
+          }
+        }
+        // Build resource loaders
+        $resources = array();
+        foreach ($index as $uri => $properties) {
+          $resources[$uri] = new RDF_QueryCallback('simplerdf_rdf_return_resources', array($properties));
+        }
+        return $resources;
+      }
+    }
+  }
+}
+
+/**
+ * Helper function to return processed resources.
+ */
+function simplerdf_rdf_return_resources($resources) {
+  return $resources;
+}
+
+/**
  * Implements hook_flush_caches().
  */
 function simplerdf_flush_caches() {
