@@ -1,7 +1,6 @@
 ; $Id$
 name = Simple RDF View
 description = Display RDF documents under a node, user, etc. and add auto-discovery links for semantic crawlers to find. This module can be used in combination with (or in lieu of) RDF.
-dependencies[] = libraries
 dependencies[] = simplerdf
 package = RDF
 core = 6.x
