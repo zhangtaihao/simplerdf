@@ -73,34 +73,18 @@ function simplerdf_view_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
  * Implements hook_menu().
  */
 function simplerdf_view_menu() {
-  // Check to make sure we aren't overriding RDF (should only happen when
-  // RDF is installed after this module and path remains 'RDF').
-  $view_path = variable_get('simplerdf_view_node_path', SIMPLERDF_VIEW_DEFAULT_PATH);
-  if ($view_path && !($view_path == 'rdf' && module_exists('rdf'))) {
-    $items['node/%node/' . $view_path] = array(
-      'title' => check_plain(variable_get('simplerdf_view_title', 'RDF')),
-      'description' => 'View the RDF document.',
-      'page callback' => 'simplerdf_view_render_node',
-      'page arguments' => array(1),
-      'access callback' => 'node_access',
-      'access arguments' => array('view', 1),
-      'type' => variable_get('simplerdf_view_tab', TRUE) ? MENU_LOCAL_TASK : MENU_CALLBACK,
-    );
+  $rdf_items = _simplerdf_view_menu_rdf();
+
+  // If we shouldn't override or the path isn't actually 'rdf'
+  $node_path = variable_get('simplerdf_view_node_path', SIMPLERDF_VIEW_DEFAULT_PATH);
+  if (variable_get('simplerdf_view_node_override_rdf', FALSE) || $node_path != 'rdf') {
+    $items['node/%node/' . $node_path] = $rdf_items['node'];
   }
 
-  // Check to make sure we aren't overriding RDF (should only happen when
-  // RDF is installed after this module and path remains 'rdf').
-  $view_path = variable_get('simplerdf_view_user_path', SIMPLERDF_VIEW_DEFAULT_PATH);
-  if ($view_path && !($view_path == 'rdf' && module_exists('rdf'))) {
-    $items['user/%user/' . $view_path] = array(
-      'title' => check_plain(variable_get('simplerdf_view_title', 'RDF')),
-      'description' => 'View the RDF document.',
-      'page callback' => 'simplerdf_view_render_user',
-      'page arguments' => array(1),
-      'access callback' => 'user_view_access',
-      'access arguments' => array(1),
-      'type' => variable_get('simplerdf_view_tab', TRUE) ? MENU_LOCAL_TASK : MENU_CALLBACK,
-    );
+  // Same as node
+  $user_path = variable_get('simplerdf_view_user_path', SIMPLERDF_VIEW_DEFAULT_PATH);
+  if (variable_get('simplerdf_view_user_override_rdf', FALSE) || $user_path != 'rdf') {
+    $items['user/%user/' . $user_path] = $rdf_items['user'];
   }
 
   $view_path = variable_get('simplerdf_view_term_path', SIMPLERDF_VIEW_DEFAULT_PATH);
@@ -131,6 +115,53 @@ function simplerdf_view_menu() {
   );
 
   return $items;
+}
+
+/**
+ * Node RDF menu item.
+ */
+function _simplerdf_view_menu_rdf() {
+  $title = variable_get('simplerdf_view_title', 'RDF');
+  $item_type = variable_get('simplerdf_view_tab', TRUE) ? MENU_LOCAL_TASK : MENU_CALLBACK;
+
+  $items['node'] = array(
+    'title' => $title,
+    'description' => 'View the RDF document.',
+    'page callback' => 'simplerdf_view_render_node',
+    'page arguments' => array(1),
+    'access callback' => 'node_access',
+    'access arguments' => array('view', 1),
+    'type' => $item_type,
+  );
+  $items['user'] = array(
+    'title' => $title,
+    'description' => 'View the RDF document.',
+    'page callback' => 'simplerdf_view_render_user',
+    'page arguments' => array(1),
+    'access callback' => 'user_view_access',
+    'access arguments' => array(1),
+    'type' => $item_type,
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_menu_alter().
+ */
+function simplerdf_view_menu_alter(&$items) {
+  // Load paths
+  $node_path = variable_get('simplerdf_view_node_path', SIMPLERDF_VIEW_DEFAULT_PATH);
+  $user_path = variable_get('simplerdf_view_user_path', SIMPLERDF_VIEW_DEFAULT_PATH);
+  $rdf_items = _simplerdf_view_menu_rdf();
+  // Override node
+  if (variable_get('simplerdf_view_node_override_rdf', FALSE) && $node_path == 'rdf') {
+    $items['node/%node/rdf'] = $rdf_items['node'];
+  }
+  // Override user
+  if (variable_get('simplerdf_view_user_override_rdf', FALSE) && $user_path == 'rdf') {
+    $items['user/%user/rdf'] = $rdf_items['user'];
+  }
 }
 
 /**

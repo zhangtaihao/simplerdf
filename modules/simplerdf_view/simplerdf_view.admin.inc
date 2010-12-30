@@ -23,6 +23,12 @@ function simplerdf_view_admin_settings_form($form_state) {
     '#required' => TRUE,
     '#description' => t('Internal path to display node RDF documents at.'),
   );
+  $form['path']['node_override_rdf'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Override node RDF output'),
+    '#default_value' => variable_get('simplerdf_view_node_override_rdf', FALSE),
+    '#description' => t('Check this option to take over RDF display under "node/%/rdf". NOTE: Simple RDF does not include extra RDF resources defined by modules implementing the RDF API.'),
+  );
   $form['path']['user_path'] = array(
     '#type' => 'textfield',
     '#title' => t('User RDF path'),
@@ -30,6 +36,12 @@ function simplerdf_view_admin_settings_form($form_state) {
     '#default_value' => variable_get('simplerdf_view_user_path', 'rdf'),
     '#required' => TRUE,
     '#description' => t('Internal path to display user RDF documents at.'),
+  );
+  $form['path']['user_override_rdf'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Override user RDF output'),
+    '#default_value' => variable_get('simplerdf_view_user_override_rdf', FALSE),
+    '#description' => t('Check this option to take over RDF display under "user/%/rdf". NOTE: Simple RDF does not include extra RDF resources defined by modules implementing the RDF API.'),
   );
   if (module_exists('simplerdf_taxonomy')) {
     $form['path']['term_path'] = array(
@@ -123,18 +135,30 @@ function _simplerdf_view_admin_get_friendly_format($format) {
  */
 function simplerdf_view_admin_settings_form_validate($form, &$form_state) {
   extract($form_state['values']);
+  $rdf_exists = module_exists('rdf');
+
   if (preg_match('/[^A-Za-z0-9]/', $node_path)) {
     form_set_error('node_path', t('Invalid character detected for RDF view path. Please enter only lowercase, uppercase, and numeric characters.'));
   }
-  elseif ($node_path != variable_get('simplerdf_view_node_path', SIMPLERDF_VIEW_DEFAULT_PATH) && db_result(db_query("SELECT 1 FROM {menu_router} WHERE path = '%s'", "node/%/$node_path"))) {
-    form_set_error('node_path', t('The specified path already exists. Please enter different one.'));
+  else {
+    $path_changed = $node_path != variable_get('simplerdf_view_node_path', SIMPLERDF_VIEW_DEFAULT_PATH);
+    if (($path_changed && !($node_override_rdf && $node_path == 'rdf') ||
+          !$path_changed && !$node_override_rdf && $node_path == 'rdf' && $rdf_exists) &&
+        db_result(db_query("SELECT 1 FROM {menu_router} WHERE path = '%s'", "node/%/$node_path"))) {
+      form_set_error('node_path', t('The specified path already exists. Please enter different one.'));
+    }
   }
 
   if (preg_match('/[^A-Za-z0-9]/', $user_path)) {
     form_set_error('user_path', t('Invalid character detected for user RDF path. Please enter only lowercase, uppercase, and numeric characters.'));
   }
-  elseif ($user_path != variable_get('simplerdf_view_user_path', SIMPLERDF_VIEW_DEFAULT_PATH) && db_result(db_query("SELECT 1 FROM {menu_router} WHERE path = '%s'", "user/%/$user_path"))) {
-    form_set_error('user_path', t('The specified path already exists. Please enter different one.'));
+  else {
+    $path_changed = $user_path != variable_get('simplerdf_view_user_path', SIMPLERDF_VIEW_DEFAULT_PATH);
+    if (($path_changed && !($user_override_rdf && $user_path == 'rdf') ||
+          !$path_changed && !$user_override_rdf && $user_path == 'rdf' && $rdf_exists) &&
+        db_result(db_query("SELECT 1 FROM {menu_router} WHERE path = '%s'", "user/%/$user_path"))) {
+      form_set_error('user_path', t('The specified path already exists. Please enter different one.'));
+    }
   }
 
   if (isset($term_path)) {
@@ -158,8 +182,16 @@ function simplerdf_view_admin_settings_form_submit($form, &$form_state) {
     variable_set('simplerdf_view_node_path', $node_path);
     $rebuild = TRUE;
   }
+  if ($node_override_rdf != variable_get('simplerdf_view_node_override_rdf', FALSE)) {
+    variable_set('simplerdf_view_node_override_rdf', $node_override_rdf);
+    $rebuild = TRUE;
+  }
   if ($user_path != variable_get('simplerdf_view_user_path', SIMPLERDF_VIEW_DEFAULT_PATH)) {
     variable_set('simplerdf_view_user_path', $user_path);
+    $rebuild = TRUE;
+  }
+  if ($user_override_rdf != variable_get('simplerdf_view_user_override_rdf', FALSE)) {
+    variable_set('simplerdf_view_user_override_rdf', $user_override_rdf);
     $rebuild = TRUE;
   }
   if (isset($term_path)) {
