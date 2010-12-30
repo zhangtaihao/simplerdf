@@ -368,7 +368,7 @@ function simplerdf_admin_rel_index() {
  * Object URI configuration overview.
  */
 function simplerdf_admin_uri_overview() {
-  $output = '<p>' . t('The active URI format for each object type is listed in the table below. Click on "configure" to change settings for that type. If any format below is "None", please select one in order for mapping RDF for the object type to function.') . '</p>';
+  $output = '<p>' . t('The active URI format for each object type is listed in the table below. Click on "configure" to change settings for that type. If any format below is "None", please select one in order for mapping RDF for the object type to function. NOTE: if the RDF module is used to display RDF documents, only the default aliased format is applicable for node and user objects as RDF will not recognize any path other than its default canonical URL.') . '</p>';
 
   // Build table
   $header = array(
