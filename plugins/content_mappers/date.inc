@@ -112,7 +112,7 @@ function simplerdf_content_mapper_date_map($node, $uri, $property, $field, $valu
   // Track whether each date field component is mapped
   static $mapped = array();
   if (!isset($mapped[$node->type][$name])) {
-    $mappings = simplerdf_get_mappings($node->type);
+    $mappings = simplerdf_get_mappings('node', $node->type);
     $field_mapping = array();
     // Default field
     if (!empty($mappings[$name])) {
