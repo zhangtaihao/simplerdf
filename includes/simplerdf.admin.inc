@@ -271,7 +271,7 @@ function simplerdf_admin_dashboard() {
 
   $output .= '<p>' . t('An overview of the Simple RDF configuration for this site is displayed on this page.');
 
-  $output .= '<h2>' . t('Basic actions') . '</h2>';
+  $output .= '<h2>' . t('Basic operations') . '</h2>';
   $output .= '<p>' . l(t('Flush Simple RDF cache'), 'admin/build/simplerdf/flush') . t(' (clear cached RDF documents and other temporary data)') . '</p>';
   $output .= '<p>' . l(t('Re-index site objects'), 'admin/build/simplerdf/relindex') . t(' (rebuild auxiliary data used by Simple RDF to track site objects)') . '</p>';
 
