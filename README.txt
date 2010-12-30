@@ -3,68 +3,88 @@ $Id$
   Simple RDF
 =================================================
 
-As posited by the module name, Simple RDF is designed for relatively
-straightforward mapping of node fields to RDF properties for publishing in the
-node's RDF document. There are several aspects of the module you can configure:
+Simple RDF is a Drupal module for automatic mapping of values of Drupal objects
+(e.g. node) to RDF properties. Simple RDF provides RDF mapping configuration
+for the node, user, and term object types per classification, such as content
+type in the case of nodes.
 
-  - Mappings
+Simple RDF also comes with an RDF document display module, Simple RDF View.
+This module publishes the RDF document for an object on a configurable path
+under the object's path, e.g. node/123/rdf. You can also use the RDF module
+(http://drupal.org/project/rdf) to display the RDF document, though its
+capability in Drupal 6 is limited (see Limitations below).
 
-    Under the administration menu for each content type, a new item called
-    "Simple RDF mappings" leads to a list of fields in the content type
-    available for mapping to RDF properties. Fields not mapped will not
-    produce RDF triples.
+The Simple RDF SPARQL module provides an ARC2 SPARQL endpoint for the RDF data
+mapped for a site. The module maintains its own RDF triples cache optimized for
+the Drupal workflow so that it always serves the latest site data while
+updating itself only on site change.
 
-  - Fields
+Various aspects of the package are exportable via Features. Each mapping is
+exportable by type (e.g. node) and classification (e.g. content type). You can
+also export custom fields and namespaces.
 
-    In the Simple RDF administration interface, you can view a list of fields
-    provided by each mapper plugin. By default, there are three active plugins:
-    Core node, CCK, and Custom. To define new fields, configure settings for
-    the Custom mapper to expose a new node field for mapping.
-
-  - Namespaces
-
-    By default, namespaces available from the RDF module are available in
-    Simple RDF. In addition, Simple RDF has an interface for adding namespaces
-    similar to that of RDF. You can use this to define custom namespaces if you
-    do not have or wish to have RDF installed. Namespaces defined using either
-    module can be used in Simple RDF.
-
-    Note: only namespaces defined in Simple RDF are available for export (see
-    Exportables below).
-
-  - Node URI
-
-    By default, modules from the RDF suite attempts to infer the node URI from
-    its default path, which in some cases is not desirable. Simple RDF allows
-    you to choose the method of generating node URIs.
+Simple RDF is meant to be easy to use and highly extensible. For a guide to
+extending the module, please see API.txt. Enjoy the power of the Semantic Web
+in Drupal with Simple RDF!
 
 
-  Exportables
+  Requirements
 =================================================
 
-The included modules integrate with Features and CTools Export API to make
-available for export:
+This module requires Drupal 6 to run. In addition, it depends on:
 
-  - RDF property mappings
-  - Custom RDF namespaces
-  - Custom node fields
+  - CCK
+  - CTools
+  - UUID
+
+Simple RDF View and Simple RDF SPARQL require the ARC2 library. The library can
+be obtained at:
+
+  http://arc.semsol.org
 
 
-  Why another RDF module?
+  Installation
 =================================================
 
-The RDF module is designed for both importing and exporting RDF triples.
-Display-wise, the RDF module is not quite, by itself, interoperable in terms of
-clean metadata output. Even with RDF CCK, mappings are constrained by certain
-arbitrary rules hardcoded into the module.
+ 1. Extract the ARC2 library under sites/all/libraries such that the path
+    './sites/all/libraries/arc/ARC2.php' points to the primary ARC2 file.
+ 2. Extract the module into sites/all/modules and enable Simple RDF!
 
-This module is built for Drupal 6 as a stopgap measure before Drupal 7, which
-is tightly integrated with RDF. Designed merely for node RDF output, Simple RDF
-can be used to customize RDF output and package configuration along with
-content type setup for rapid redeployment on other Drupal 6 sites.
 
-This module is specifically implemented to work with the RDF module as much as
-possible and avoid conflicts.
+  Usage
+=================================================
+
+There are three basic scenarios:
+
+  - Standalone RDF publishing:
+  
+    You may want to use this module on its own just to publish RDF data. To 
+    this end, enable Simple RDF and Simple RDF View. For taxonomy-related RDF
+    mappings, also enable Simple RDF Taxonomy.
+    
+  - Publishing via the RDF module:
+  
+    If another module requires the use of RDF and provides RDF data that you
+    wish to include with the RDF documents, just enable Simple RDF (and
+    optionally Simple RDF Taxonomy) along with RDF and most(*) data mapped from
+    Simple RDF are publishing with the other RDF triples.
+    
+    (*) See Limitations below.
+    
+  - RDF data served through SPARQL
+  
+    Enable the Simple RDF and Simple RDF SPARQL modules to configure mappings
+    for each object type (e.g. content) and only expose the RDF data through
+    the SPARQL endpoint.
+
+Of course, the three scenarios above are only the basic use cases. Simple RDF
+View is designed to work with RDF. It can take over RDF document publishing and
+output on the default path; it can be configured to display RDF documents under
+its own paths; or, it can display RDF documents for term (and other extra
+types) and give priority over to the RDF module for node and user.
+
+The administration interface can be found under Administer > Site building >
+Simple RDF (admin/build/simplerdf).
 
 
   Extending the module
@@ -72,3 +92,17 @@ possible and avoid conflicts.
 
 For more information on extending the module to support custom components, see
 API.txt in the module folder.
+
+
+  Limitations
+=================================================
+Because of how RDF is implemented (at least for Drupal 6), RDF triples output
+for an object, such as a node, are limited to only triples where the subject
+is the node URI itself. Additionally, the URI (node or user) must be the
+default aliased path of the object.
+
+As a workaround for the mismatched URI issue, if the URI format is not aliased
+path, you can enable Simple RDF View and set the view path of, for example,
+node RDF to something other than 'rdf'. The module should inject an additional
+RDF document link into the HTML header and display the Simple RDF mapped data
+there without interfering with the RDF module.
