@@ -117,8 +117,21 @@ function _simplerdf_schema_rel() {
 function simplerdf_install() {
   drupal_install_schema('simplerdf');
 
+  // Default URI formats
   variable_set('simplerdf_uri_formats', array('node' => 'default', 'user' => 'default'));
-  variable_set('simplerdf_nodeuri_settings', array());
+  // Make node and user URIs use aliases by default
+  variable_set('simplerdf_uri_settings', array(
+    'node' => array(
+      'default' => array(
+        'alias' => TRUE,
+      ),
+    ),
+    'user' => array(
+      'default' => array(
+        'alias' => TRUE,
+      ),
+    ),
+  ));
   variable_set('simplerdf_rel_index', TRUE);
 }
 
@@ -128,9 +141,8 @@ function simplerdf_install() {
 function simplerdf_uninstall() {
   drupal_uninstall_schema('simplerdf');
 
-  variable_del('simplerdf_format');
   variable_del('simplerdf_uri_formats');
-  variable_del('simplerdf_nodeuri_settings');
+  variable_del('simplerdf_uri_settings');
   variable_del('simplerdf_rel_index');
 }
 
