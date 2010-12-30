@@ -1,2 +1,60 @@
 $Id$
 
+  Change Log
+=================================================
+
+ HEAD
+-------------------------------------------------
+ - Refactored base architecture to unify mapping management. Node, user, and
+   term fields and mappings now fall under 'object' configuration.
+ - Incorporated user mapping into main module, leaving Taxonomy mappping in its
+   own module with the dependency on Taxonomy.
+ - Vastly improved caching infrastructure to operate on arbitrary types and use
+   object relations API to clear cache more effectively.
+ - Generalized node URI plugins into object URI plugins.
+ - Extended token-based URI format to all object types.
+ - Break out API functions into their own files.
+ - Moved rendering code into the View submodule.
+ - Extended Custom Fields to map values on arbitrary object types.
+ - Rewrote hardcoded SPARQL node/user/term indexing for extensible indexing.
+ - Index site RDF data for SPARQL using Batch API. 
+ - Improved usability and navigability of administration forms.
+ - Added limited interoperability with the RDF module.
+
+ 6.x-1.0-beta2 (2010-12-14)
+-------------------------------------------------
+Major new features and bug fixes:
+ - Added a SPARQL endpoint module for Simple RDF data.
+ - Added object relations API to track dependent objects when updating.
+ - Added User mapper and moved Userreference mapper there.
+ - Rebuild menu router automatically when path options change.
+ - Fixed menu permissions.
+ - Send HTTP header to suggest a more friendly RDF file download name.
+
+ 6.x-1.0-beta1 (2010-12-08)
+-------------------------------------------------
+First beta release.
+ - Added Date content mapper.
+ - Added Taxonomy mapper and moved Content Taxonomy mapper there.
+ - Integrate the Taxonomy mapper with Features.
+ - Improved rendering pipeline to expose more useful functions in API.
+ - Marked necessary elements in the settings form as 'required'.
+ - CCK fields are sorted by default order in mappings form.
+
+ 6.x-1.0-alpha2 (2010-12-02)
+-------------------------------------------------
+Slight refinement of API and functionality:
+ - New content mappers: Number, Link, File, Nodereference, Userreference,
+   Content Taxonomy.
+ - Plugins are now sorted by custom weight.
+ - Fixed odds and ends in ARC2 integration.
+ - Renamed 'field types' to 'field modules' for content mapper plugin, and
+   accept field type providers.
+
+ 6.x-1.0-alpha1 (2010-12-01)
+-------------------------------------------------
+First release. This version contains the basic functionality to map node fields
+to exportable RDF properties. Plugins types include mappers, content mappers,
+and node URI generators. In addition, the package contains submodules Custom
+Fields and Namespaces for further customization of exportable mapping
+configuration.
