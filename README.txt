@@ -96,6 +96,7 @@ API.txt in the module folder.
 
   Limitations
 =================================================
+
 Because of how RDF is implemented (at least for Drupal 6), RDF triples output
 for an object, such as a node, are limited to only triples where the subject
 is the node URI itself. Additionally, the URI (node or user) must be the
