@@ -87,13 +87,6 @@ The administration interface can be found under Administer > Site building >
 Simple RDF (admin/build/simplerdf).
 
 
-  Extending the module
-=================================================
-
-For more information on extending the module to support custom components, see
-API.txt in the module folder.
-
-
   Limitations
 =================================================
 
@@ -107,3 +100,12 @@ path, you can enable Simple RDF View and set the view path of, for example,
 node RDF to something other than 'rdf'. The module should inject an additional
 RDF document link into the HTML header and display the Simple RDF mapped data
 there without interfering with the RDF module.
+
+
+  API / Extending the module
+=================================================
+
+For more information on extending the module to support custom components, see
+the module's wiki at:
+
+  https://github.com/zhangtaihao/simplerdf/wiki
