@@ -97,14 +97,14 @@ function simplerdf_mappings_features_export_render($module_name, $data, $export 
     foreach ($fields as $field) {
       // Export mappings
       if (isset($mappings[$field])) {
-        $code[$type][$classifier][$field] = $mappings[$field];
+        $code[$item][$field] = $mappings[$field];
       }
     }
   }
 
   $output = "  \$mappings = array();\n";
-  foreach ($code as $type => $item) {
-    $output .= "  \$mappings['" . addslashes($type) . "'] = " . features_var_export($item, '  ') . ";\n";
+  foreach ($code as $item => $mappings) {
+    $output .= "  \$mappings['" . addslashes($item) . "'] = " . features_var_export($mappings, '  ') . ";\n";
   }
   $output .= '  return $mappings;';
   return array('simplerdf_default_mappings' => $output);
@@ -121,12 +121,15 @@ function simplerdf_mappings_features_revert($module) {
  * Implements hook_features_rebuild() for simplerdf_mappings.
  */
 function simplerdf_mappings_features_rebuild($module) {
-  if ($mappings = features_get_default('simplerdf_mappings', $module)) {
-    // Remove original mappings
-    foreach ($mappings as $type => $type_mappings) {
-      foreach (array_keys($type_mappings) as $classifier) {
-        db_query("DELETE FROM {simplerdf_mappings} WHERE type = '%s' AND classifier = '%s'", $type, $classifier);
-      }
+  if ($all_mappings = features_get_default('simplerdf_mappings', $module)) {
+    // Index default mappings and remove original mappings
+    $mappings = array();
+    foreach ($all_mappings as $item => $class_mappings) {
+      $limit = strcspn($item, '-');
+      $type = substr($item, 0, $limit);
+      $classifier = (string) substr($item, $limit + 1);
+      $mappings[$type][$classifier] = $class_mappings;
+      db_query("DELETE FROM {simplerdf_mappings} WHERE type = '%s' AND classifier = '%s'", $type, $classifier);
     }
 
     // Store default mappings
