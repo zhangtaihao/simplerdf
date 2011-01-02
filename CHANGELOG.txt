@@ -3,7 +3,7 @@ $Id$
   Change Log
 =================================================
 
- HEAD
+ 6.x-1.0-beta3 (2011-01-02)
 -------------------------------------------------
  - Refactored base architecture to unify mapping management. Node, user, and
    term fields and mappings now fall under 'object' configuration.
