@@ -30,7 +30,7 @@ function simplerdf_mappings_features_export($data, &$export, $module_name) {
   $sel_types = array();
   foreach ($data as $item) {
     $export['features']['simplerdf_mappings'][$item] = $item;
-    list($type, $classifier) = explode(':', $item);
+    $type = substr($item, 0, strcspn($item, '-'));
     $sel_types[$type] = $type;
   }
   // Trace field provider dependencies by selected types
@@ -72,11 +72,12 @@ function simplerdf_mappings_features_export_options() {
         $options[$type] = $types[$type];
       }
       else {
-        $id = $type . ':' . $row['classifier'];
-        $options[$id] = $types[$type] . ': ' . $row['classfier'];
+        $id = $type . '-' . $row['classifier'];
+        $options[$id] = $types[$type] . ': ' . $row['classifier'];
       }
     }
   }
+  return $options;
 }
 
 /**
@@ -85,7 +86,9 @@ function simplerdf_mappings_features_export_options() {
 function simplerdf_mappings_features_export_render($module_name, $data, $export = NULL) {
   $code = array();
   foreach ($data as $item) {
-    list($type, $classifier) = explode(':', $item);
+    $limit = strcspn($item, '-');
+    $type = substr($item, 0, $limit);
+    $classifier = substr($item, $limit + 1);
     $mappings = simplerdf_get_mappings($type, $classifier);
     // Fetch fields in order
     $fields = array_keys(simplerdf_get_fields($type));
@@ -103,7 +106,7 @@ function simplerdf_mappings_features_export_render($module_name, $data, $export 
     $output .= "  \$mappings['" . addslashes($type) . "'] = " . features_var_export($item, '  ') . ";\n";
   }
   $output .= '  return $mappings;';
-  return array('simplerdf_default_mappings' => $code);
+  return array('simplerdf_default_mappings' => $output);
 }
 
 /**
