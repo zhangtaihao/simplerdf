@@ -374,8 +374,7 @@ function simplerdf_custom_fields_admin_edit_form_submit($form, &$form_state) {
 
   // Rebuild cache
   _simplerdf_custom_fields_build(NULL, TRUE);
-  simplerdf_clear_cache('fields');
-  simplerdf_clear_cache('node');
+  simplerdf_clear_cache();
 
   if ($saved) {
     drupal_set_message(t('The field settings have been saved.'));
