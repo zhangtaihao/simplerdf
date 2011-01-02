@@ -26,20 +26,20 @@ function _simplerdf_features_api() {
  * Implements hook_features_export() for simplerdf_mappings.
  */
 function simplerdf_mappings_features_export($data, &$export, $module_name) {
-  // Add component
-  $sel_types = array();
-  foreach ($data as $item) {
-    $export['features']['simplerdf_mappings'][$item] = $item;
-    $type = substr($item, 0, strcspn($item, '-'));
-    $sel_types[$type] = $type;
-  }
-  // Trace field provider dependencies by selected types
   $plugins = simplerdf_get_plugins('mappers');
   $content_plugins = simplerdf_get_plugins('content_mappers');
   $info = _simplerdf_type_info();
   $type_fields = array();
-  foreach ($sel_types as $type) {
-    $fields = simplerdf_get_fields($type);
+  foreach ($data as $item) {
+    // Add component
+    $export['features']['simplerdf_mappings'][$item] = $item;
+
+    // Trace field provider dependencies by selected types
+    $limit = strcspn($item, '-');
+    $type = substr($item, 0, $limit);
+    $classifier = (string) substr($item, $limit + 1);
+
+    $fields = simplerdf_get_fields($type, $classifier == '' ? NULL : $classifier);
     foreach ($fields as $field) {
       $mapper = $field['mapper'];
       if ($mapper != 'content') {
@@ -68,7 +68,8 @@ function simplerdf_mappings_features_export_options() {
   while ($row = db_fetch_array($result)) {
     if ($types[$row['type']]) {
       $type = $row['type'];
-      if (empty($row['classifier'])) {
+      $classifier = (string) $row['classifier'];
+      if ($classifier == '') {
         $options[$type] = $types[$type];
       }
       else {
@@ -88,10 +89,10 @@ function simplerdf_mappings_features_export_render($module_name, $data, $export 
   foreach ($data as $item) {
     $limit = strcspn($item, '-');
     $type = substr($item, 0, $limit);
-    $classifier = substr($item, $limit + 1);
-    $mappings = simplerdf_get_mappings($type, $classifier);
+    $classifier = (string) substr($item, $limit + 1);
+    $mappings = simplerdf_get_mappings($type, $classifier == '' ? NULL : $classifier);
     // Fetch fields in order
-    $fields = array_keys(simplerdf_get_fields($type));
+    $fields = array_keys(simplerdf_get_fields($type, $classifier == '' ? NULL : $classifier));
     sort($fields);
     foreach ($fields as $field) {
       // Export mappings
