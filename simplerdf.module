@@ -313,7 +313,7 @@ function simplerdf_rel_remove_object($type, $id, $object) {
   $rels = simplerdf_rel_lookup(NULL, NULL, $type, $id);
   module_invoke_all('simplerdf_rel_remove', $type, $object, $rels);
   simplerdf_rel_unregister(NULL, NULL, $type, $id);
-  simplerdf_rel_unregister('node', $node->nid);
+  simplerdf_rel_unregister($type, $id);
 }
 
 /**
