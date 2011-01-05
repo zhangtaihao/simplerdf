@@ -57,8 +57,8 @@ function _simplerdf_type_info() {
  */
 function simplerdf_load($type, $id, $reset = FALSE) {
   $info = _simplerdf_type_info();
-  if ($type && $id && is_numeric($id) && ($module = $info['map'][$type]) && function_exists($callback = $module . '_simplerdf_' . $type . '_load')) {
-    $object = $callback($id, $reset);
+  if ($type && $id && is_numeric($id) && ($module = $info['map'][$type]) && module_hook($module, $hook = 'simplerdf_' . $type . '_load')) {
+    $object = module_invoke($module, $hook, $id, $reset);
     if (is_object($object)) {
       return $object;
     }

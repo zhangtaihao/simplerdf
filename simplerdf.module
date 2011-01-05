@@ -270,11 +270,11 @@ function simplerdf_rel_index() {
   $info = _simplerdf_type_info();
   foreach ($info['map'] as $type => $module) {
     simplerdf_clear_cache($type);
-    if (function_exists($callback = $module . '_simplerdf_rel_index_' . $type)) {
-      $callback();
+    if (module_hook($module, $hook = 'simplerdf_rel_index_' . $type)) {
+      module_invoke($module, $hook);
     }
-    elseif (function_exists($callback = $module . '_simplerdf_' . $type . '_list')) {
-      $list = $callback();
+    elseif (module_hook($module, $hook = 'simplerdf_' . $type . '_list')) {
+      $list = module_invoke($module, $hook);
       if (is_array($list) && $list) {
         _simplerdf_rel_index_default($type, $list);
       }
@@ -709,8 +709,8 @@ function simplerdf_simplerdf_autocomplete($kind, $type, $string) {
   if ($kind == 'preview_id') {
     $info = _simplerdf_type_info();
     if ($module = $info['map'][$type]) {
-      if (function_exists($autocomplete_callback = $module . '_simplerdf_' . $type . '_autocomplete')) {
-        $matches = $autocomplete_callback($string);
+      if (module_hook($module, $hook = 'simplerdf_' . $type . '_autocomplete')) {
+        $matches = module_invoke($module, $hook, $string);
         return array_slice($matches, 0, SIMPLERDF_PREVIEW_ID_COUNT, TRUE);
       }
     }
