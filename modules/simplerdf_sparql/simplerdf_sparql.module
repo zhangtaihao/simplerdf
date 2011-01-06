@@ -207,25 +207,27 @@ function simplerdf_sparql_index_batch($name, $indexer, &$context) {
     $context['sandbox']['count'] = $count_callback();
   }
 
-  // Load object set
-  $objects = $load_callback($context['sandbox']);
-  if (is_array($objects) && !empty($objects)) {
-    // Obtain lock
-    if (simplerdf_sparql_lock_ex(15)) {
-      // Index loaded objects
-      foreach ($objects as $id => $object) {
-        simplerdf_sparql_update_object($type, $id, $object);
-        $context['sandbox']['progress'] ++;
+  if ($context['sandbox']['count'] > 0) {
+    // Load object set
+    $objects = $load_callback($context['sandbox']);
+    if (is_array($objects) && !empty($objects)) {
+      // Obtain lock
+      if (simplerdf_sparql_lock_ex(15)) {
+        // Index loaded objects
+        foreach ($objects as $id => $object) {
+          simplerdf_sparql_update_object($type, $id, $object);
+          $context['sandbox']['progress'] ++;
+        }
+        simplerdf_sparql_lock_release();
       }
-      simplerdf_sparql_lock_release();
+      else {
+        die('Could not obtain lock.');
+      }
     }
     else {
-      die('Could not obtain lock.');
+      // Empty or invalid results
+      die('Invalid results.');
     }
-  }
-  else {
-    // Empty or invalid results
-    die('Invalid results.');
   }
 
   static $messages;
@@ -269,9 +271,11 @@ function simplerdf_sparql_index_batch($name, $indexer, &$context) {
   if ($context['sandbox']['progress'] >= $context['sandbox']['count']) {
     // Mark as complete
     $context['finished'] = 1;
-    // Format summary
-    $summary = format_plural($context['sandbox']['progress'], $messages['summary']['singular'], $messages['summary']['plural'], $messages['t_args']);
-    $context['results']['summary'][] = $summary;
+    if ($context['sandbox']['count'] > 0) {
+      // Format summary
+      $summary = format_plural($context['sandbox']['progress'], $messages['summary']['singular'], $messages['summary']['plural'], $messages['t_args']);
+      $context['results']['summary'][] = $summary;
+    }
   }
   else {
     // Track progress
@@ -346,7 +350,7 @@ function simplerdf_sparql_simplerdf_sparql_indexers() {
  * Node count callback.
  */
 function simplerdf_sparql_index_node_count() {
-  return db_result(db_query('SELECT COUNT(*) FROM {node}'));
+  return db_result(db_query('SELECT COUNT(*) FROM {node} WHERE status = 1'));
 }
 
 /**
@@ -354,17 +358,27 @@ function simplerdf_sparql_index_node_count() {
  */
 function simplerdf_sparql_index_node_load(&$sandbox) {
   static $limit = 60;
+  static $anon;
+  if (!isset($anon)) {
+    $anon = user_load(0);
+  }
 
   if (!isset($sandbox['current_id'])) {
     $sandbox['current_id'] = 0;
   }
 
   // Load nodes
-  $result = db_query_range('SELECT nid FROM {node} WHERE nid > %d ORDER BY nid', $sandbox['current_id'], 0, $limit);
+  $result = db_query_range('SELECT nid FROM {node} WHERE status = 1 AND nid > %d ORDER BY nid', $sandbox['current_id'], 0, $limit);
   $nodes = array();
   while ($nid = db_result($result)) {
     // Hard refresh node loader cache every time
-    $nodes[$nid] = node_load($nid, NULL, TRUE);
+    $node = node_load($nid, NULL, TRUE);
+    if (node_access('view', $node, $anon)) {
+      $nodes[$nid] = $node;
+    }
+    else {
+      $sandbox['count'] --;
+    }
     $sandbox['current_id'] = $nid;
   }
 
@@ -392,7 +406,13 @@ function simplerdf_sparql_index_user_load(&$sandbox) {
   $result = db_query_range('SELECT uid FROM {users} WHERE uid > %d ORDER BY uid', $sandbox['current_id'], 0, $limit);
   $users = array();
   while ($uid = db_result($result)) {
-    $users[$uid] = user_load($uid);
+    $user = user_load($uid);
+    if (node_access('view', $node, $anon)) {
+      $users[$uid] = $user;
+    }
+    else {
+      $sandbox['count'] --;
+    }
     $sandbox['current_id'] = $uid;
   }
 
@@ -403,10 +423,15 @@ function simplerdf_sparql_index_user_load(&$sandbox) {
  * Term count callback.
  */
 function simplerdf_sparql_index_term_count() {
-  // Count local terms
-  return db_result(db_query('SELECT COUNT(t.tid) FROM {term_data} t
-    LEFT OUTER JOIN {simplerdf_taxonomy_term} s ON t.tid = s.tid
-    WHERE t.tid > %d AND s.remote_uri IS NULL'));
+  if (user_access('access content', user_load(0))) {
+    // Count local terms
+    return db_result(db_query('SELECT COUNT(t.tid) FROM {term_data} t
+      LEFT OUTER JOIN {simplerdf_taxonomy_term} s ON t.tid = s.tid
+      WHERE t.tid > %d AND s.remote_uri IS NULL'));
+  }
+  else {
+    return 0;
+  }
 }
 
 /**
