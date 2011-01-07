@@ -177,6 +177,10 @@ function simplerdf_sparql_index($index_types = NULL, $redirect = NULL, $process 
     'operations' => array(),
     'finished' => 'simplerdf_sparql_index_batch_finished',
   );
+  // Normalize type argument
+  if (is_string($index_types)) {
+    $index_types = array($index_types);
+  }
   foreach ($indexers as $type => $map) {
     // Index all or only a specified set of types
     if (!isset($index_types) || is_array($index_types) && in_array($type, $index_types)) {
@@ -715,7 +719,7 @@ function simplerdf_sparql_index_type($form, $form_state) {
   if (($type = $form_state['values']['simplerdf_sparql_index_type']) && $types[$type]) {
     if (variable_get('simplerdf_sparql_reindex_auto', TRUE)) {
       // Invoke index batch
-      simplerdf_sparql_index(array($type));
+      simplerdf_sparql_index($type);
     }
     else {
       // Advise manual re-indexing
