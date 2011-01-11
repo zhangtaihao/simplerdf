@@ -3,6 +3,10 @@ $Id$
   Change Log
 =================================================
 
+ HEAD
+-------------------------------------------------
+ - Restricted SPARQL indexing only to anonymously-accessible objects.
+
  6.x-1.0-beta3 (2011-01-02)
 -------------------------------------------------
  - Refactored base architecture to unify mapping management. Node, user, and
