@@ -216,7 +216,7 @@ function simplerdf_sparql_index_perform($indexer, &$context) {
       die('Could not obtain lock.');
     }
   }
-  else {
+  elseif (!is_array($objects) || $context['sandbox']['count'] > 0) {
     // Empty or invalid results
     die('Invalid results.');
   }
