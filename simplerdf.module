@@ -324,21 +324,52 @@ function simplerdf_rel_index_finished($success, $results, $operations) {
  * Index related objects.
  */
 function simplerdf_rel_index_object($type, $id, $object) {
-  $rels = module_invoke_all('simplerdf_rel_objects', $type, $object);
-  foreach ($rels as $rel) {
-    if ($rel['type'] && $rel['id']) {
-      simplerdf_rel_register($type, $id, $rel['type'], $rel['id']);
+  $targets = module_invoke_all('simplerdf_rel_objects', $type, $object);
+  foreach ($targets as $target) {
+    if ($target['type'] && $target['id']) {
+      simplerdf_rel_register($type, $id, $target['type'], $target['id']);
     }
   }
-  module_invoke_all('simplerdf_rel_save', $type, $object, $rels);
+
+  // Trace dependent objects (sources)
+  $rels = simplerdf_rel_lookup(NULL, NULL, $type, $id);
+  $sources = array();
+  foreach ($rels as $rel) {
+    $sources[] = array(
+      'type' => $rel['source_type'],
+      'id' => $rel['source_id'],
+    );
+  }
+
+  module_invoke_all('simplerdf_rel_save', $type, $object, $sources, $targets);
 }
 
 /**
  * Remove object.
  */
 function simplerdf_rel_remove_object($type, $id, $object) {
+  // Trace dependent objects (sources)
   $rels = simplerdf_rel_lookup(NULL, NULL, $type, $id);
-  module_invoke_all('simplerdf_rel_remove', $type, $object, $rels);
+  $sources = array();
+  foreach ($rels as $rel) {
+    $sources[] = array(
+      'type' => $rel['source_type'],
+      'id' => $rel['source_id'],
+    );
+  }
+
+  // Trace related objects (targets)
+  $rels = simplerdf_rel_lookup($type, $id);
+  $targets = array();
+  foreach ($rels as $rel) {
+    $targets[] = array(
+      'type' => $rel['target_type'],
+      'id' => $rel['target_id'],
+    );
+  }
+
+  // Invoke and unregister
+  module_invoke_all('simplerdf_rel_remove', $type, $object, $sources, $targets);
   simplerdf_rel_unregister(NULL, NULL, $type, $id);
   simplerdf_rel_unregister($type, $id);
 }
