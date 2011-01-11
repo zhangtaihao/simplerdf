@@ -426,7 +426,7 @@ function simplerdf_sparql_object_crud($op, $type, $id) {
 /**
  * Implements hook_simplerdf_rel_remove().
  */
-function simplerdf_rel_remove($type, $object, $rels) {
+function simplerdf_sparql_simplerdf_rel_remove($type, $object, $rels) {
   if (simplerdf_sparql_lock_ex()) {
     // Trigger update on dependent objects
     $update = array();
