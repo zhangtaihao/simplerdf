@@ -163,8 +163,10 @@ function simplerdf_sparql_index($index_types = NULL, $redirect = NULL, $process 
     $result = module_invoke($module, 'simplerdf_sparql_indexers');
     if (is_array($result)) {
       foreach ($result as $name => $indexer) {
-        if ($indexer['type'] && $types[$indexer['type']] && function_exists($indexer['count callback']) && function_exists($indexer['load callback'])) {
-          // Map indexer by object type
+        if ($indexer['type'] && $types[$indexer['type']] && function_exists($indexer['load callback'])) {
+          // Add 'perform callback'
+          $indexer['perform callback'] = 'simplerdf_sparql_index_perform';
+          // Group indexer by object type
           $indexers[$indexer['type']][$name] = $indexer;
         }
       }
@@ -174,149 +176,54 @@ function simplerdf_sparql_index($index_types = NULL, $redirect = NULL, $process 
   // Add indexer to batch
   $batch = array(
     'title' => t('Indexing site RDF'),
-    'operations' => array(),
     'finished' => 'simplerdf_sparql_index_batch_finished',
+    'redirect' => $redirect,
+    'process' => $process,
   );
   // Normalize type argument
   if (is_string($index_types)) {
     $index_types = array($index_types);
   }
+  $tasks = array();
   foreach ($indexers as $type => $map) {
     // Index all or only a specified set of types
     if (!isset($index_types) || is_array($index_types) && in_array($type, $index_types)) {
-      foreach ($map as $name => $indexer) {
-        $batch['operations'][] = array('simplerdf_sparql_index_batch', array($name, $indexer));
+      foreach ($map as $indexer) {
+        $tasks[] = $indexer;
       }
     }
   }
 
-  // Set batch to process
-  batch_set($batch);
-  if ($process) {
-    batch_process($redirect);
-  }
+  simplerdf_batch_index($batch, $tasks);
 }
 
 /**
  * Batch index a type of objects.
  */
-function simplerdf_sparql_index_batch($name, $indexer, &$context) {
+function simplerdf_sparql_index_perform($indexer, &$context) {
   $type = $indexer['type'];
   $count_callback = $indexer['count callback'];
   $load_callback = $indexer['load callback'];
 
-  // Initialize sandbox
-  if (empty($context['sandbox'])) {
-    $context['sandbox']['progress'] = 0;
-    $context['sandbox']['count'] = $count_callback();
-  }
-
-  if ($context['sandbox']['count'] > 0) {
-    // Load object set
-    $objects = $load_callback($context['sandbox']);
-    if (is_array($objects) && !empty($objects)) {
-      // Obtain lock
-      if (simplerdf_sparql_lock_ex(15)) {
-        // Index loaded objects
-        foreach ($objects as $id => $object) {
-          simplerdf_sparql_update_object($type, $id, $object);
-          $context['sandbox']['progress'] ++;
-        }
-        simplerdf_sparql_lock_release();
+  // Load object set
+  $objects = $load_callback($context['sandbox']);
+  if (is_array($objects) && !empty($objects)) {
+    // Obtain lock
+    if (simplerdf_sparql_lock_ex(15)) {
+      // Index loaded objects
+      foreach ($objects as $id => $object) {
+        simplerdf_sparql_update_object($type, $id, $object);
+        $context['sandbox']['progress'] ++;
       }
-      else {
-        die('Could not obtain lock.');
-      }
+      simplerdf_sparql_lock_release();
     }
     else {
-      // Empty or invalid results
-      die('Invalid results.');
-    }
-  }
-
-  static $messages;
-  static $old_type;
-  if (!$old_type) {
-    $old_type = $type;
-  }
-  elseif ($old_type != $type) {
-    // Reset cached parameters
-    $messages = NULL;
-    $old_type = $type;
-  }
-  // Prepare message formats
-  if (!isset($messages)) {
-    $type_singular = $indexer['type singular'];
-    $type_plural = $indexer['type plural'];
-    $t_args = array('%type' => $type);
-    // Singular messages
-    if ($type_singular) {
-      $messages['summary']['singular'] = 'Indexed @count @type.';
-      $messages['progress']['singular'] = 'Indexing @count @type.';
-      $t_args['@type'] = $type_singular;
-    }
-    else {
-      $messages['summary']['singular'] = 'Indexed @count %type object.';
-      $messages['progress']['singular'] = 'Indexing @count %type object.';
-    }
-    // Plural messages
-    if ($type_plural) {
-      $messages['summary']['plural'] = 'Indexed @count @types.';
-      $messages['progress']['plural'] = 'Indexing @index of @count @types.';
-      $t_args['@types'] = $type_plural;
-    }
-    else {
-      $messages['summary']['plural'] = 'Indexed @count %type objects.';
-      $messages['progress']['plural'] = 'Indexing @index of @count %type objects.';
-    }
-    $messages['t_args'] = $t_args;
-  }
-
-  if ($context['sandbox']['progress'] >= $context['sandbox']['count']) {
-    // Mark as complete
-    $context['finished'] = 1;
-    if ($context['sandbox']['count'] > 0) {
-      // Format summary
-      $summary = format_plural($context['sandbox']['progress'], $messages['summary']['singular'], $messages['summary']['plural'], $messages['t_args']);
-      $context['results']['summary'][] = $summary;
+      die('Could not obtain lock.');
     }
   }
   else {
-    // Track progress
-    $context['finished'] = $context['sandbox']['progress'] / $context['sandbox']['count'];
-    $context['message'] = format_plural($context['sandbox']['count'], $messages['progress']['singular'], $messages['progress']['plural'], $messages['t_args'] + array('@index' => $context['sandbox']['progress']));
-  }
-}
-
-/**
- * Batch processing finish callback.
- */
-function simplerdf_sparql_index_batch_finished($success, $results, $operations) {
-  if ($success) {
-    drupal_set_message(t('The site has been indexed.'));
-    if ($results['summary']) {
-      // Show all messages
-      drupal_set_message(theme('item_list', $results['summary']));
-    }
-  }
-  else {
-    // An error occurred.
-    $operation = reset($operations);
-    $args = $operation[1];
-
-    // Module info
-    $module = $args[0];
-    $module_file = drupal_get_path('module', $module) . '/' . $module . '.info';
-    $module_info = drupal_parse_info_file($module_file);
-    $module_name = $module_info['name'];
-
-    // Type name
-    $type = $args[1];
-    $types = simplerdf_get_types();
-    $type_title = $types[$type];
-
-    $message = t('An error occurred while processing %type with %module.', array('%type' => $type_title, '%module' => $module_name));
-    drupal_set_message($message, 'error');
+    // Empty or invalid results
+    die('Invalid results.');
   }
 }
 
@@ -381,6 +288,7 @@ function simplerdf_sparql_index_node_load(&$sandbox) {
       $nodes[$nid] = $node;
     }
     else {
+      // FIXME: Find a more reliable way for concurrency
       $sandbox['count'] --;
     }
     $sandbox['current_id'] = $nid;
@@ -415,6 +323,7 @@ function simplerdf_sparql_index_user_load(&$sandbox) {
       $users[$uid] = $user;
     }
     else {
+      // FIXME: Find a more reliable way for concurrency
       $sandbox['count'] --;
     }
     $sandbox['current_id'] = $uid;
