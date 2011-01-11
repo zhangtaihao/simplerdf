@@ -51,6 +51,15 @@ function simplerdf_sparql_requirements($phase) {
 }
 
 /**
+ * Implements hook_disable().
+ */
+function simplerdf_sparql_disable() {
+  // Remove lock file
+  $lock_file = file_directory_path() . '/simplerdf_sparql/lock';
+  @unlink($lock_file);
+}
+
+/**
  * Implements hook_install().
  */
 function simplerdf_sparql_install() {
