@@ -99,6 +99,34 @@ function simplerdf_taxonomy_simplerdf_term_load($id) {
 }
 
 /**
+ * Implements hook_simplerdf_rel_batch_term_count().
+ */
+function simplerdf_taxonomy_simplerdf_rel_batch_term_count() {
+  return db_result(db_query('SELECT COUNT(*) FROM {term_data}'));
+}
+
+/**
+ * Implements hook_simplerdf_rel_batch_term_list().
+ */
+function simplerdf_taxonomy_simplerdf_rel_batch_term_list(&$sandbox) {
+  static $limit = 300;
+
+  if (!isset($sandbox['current_id'])) {
+    $sandbox['current_id'] = 0;
+  }
+
+  // Load tids
+  $result = db_query_range('SELECT tid FROM {term_data} WHERE tid > %d ORDER BY tid', $sandbox['current_id'], 0, $limit);
+  $list = array();
+  while ($tid = db_result($result)) {
+    $list[] = $tid;
+    $sandbox['current_id'] = $tid;
+  }
+
+  return $list;
+}
+
+/**
  * Implements hook_simplerdf_term_autocomplete().
  */
 function simplerdf_taxonomy_simplerdf_term_autocomplete($string) {

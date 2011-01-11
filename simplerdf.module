@@ -266,31 +266,58 @@ function simplerdf_rel_unregister($source_type = NULL, $source_id = NULL, $targe
 /**
  * Index all object relations.
  */
-function simplerdf_rel_index() {
+function simplerdf_rel_index($batch) {
+  $batch += array(
+    'title' => t('Indexing object relations'),
+    'finished' => 'simplerdf_rel_index_finished',
+  );
+  $tasks = array();
+
   $info = _simplerdf_type_info();
   foreach ($info['map'] as $type => $module) {
-    simplerdf_clear_cache($type);
-    if (module_hook($module, $hook = 'simplerdf_rel_index_' . $type)) {
-      module_invoke($module, $hook);
-    }
-    elseif (module_hook($module, $hook = 'simplerdf_' . $type . '_list')) {
-      $list = module_invoke($module, $hook);
-      if (is_array($list) && $list) {
-        _simplerdf_rel_index_default($type, $list);
-      }
+    if (module_hook($module, $count_hook = 'simplerdf_rel_batch_' . $type . '_count') && module_hook($module, 'simplerdf_rel_batch_' . $type . '_list')) {
+      // Unregister and queue
+      // XXX: Is it too soon to clear?
+      simplerdf_rel_unregister($type);
+      $tasks[] = array(
+        'type' => $type,
+        'count callback' => $module . '_' . $count_hook,
+        'perform callback' => 'simplerdf_rel_index_perform',
+      );
     }
   }
+
+  simplerdf_batch_index($batch, $tasks);
 }
 
 /**
- * Default object relations indexer.
+ * Index relations for an object type.
  */
-function _simplerdf_rel_index_default($type, $list) {
-  simplerdf_rel_unregister($type);
-  foreach ($list as $id) {
-    $object = simplerdf_load($type, $id);
-    simplerdf_rel_index_object($type, $id, $object);
+function simplerdf_rel_index_perform($task, &$context) {
+  $type = $task['type'];
+  $info = _simplerdf_type_info();
+  $module = $info['map'][$type];
+  $list_callback = $module . '_simplerdf_rel_batch_' . $type . '_list';
+
+  // List objects
+  $list = $list_callback($context['sandbox']);
+  if (is_array($list)) {
+    foreach ($list as $id) {
+      $object = simplerdf_load($type, $id, TRUE);
+      simplerdf_rel_index_object($type, $id, $object);
+    }
+    $context['sandbox']['progress'] += count($list);
   }
+
+  // Clear cache
+  simplerdf_clear_cache($type);
+}
+
+/**
+ * Object relations indexing finished.
+ */
+function simplerdf_rel_index_finished($success, $results, $operations) {
+  drupal_set_message(t('Object relations have been re-indexed.'));
 }
 
 /**
@@ -523,33 +550,59 @@ function simplerdf_simplerdf_user_load($id) {
 }
 
 /**
- * Implements hook_simplerdf_user_list().
+ * Implements hook_simplerdf_rel_batch_node_count().
  */
-function simplerdf_simplerdf_user_list() {
-  $uids = array();
-  $result = db_query('SELECT uid FROM {users}');
-  while ($uid = db_result($result)) {
-    $uids[] = $uid;
-  }
-  return $uids;
+function simplerdf_simplerdf_rel_batch_node_count() {
+  return db_result(db_query('SELECT COUNT(*) FROM {node}'));
 }
 
 /**
- * Implements hook_simplerdf_rel_index_node().
+ * Implements hook_simplerdf_rel_batch_node_list().
  */
-function simplerdf_simplerdf_rel_index_node() {
-  // Re-index
-  simplerdf_rel_unregister('node');
-  $result = db_query('SELECT nid FROM {node}');
-  while ($nid = db_result($result)) {
-    $node = node_load($nid, NULL, TRUE);
-    $rels = module_invoke_all('simplerdf_rel_objects', 'node', $node);
-    foreach ($rels as $rel) {
-      if ($rel['type'] && $rel['id']) {
-        simplerdf_rel_register('node', $nid, $rel['type'], $rel['id']);
-      }
-    }
+function simplerdf_simplerdf_rel_batch_node_list(&$sandbox) {
+  static $limit = 300;
+
+  if (!isset($sandbox['current_id'])) {
+    $sandbox['current_id'] = 0;
   }
+
+  // Load nids
+  $result = db_query_range('SELECT nid FROM {node} WHERE nid > %d ORDER BY nid', $sandbox['current_id'], 0, $limit);
+  $list = array();
+  while ($nid = db_result($result)) {
+    $list[] = $nid;
+    $sandbox['current_id'] = $nid;
+  }
+
+  return $list;
+}
+
+/**
+ * Implements hook_simplerdf_rel_batch_user_count().
+ */
+function simplerdf_simplerdf_rel_batch_user_count() {
+  return db_result(db_query('SELECT COUNT(*) FROM {users} WHERE uid > 0'));
+}
+
+/**
+ * Implements hook_simplerdf_rel_batch_user_list().
+ */
+function simplerdf_simplerdf_rel_batch_user_list(&$sandbox) {
+  static $limit = 300;
+
+  if (!isset($sandbox['current_id'])) {
+    $sandbox['current_id'] = 0;
+  }
+
+  // Load uids
+  $result = db_query_range('SELECT uid FROM {users} WHERE uid > %d ORDER BY uid', $sandbox['current_id'], 0, $limit);
+  $list = array();
+  while ($uid = db_result($result)) {
+    $list[] = $uid;
+    $sandbox['current_id'] = $uid;
+  }
+
+  return $list;
 }
 
 /**

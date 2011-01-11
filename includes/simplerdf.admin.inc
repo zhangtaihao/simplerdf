@@ -359,9 +359,10 @@ function simplerdf_admin_flush() {
  * Re-index object relations.
  */
 function simplerdf_admin_rel_index() {
-  simplerdf_rel_index();
-  drupal_set_message(t('Objects have been re-indexed.'));
-  drupal_goto('admin/build/simplerdf');
+  simplerdf_rel_index(array(
+    'redirect' => 'admin/build/simplerdf',
+    'process' => TRUE,
+  ));
 }
 
 /**
