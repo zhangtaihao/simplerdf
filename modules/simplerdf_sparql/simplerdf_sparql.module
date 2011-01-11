@@ -296,7 +296,9 @@ function simplerdf_sparql_index_node_load(&$sandbox) {
  * User count callback.
  */
 function simplerdf_sparql_index_user_count() {
-  return db_result(db_query('SELECT COUNT(*) FROM {users} WHERE uid > 0'));
+  if (user_access('access user profiles', user_load(0))) {
+    return db_result(db_query('SELECT COUNT(*) FROM {users} WHERE uid > 0'));
+  }
 }
 
 /**
@@ -313,14 +315,7 @@ function simplerdf_sparql_index_user_load(&$sandbox) {
   $result = db_query_range('SELECT uid FROM {users} WHERE uid > %d ORDER BY uid', $sandbox['current_id'], 0, $limit);
   $users = array();
   while ($uid = db_result($result)) {
-    $user = user_load($uid);
-    if (node_access('view', $node, $anon)) {
-      $users[$uid] = $user;
-    }
-    else {
-      // FIXME: Find a more reliable way for concurrency
-      $sandbox['count'] --;
-    }
+    $users[$uid] = user_load($uid);
     $sandbox['current_id'] = $uid;
   }
 
