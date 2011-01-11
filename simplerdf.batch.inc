@@ -73,7 +73,14 @@ function simplerdf_batch(array $batch, array $tasks = array()) {
 
   if (empty($operations)) {
     // No operations defined
-    return;
+    if ($process) {
+      // Redirect to target
+      drupal_goto($redirect);
+    }
+    else {
+      // Terminate directly
+      return;
+    }
   }
 
   $batch['operations'] = $operations;
