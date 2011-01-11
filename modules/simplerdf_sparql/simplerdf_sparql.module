@@ -171,7 +171,6 @@ function simplerdf_sparql_index($index_types = NULL, $redirect = NULL, $process 
   // Add indexer to batch
   $batch = array(
     'title' => t('Indexing site RDF'),
-    'finished' => 'simplerdf_sparql_index_batch_finished',
     'redirect' => $redirect,
     'process' => $process,
   );
