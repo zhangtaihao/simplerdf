@@ -273,7 +273,7 @@ function simplerdf_rel_index($batch) {
   );
   $tasks = array();
 
-  $info = _simplerdf_type_info();
+  $info = simplerdf_get_type_info();
   foreach ($info['map'] as $type => $module) {
     if (module_hook($module, $count_hook = 'simplerdf_rel_batch_' . $type . '_count') && module_hook($module, 'simplerdf_rel_batch_' . $type . '_list')) {
       // Unregister and queue
@@ -281,6 +281,8 @@ function simplerdf_rel_index($batch) {
       simplerdf_rel_unregister($type);
       $tasks[] = array(
         'type' => $type,
+        'type singular' => $info['types'][$type]['singular'],
+        'type plural' => $info['types'][$type]['plural'],
         'count callback' => $module . '_' . $count_hook,
         'perform callback' => 'simplerdf_rel_index_perform',
       );
@@ -295,7 +297,7 @@ function simplerdf_rel_index($batch) {
  */
 function simplerdf_rel_index_perform($task, &$context) {
   $type = $task['type'];
-  $info = _simplerdf_type_info();
+  $info = simplerdf_get_type_info();
   $module = $info['map'][$type];
   $list_callback = $module . '_simplerdf_rel_batch_' . $type . '_list';
 
@@ -455,7 +457,7 @@ function _simplerdf_rel_get_filter_string($filters) {
  * Get RDF mappings for a classification of objects.
  *
  * @param string $type
- *   Object type; can be one of 'node', 'term', and 'user'.
+ *   Object type, e.g. node.
  * @param $classifier
  *   Classification for the type of objects.
  *
@@ -486,7 +488,7 @@ function simplerdf_get_mappings($type, $classifier = NULL) {
  * Save RDF mappings for a classification of objects.
  *
  * @param string $type
- *   Object type; can be one of 'node', 'term', and 'user'.
+ *   Object type, e.g. node.
  * @param $classifier
  *   Classification for the type of objects.
  * @param array $mappings
@@ -495,7 +497,7 @@ function simplerdf_get_mappings($type, $classifier = NULL) {
 function simplerdf_save_mappings($type, $classifier, array $mappings) {
   $classifier = (string) $classifier;
 
-  $info = _simplerdf_type_info();
+  $types = simplerdf_get_types();
   $save = array();
   if ($info['types'][$type]) {
     // Validate mappings
@@ -531,7 +533,7 @@ function simplerdf_save_mappings($type, $classifier, array $mappings) {
  * Delete RDF mappings for a classification of objects.
  *
  * @param string $type
- *   Object type; can be one of 'node', 'term', and 'user'.
+ *   Object type, e.g. node.
  * @param $classifier
  *   Classification for the type of objects.
  */
@@ -550,8 +552,18 @@ function simplerdf_delete_mappings($type, $classifier) {
  */
 function simplerdf_simplerdf_types() {
   return array(
-    'node' => t('Node'),
-    'user' => t('User'),
+    'node' => array(
+      'title singular' => t('Node'),
+      'title plural' => t('Nodes'),
+      'singular' => t('node'),
+      'plural' => t('nodes'),
+    ),
+    'user' => array(
+      'title singular' => t('User'),
+      'title plural' => t('Users'),
+      'singular' => t('user'),
+      'plural' => t('users'),
+    ),
   );
 }
 
@@ -791,7 +803,7 @@ function _simplerdf_autocomplete($kind = '', $type = '', $string = '') {
  */
 function simplerdf_simplerdf_autocomplete($kind, $type, $string) {
   if ($kind == 'preview_id') {
-    $info = _simplerdf_type_info();
+    $info = simplerdf_get_type_info();
     if ($module = $info['map'][$type]) {
       if (module_hook($module, $hook = 'simplerdf_' . $type . '_autocomplete')) {
         $matches = module_invoke($module, $hook, $string);

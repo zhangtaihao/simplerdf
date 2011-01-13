@@ -28,7 +28,6 @@ function _simplerdf_features_api() {
 function simplerdf_mappings_features_export($data, &$export, $module_name) {
   $plugins = simplerdf_get_plugins('mappers');
   $content_plugins = simplerdf_get_plugins('content_mappers');
-  $info = _simplerdf_type_info();
   $type_fields = array();
   foreach ($data as $item) {
     // Add component

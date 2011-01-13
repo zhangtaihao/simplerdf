@@ -10,27 +10,31 @@
  ************************************************/
 
 /**
- * Get a list of mappable object types.
+ * Get a list of mappable object types and their singular titles.
  */
 function simplerdf_get_types() {
   static $types;
   if (!isset($types)) {
-    $info = _simplerdf_type_info();
-    $types = $info['types'];
+    $info = simplerdf_get_type_info();
+    $types = array();
+    foreach ($info['types'] as $type_name => $type) {
+      $types[$type_name] = $type['title singular'];
+    }
   }
   return $types;
 }
 
 /**
- * Build object type info.
+ * Build object type info. Note that the values under the 'types' key returned
+ * by this function is not the same as simplerdf_get_types().
  */
-function _simplerdf_type_info() {
+function simplerdf_get_type_info() {
   static $info;
   if (!isset($info)) {
     $info = array('types' => array(), 'map' => array());
     foreach (module_implements('simplerdf_types') as $module) {
       if (is_array($result = module_invoke($module, 'simplerdf_types'))) {
-        // Record type title
+        // Record type info
         $info['types'] = array_merge($info['types'], $result);
         // Map each provided type to module
         foreach ($result as $type => $_) {
@@ -56,7 +60,7 @@ function _simplerdf_type_info() {
  *   Loaded object, or NULL if loading failed.
  */
 function simplerdf_load($type, $id, $reset = FALSE) {
-  $info = _simplerdf_type_info();
+  $info = simplerdf_get_type_info();
   if ($type && $id && is_numeric($id) && ($module = $info['map'][$type]) && module_hook($module, $hook = 'simplerdf_' . $type . '_load')) {
     $object = module_invoke($module, $hook, $id, $reset);
     if (is_object($object)) {

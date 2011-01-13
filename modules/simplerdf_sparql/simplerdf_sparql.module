@@ -82,7 +82,7 @@ function simplerdf_sparql_reset() {
  *
  * @param array $objects
  *   Array containing objects described as an array keyed by 'type' and 'id'.
- *   The type can be one of the types using hook_simplerdf_types().
+ *   The type can be one of the types declared in hook_simplerdf_types().
  */
 function simplerdf_sparql_update_objects(array $objects) {
   static $store;
@@ -150,7 +150,8 @@ function simplerdf_sparql_update_object($type, $id, $object = NULL) {
  * Index site for Simple RDF data.
  */
 function simplerdf_sparql_index($index_types = NULL, $redirect = NULL, $process = FALSE) {
-  $types = simplerdf_get_types();
+  $type_info = simplerdf_get_type_info();
+  $types = $type_info['types'];
 
   // Get a list of indexers grouped by type
   $indexers = array();
@@ -183,6 +184,10 @@ function simplerdf_sparql_index($index_types = NULL, $redirect = NULL, $process 
     // Index all or only a specified set of types
     if (!isset($index_types) || is_array($index_types) && in_array($type, $index_types)) {
       foreach ($map as $indexer) {
+        // Add readable strings
+        $indexer['type singular'] = $types[$type]['singular'];
+        $indexer['type plural'] = $types[$type]['plural'];
+        // Queue task
         $tasks[] = $indexer;
       }
     }
@@ -227,23 +232,17 @@ function simplerdf_sparql_index_perform($indexer, &$context) {
 function simplerdf_sparql_simplerdf_sparql_indexers() {
   $indexers['node'] = array(
     'type' => 'node',
-    'type singular' => t('node'),
-    'type plural' => t('nodes'),
     'count callback' => 'simplerdf_sparql_index_node_count',
     'load callback' => 'simplerdf_sparql_index_node_load',
   );
   $indexers['user'] = array(
     'type' => 'user',
-    'type singular' => t('user'),
-    'type plural' => t('users'),
     'count callback' => 'simplerdf_sparql_index_user_count',
     'load callback' => 'simplerdf_sparql_index_user_load',
   );
   if (module_exists('simplerdf_taxonomy')) {
     $indexers['term'] = array(
       'type' => 'term',
-      'type singular' => t('term'),
-      'type plural' => t('terms'),
       'count callback' => 'simplerdf_sparql_index_term_count',
       'load callback' => 'simplerdf_sparql_index_term_load',
     );

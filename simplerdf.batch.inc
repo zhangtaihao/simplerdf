@@ -164,7 +164,7 @@ function simplerdf_batch_finished($success, $results, $operations) {
  *   simplerdf_batch(), with the following additions:
  *   - 'summarize callback' : (Optional) As in simplerdf_batch(). If not
  *     specified, 'simplerdf_batch_index_summarize' is provided as default.
- *   - 'object type' : Identifier for the object type being indexed.
+ *   - 'type' : Identifier for the object type being indexed.
  *   - 'type singular' : Singular noun for the object type being indexed.
  *   - 'type plural' : Plural noun for the object type being indexed.
  *

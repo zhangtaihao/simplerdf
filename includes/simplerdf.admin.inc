@@ -379,8 +379,7 @@ function simplerdf_admin_uri_overview() {
   );
 
   $rows = array();
-  $types = simplerdf_get_types();
-  foreach ($types as $type => $type_title) {
+  foreach (simplerdf_get_types() as $type => $type_title) {
     // Type name
     $row = array($type_title);
     // Type URI format; trigger default format detection via API
@@ -410,7 +409,7 @@ function simplerdf_admin_uri_form(&$form_state, $type) {
   drupal_add_js($path . '/simplerdf.admin.js');
 
   // Process object type
-  $info = _simplerdf_type_info();
+  $info = simplerdf_get_type_info();
   $types = $info['types'];
   $map = $info['map'];
   if ($type && array_key_exists($type, $types)) {
@@ -483,7 +482,7 @@ function simplerdf_admin_uri_form(&$form_state, $type) {
   );
   $form['preview']['id'] = array(
     '#type' => 'textfield',
-    '#title' => t('@type ID', array('@type' => $types[$type])),
+    '#title' => t('@type ID', array('@type' => $types[$type]['title singular'])),
     '#description' => t('Enter a ID to preview the URI for.'),
     '#default_value' => $form_state['values']['id'],
   );
