@@ -94,7 +94,7 @@ function simplerdf_load($type, $id, $reset = FALSE) {
  *
  * @see http://arc.semsol.org/docs/v2/structures
  */
-function simplerdf_map_field($type, $object, $uri, array $properties, array $field) {
+function simplerdf_map_field($type, $object, $uri, array $properties, $field) {
   // Map field
   $plugin = simplerdf_get_plugins('mappers', $field['mapper']);
   $triples = array();
@@ -354,7 +354,7 @@ function simplerdf_build_triples($type, $classifier, $id, $object, $uri) {
  * @return array
  *   Triples suitable for ARC2.
  */
-function simplerdf_expand_triples($triples) {
+function simplerdf_expand_triples(array $triples) {
   // Expand known namespace prefixes
   foreach ($triples as &$triple) {
     // Subject
