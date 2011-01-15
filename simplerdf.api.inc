@@ -47,6 +47,27 @@ function simplerdf_get_type_info() {
 }
 
 /**
+ * Classify an object. Modules can use hook_simplerdf_classify() to provide
+ * their own classifications of an object of specified type.
+ *
+ * @param string $type
+ *   Type of object.
+ * @param $object
+ *   Loaded object.
+ *
+ * @return array
+ *   Array of classifiers (can be used with mappers to map values).
+ */
+function simplerdf_get_classifiers($type, $object) {
+  // Classify object
+  $classifiers = module_invoke_all('simplerdf_classify', $type, $object);
+  if (!in_array(NULL, $classifiers, TRUE)) {
+    $classifiers = array_merge(array(NULL), $classifiers);
+  }
+  return $classifiers;
+}
+
+/**
  * Load an object by its type and ID.
  *
  * @param string $type
@@ -288,10 +309,7 @@ function _simplerdf_build_content_fields($content_type, $reset = FALSE) {
 function simplerdf_get_triples($type, $id, $object) {
   if ($type && $id && is_object($object)) {
     // Classify object
-    $classifiers = module_invoke_all('simplerdf_classify', $type, $object);
-    if (!in_array(NULL, $classifiers, TRUE)) {
-      $classifiers = array_merge(array(NULL), $classifiers);
-    }
+    $classifiers = simplerdf_get_classifiers($type, $object);
 
     // Generate URI
     $uri = simplerdf_get_uri($type, $id, $object);
