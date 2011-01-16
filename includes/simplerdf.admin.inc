@@ -49,46 +49,166 @@ function _simplerdf_content_types_overview_alter(&$header, &$rows) {
 }
 
 /**
- * Themes the Simple RDF mappings table.
+ * A basic mappings administration form.
  *
- * @param array $mappings
- *   Mappings form element from simplerdf_admin_mappings_form().
+ * @param array $form_state
+ *   FAPI form state array.
+ * @param string $type
+ *   Object type to configure mappings for, e.g. node.
+ * @param $classifier
+ *   Object classifier, e.g. content type.
+ * @param bool $grouped
+ *   Whether fields should be grouped by mapper.
  *
- * @return string
- *   Fully rendered mappings table.
- *
- * @ingroup themeable
- * @ingroup simplerdf_themeable
+ * @return array
+ *   FAPI array.
  */
-function theme_simplerdf_admin_mappings_table($elements) {
-  // Prepare mappers
-  $plugins = simplerdf_get_plugins('mappers');
-  $mappers = array();
-  foreach ($plugins as $name => $plugin) {
-    $mappers[$name] = check_plain($plugin['title']);
+function simplerdf_admin_mappings_default_form($form_state, $type, $classifier = NULL, $grouped = FALSE) {
+  $type_info = simplerdf_get_type_info();
+
+  // Verify type
+  if (!$type_info['types'][$type]) {
+    drupal_not_found();
+    exit;
   }
 
-  foreach (element_children($elements) as $key) {
-    $mapping = &$elements[$key];
+  if ($type_info['types'][$type]['singular']) {
+    // Readable type name
+    drupal_set_title(t('Manage !type RDF mappings', array('!type' => $type_info['types'][$type]['singular'])));
+  }
+  else {
+    // Type identifier
+    drupal_set_title(t('Manage RDF mappings for %type', array('%type' => $type)));
+  }
 
-    // Prepare mapping row
-    $mapping['properties'] = $mapping['properties'][$mapping['#field_name']];
-    $mapping['field_title'] = $mapping['#field_title'];
-    $mapping['field_name'] = $mapping['#field_name'];
-    $mapping['mapper'] = $mapping['#mapper'];
+  // Help message
+  $form['help'] = array(
+    '#type' => 'markup',
+    '#prefix' => '<p>',
+    '#suffix' => '</p>',
+  );
+  if ($grouped) {
+    $form['help']['#value'] = t('Enter one or more RDF property mapping (separated by commas) for each field listed below. The fields are grouped together by their property mappers for clarity. Namespace prefixes defined for this site are listed in the table below (open the "RDF namespaces" fieldset to view). You may use these prefixes in the property mappings. Note: specified mappings will not be checked against their RDF vocabularies.');
+  }
+  else {
+    $form['help']['#value'] = t('Enter one or more RDF property mapping (separated by commas) for each field listed below. Namespace prefixes defined for this site are listed in the table below (open the "RDF namespaces" fieldset to view). You may use these prefixes in the property mappings. Note: specified mappings will not be checked against their RDF vocabularies.');
+  }
 
-    // Strip properties
-    foreach (element_properties($mapping) as $property) {
-      unset($mapping[$property]);
+  $form['legend'] = array(
+    '#type' => 'markup',
+    '#value' => theme('simplerdf_namespaces'),
+  );
+
+  // Inject mappings admin form
+  simplerdf_admin_mappings_form_inject($form, $form_state, $type, $classifier, $grouped);
+
+  $form['save'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save mappings'),
+  );
+
+  return $form;
+}
+
+/**
+ * Basic mappings admin form submit callback.
+ */
+function simplerdf_admin_mappings_default_form_submit($form, $form_state) {
+  drupal_set_message(t('RDF mappings have been saved.'));
+}
+
+/**
+ * Inject a mapping admin form into the given FAPI array.
+ *
+ * @param array $form
+ *   Partially constructed form to append the mappings form to.
+ * @param array $form_state
+ *   FAPI form state array.
+ * @param string $type
+ *   Object type to configure mappings for, e.g. node.
+ * @param $classifier
+ *   Object classifier, e.g. content type.
+ * @param bool $grouped
+ *   Whether fields should be grouped by mapper.
+ */
+function simplerdf_admin_mappings_form_inject(array &$form, &$form_state, $type, $classifier = NULL, $grouped = FALSE) {
+  // Verify type
+  $types = simplerdf_get_types();
+  if (!$types[$type]) {
+    return;
+  }
+
+  // Store value for use in submit callback
+  $form['__type'] = array(
+    '#type' => 'value',
+    '#value' => $type,
+  );
+  $form['__classifier'] = array(
+    '#type' => 'value',
+    '#value' => $classifier,
+  );
+
+  // Load mappings
+  $mappings = simplerdf_get_mappings($type, $classifier);
+
+  // Build mappings
+  $form['mappings'] = array(
+    '#theme' => 'simplerdf_admin_mappings_table',
+    '#grouped' => $grouped,
+  );
+  $fields = simplerdf_get_fields($type, $classifier);
+  foreach ($fields as $name => $field) {
+    $mapping = array(
+      '#field_title' => $field['title'],
+      '#field_name' => $name,
+      'properties' => array('#tree' => TRUE),
+    );
+    if ($grouped) {
+      $mapping['#mapper'] = $field['mapper'];
+    }
+    // Mapping textfield
+    $mapping['properties'][$name] = array(
+      '#type' => 'textfield',
+      '#size' => 20,
+      '#maxlength' => 100,
+      '#default_value' => implode(', ', $mappings[$name]),
+    );
+
+    $form['mappings'][] = $mapping;
+  }
+
+  // Add submit handler
+  $form['#submit'][] = 'simplerdf_admin_mappings_form_submit';
+}
+
+/**
+ * Mapping admin form submit (save) callback.
+ */
+function simplerdf_admin_mappings_form_submit($form, $form_state) {
+  $values = $form_state['values'];
+  $type = $values['__type'];
+  $classifier = $values['__classifier'];
+
+  $mappings = array();
+
+  // Add mappings
+  $fields = simplerdf_get_fields($type, $classifier);
+  foreach (array_keys($fields) as $name) {
+    if (!empty($values['properties'][$name])) {
+      // Normalize RDF properties
+      $properties = array_filter(array_map('trim', preg_split('/\s*,\s*/', $values['properties'][$name])));
+      if (!empty($properties)) {
+        $mappings[$name] = $properties;
+      }
     }
   }
 
-  // Strip all form properties
-  foreach (element_properties($elements) as $property) {
-    unset($elements[$property]);
-  }
+  // Save
+  simplerdf_save_mappings($type, $classifier, $mappings);
 
-  return theme('simplerdf_mappings_table', $elements, $mappers);
+  // Clear cache
+  simplerdf_clear_cache('mappings', $type, $classifier);
+  simplerdf_clear_cache($type);
 }
 
 /**
@@ -97,17 +217,12 @@ function theme_simplerdf_admin_mappings_table($elements) {
 function simplerdf_admin_node_mappings_form($form_state, $content_type) {
   $path = drupal_get_path('module', 'simplerdf');
   drupal_add_css($path . '/simplerdf.admin.css');
-
   $content_type = str_replace('-', '_', $content_type);
-  $form = array();
 
-  // Cache content type
-  if ($content_type) {
-    $form['__content_type'] = array(
-      '#type' => 'value',
-      '#value' => $content_type,
-    );
-  }
+  $content_type_info = content_types($content_type);
+  drupal_set_title(t('Manage RDF mappings for %content_type', array('%content_type' => $content_type_info['name'])));
+
+  $form = array();
 
   $form['help'] = array(
     '#type' => 'markup',
@@ -120,36 +235,14 @@ function simplerdf_admin_node_mappings_form($form_state, $content_type) {
     '#value' => theme('simplerdf_namespaces'),
   );
 
-  // Load mappings
-  $rdf_mappings = simplerdf_get_mappings('node', $content_type);
-
-  // Build mappings
-  $form['mappings'] = array(
-    '#theme' => 'simplerdf_admin_mappings_table',
-  );
-  $fields = simplerdf_get_fields('node', $content_type);
-  foreach ($fields as $name => $field) {
-    $mapping = array(
-      '#field_title' => $field['title'],
-      '#field_name' => $name,
-      'properties' => array('#tree' => TRUE),
-      '#mapper' => $field['mapper'],
-    );
-    // Mapping textfield
-    $mapping['properties'][$name] = array(
-      '#type' => 'textfield',
-      '#size' => 20,
-      '#maxlength' => 100,
-      '#default_value' => implode(', ', $rdf_mappings[$name]),
-    );
-
-    $form['mappings'][] = $mapping;
-  }
+  // Insert mappings form
+  simplerdf_admin_mappings_form_inject($form, $form_state, 'node', $content_type, TRUE);
 
   $form['save'] = array(
     '#type' => 'submit',
     '#value' => t('Save mappings'),
   );
+  $form['#submit'][] = 'simplerdf_admin_node_mappings_form_submit';
 
   return $form;
 }
@@ -158,100 +251,6 @@ function simplerdf_admin_node_mappings_form($form_state, $content_type) {
  * Node mapping form submit callback.
  */
 function simplerdf_admin_node_mappings_form_submit($form, $form_state) {
-  $values = $form_state['values'];
-  $content_type = $values['__content_type'];
-
-  $mappings = array();
-
-  // Add mappings
-  foreach ($values['properties'] as $field => $properties) {
-    // Normalize RDF properties
-    $properties = array_filter(array_map('trim', preg_split('/\s*,\s*/', $properties)));
-    if (!empty($properties)) {
-      $mappings[$field] = $properties;
-    }
-  }
-
-  // Save
-  simplerdf_save_mappings('node', $content_type, $mappings);
-
-  // Clear cache
-  simplerdf_clear_cache('mappings', 'node', $content_type);
-  simplerdf_clear_cache('node');
-
-  drupal_set_message(t('RDF mappings have been updated.'));
-}
-
-/**
- * User mappings form.
- */
-function simplerdf_admin_user_mappings_form($form_state) {
-  drupal_set_title(t('Manage user RDF mappings'));
-
-  $form['help'] = array(
-    '#type' => 'markup',
-    '#prefix' => '<p>',
-    '#value' => t('Enter one or more RDF property mapping (separated by commas) for each user field listed below. Namespace prefixes defined for this site are listed in the table below (open the "RDF namespaces" fieldset to view). You may use these prefixes in the property mappings. Note: specified mappings will not be checked against their vocabularies.'),
-    '#suffix' => '</p>',
-  );
-  $form['legend'] = array(
-    '#type' => 'markup',
-    '#value' => theme('simplerdf_namespaces'),
-  );
-
-  // Load mappings
-  $mappings = simplerdf_get_mappings('user');
-
-  // Build mappings
-  $form['mappings'] = array(
-    '#theme' => 'simplerdf_admin_basic_mappings_table',
-  );
-  $fields = simplerdf_get_fields('user');
-  foreach ($fields as $name => $field) {
-    $mapping = array(
-      '#field_title' => $field['title'],
-      '#field_name' => $name,
-      'properties' => array('#tree' => TRUE),
-    );
-    // Mapping textfield
-    $mapping['properties'][$name] = array(
-      '#type' => 'textfield',
-      '#size' => 20,
-      '#maxlength' => 100,
-      '#default_value' => implode(', ', $mappings[$name]),
-    );
-
-    $form['mappings'][] = $mapping;
-  }
-
-  $form['save'] = array(
-    '#type' => 'submit',
-    '#value' => t('Save mappings'),
-  );
-
-  return $form;
-}
-
-/**
- * Mappings form submit handler.
- */
-function simplerdf_admin_user_mappings_form_submit(&$form, &$form_state) {
-  $values = $form_state['values'];
-
-  $mappings = array();
-  $fields = simplerdf_get_fields('user');
-  foreach (array_keys($fields) as $name) {
-    if (!empty($values['properties'][$name])) {
-      $properties = array_filter(array_map('trim', preg_split('/\s*,\s*/', $values['properties'][$name])));
-      if (!empty($properties)) {
-        $mappings[$name] = $properties;
-      }
-    }
-  }
-  simplerdf_save_mappings('user', NULL, $mappings);
-  simplerdf_clear_cache('mappings', 'user');
-  simplerdf_clear_cache('user');
-
   drupal_set_message(t('RDF mappings have been updated.'));
 }
 

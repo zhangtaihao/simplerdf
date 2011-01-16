@@ -25,9 +25,9 @@ function _simplerdf_theme() {
     'file' => 'includes/simplerdf.theme.inc',
   );
   $hooks['simplerdf_admin_mappings_table'] = array(
-    'file' => 'includes/simplerdf.admin.inc',
-  );
-  $hooks['simplerdf_admin_basic_mappings_table'] = array(
+    'arguments' => array(
+      'elements' => array(),
+    ),
     'file' => 'includes/simplerdf.theme.inc',
   );
 
@@ -166,9 +166,28 @@ function theme_simplerdf_mappings_table($mappings, $mappers) {
 }
 
 /**
- * Themes the basic RDF mappings administration table.
+ * Themes the Simple RDF mappings table.
+ *
+ * @param array $mappings
+ *   Mappings form element from simplerdf_admin_mappings_form().
+ *
+ * @return string
+ *   Fully rendered mappings table.
+ *
+ * @ingroup themeable
+ * @ingroup simplerdf_themeable
  */
-function theme_simplerdf_admin_basic_mappings_table($elements) {
+function theme_simplerdf_admin_mappings_table($elements) {
+  $mappers = array();
+  $grouped = $elements['#grouped'];
+  if ($grouped) {
+    // Prepare mappers
+    $plugins = simplerdf_get_plugins('mappers');
+    foreach ($plugins as $name => $plugin) {
+      $mappers[$name] = check_plain($plugin['title']);
+    }
+  }
+
   foreach (element_children($elements) as $key) {
     $mapping = &$elements[$key];
 
@@ -176,6 +195,9 @@ function theme_simplerdf_admin_basic_mappings_table($elements) {
     $mapping['properties'] = $mapping['properties'][$mapping['#field_name']];
     $mapping['field_title'] = $mapping['#field_title'];
     $mapping['field_name'] = $mapping['#field_name'];
+    if ($grouped) {
+      $mapping['mapper'] = $mapping['#mapper'];
+    }
 
     // Strip properties
     foreach (element_properties($mapping) as $property) {
@@ -188,5 +210,5 @@ function theme_simplerdf_admin_basic_mappings_table($elements) {
     unset($elements[$property]);
   }
 
-  return theme('simplerdf_mappings_table', $elements);
+  return theme('simplerdf_mappings_table', $elements, $mappers);
 }

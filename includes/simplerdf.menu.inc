@@ -29,7 +29,7 @@ function _simplerdf_menu() {
     'title' => 'Simple RDF mappings',
     'description' => 'Manage RDF mappings for users.',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('simplerdf_admin_user_mappings_form'),
+    'page arguments' => array('simplerdf_admin_mappings_default_form', 'user'),
     'access arguments' => array('administer simplerdf mappings'),
     'type' => MENU_NORMAL_ITEM,
     'file' => 'includes/simplerdf.admin.inc',

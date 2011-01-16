@@ -58,7 +58,7 @@ function simplerdf_taxonomy_admin_mappings_overview() {
 /**
  * Taxonomy vocabulary mappings form.
  */
-function simplerdf_taxonomy_admin_vocabulary_mappings_form($form_state, $vocabulary = NULL) {
+function simplerdf_taxonomy_admin_vocabulary_mappings_form($form_state, $vocabulary) {
   $form['__vocabulary'] = array(
     '#type' => 'value',
     '#value' => $vocabulary,
@@ -78,30 +78,9 @@ function simplerdf_taxonomy_admin_vocabulary_mappings_form($form_state, $vocabul
     '#value' => theme('simplerdf_namespaces'),
   );
 
-  // Load mappings
-  $mappings = simplerdf_taxonomy_get_mappings($vid);
-
-  // Build mappings
-  $form['mappings'] = array(
-    '#theme' => 'simplerdf_admin_basic_mappings_table',
-  );
-  $fields = simplerdf_taxonomy_get_fields($vid);
-  foreach ($fields as $name => $field) {
-    $mapping = array(
-      '#field_title' => $field['title'],
-      '#field_name' => $name,
-      'properties' => array('#tree' => TRUE),
-    );
-    // Mapping textfield
-    $mapping['properties'][$name] = array(
-      '#type' => 'textfield',
-      '#size' => 20,
-      '#maxlength' => 100,
-      '#default_value' => implode(', ', $mappings[$name]),
-    );
-
-    $form['mappings'][] = $mapping;
-  }
+  // Insert form
+  module_load_include('inc', 'simplerdf', 'includes/simplerdf.admin');
+  simplerdf_admin_mappings_form_inject($form, $form_state, 'term', _simplerdf_taxonomy_get_vocabulary_name($vid));
 
   $form['save'] = array(
     '#type' => 'submit',
@@ -115,24 +94,5 @@ function simplerdf_taxonomy_admin_vocabulary_mappings_form($form_state, $vocabul
  * Mappings form submit handler.
  */
 function simplerdf_taxonomy_admin_vocabulary_mappings_form_submit(&$form, &$form_state) {
-  $vid = $form_state['values']['__vocabulary']->vid;
-  $values = $form_state['values'];
-
-  $mappings = array();
-  $fields = simplerdf_taxonomy_get_fields($vid);
-  foreach (array_keys($fields) as $name) {
-    if (!empty($values['properties'][$name])) {
-      $properties = array_filter(array_map('trim', preg_split('/\s*,\s*/', $values['properties'][$name])));
-      if (!empty($properties)) {
-        $mappings[$name] = $properties;
-      }
-    }
-  }
-  simplerdf_taxonomy_save_mappings($vid, $mappings);
-
-  $machine_name = _simplerdf_taxonomy_get_vocabulary_name($form_state['values']['__vocabulary']);
-  simplerdf_clear_cache('mappings', 'term', $machine_name);
-  simplerdf_clear_cache('term');
-
   drupal_set_message(t('RDF mappings have been updated.'));
 }
