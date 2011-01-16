@@ -499,7 +499,7 @@ function simplerdf_save_mappings($type, $classifier, array $mappings) {
 
   $types = simplerdf_get_types();
   $save = array();
-  if ($info['types'][$type]) {
+  if ($types[$type]) {
     // Validate mappings
     foreach ($mappings as $field => $properties) {
       if (!is_array($properties)) {
