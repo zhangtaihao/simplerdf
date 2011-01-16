@@ -514,7 +514,7 @@ function simplerdf_save_mappings($type, $classifier, array $mappings) {
         // Push for saving
         $save[] = array(
           'type' => $type,
-          'classifier' => (string) $classifier,
+          'classifier' => $classifier,
           'field' => $field,
           'properties' => $properties,
         );
