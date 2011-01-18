@@ -45,7 +45,9 @@ function simplerdf_menu() {
 function simplerdf_init() {
   if (variable_get('simplerdf_rel_index', FALSE)) {
     variable_set('simplerdf_rel_index', FALSE);
-    simplerdf_rel_index();
+    simplerdf_rel_index(array(
+      'process' => TRUE,
+    ));
   }
 }
 
@@ -266,7 +268,7 @@ function simplerdf_rel_unregister($source_type = NULL, $source_id = NULL, $targe
 /**
  * Index all object relations.
  */
-function simplerdf_rel_index($batch) {
+function simplerdf_rel_index($batch = array()) {
   $batch += array(
     'title' => t('Indexing object relations'),
     'finished' => 'simplerdf_rel_index_finished',

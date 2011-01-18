@@ -42,6 +42,7 @@ function simplerdf_taxonomy_schema() {
  */
 function simplerdf_taxonomy_install() {
   drupal_install_schema('simplerdf_taxonomy');
+  variable_set('simplerdf_rel_index', TRUE);
 }
 
 /**
