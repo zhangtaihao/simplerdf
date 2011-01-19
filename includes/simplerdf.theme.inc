@@ -89,35 +89,51 @@ function theme_simplerdf_namespaces_table() {
 }
 
 /**
- * Render table for displaying RDF property mapping for each field within a
- * specific content type (i.e. the content type itself is not displayed).
+ * Render table for displaying RDF property mapping for each field for a
+ * specific object type and classification. The table contains a column for
+ * field title, machine name, and configured RDF properties, optionally with
+ * rows grouped by mapper. Each argument is a column in the resulting table;
+ * their array sizes should match. The array keys used to primarily populate
+ * the table come from $titles. Properties may use FAPI elements as values.
  *
- * @param array $mappings
- *   RDF mappings, each an array keyed by field name with the following keys:
- *   - 'field' : Field title.
- *   - 'field_name' : Field machine name.
- *   - 'properties' : RDF properties. If an array, assumed to be a Form API element.
- *   - 'mapper' : Machine name of the mapper for mapping this field (not displayed).
+ * @param array $titles
+ *   Field titles keyed by field machine name.
+ * @param array $properties
+ *   Lists of properties keyed by machine name.
  * @param array $mappers
- *   Optional. Mappers keyed by machine names. Mappings will only be grouped
- *   if these mappers are given.
+ *   Optional. Mapper names keyed by machine names. Mappings will only be
+ *   grouped if this argument is given. The actual mapper titles will be
+ *   automatically obtained. Note that mappers will not be displayed as a
+ *   column.
  *
  * @return string
  *   Formatted table listing fields and their mappings.
  *
  * @ingroup simplerdf_themeable
  */
-function theme_simplerdf_mappings_table($mappings, $mappers) {
+function theme_simplerdf_mappings_table(array $titles, array $properties, array $mappers = array()) {
+  $plugins = simplerdf_get_plugins('mappers');
+
   // Group mappings by mapper
   $groups = array();
-  foreach ($mappings as $key => $mapping) {
-    // Only group if mapper is defined and exists in given mappers
-    $mapper = !empty($mapping['mapper']) && $mappers[$mapping['mapper']] ? $mapping['mapper'] : 0;
-    $groups[$mapper][] = $key;
+  $group_general = array();
+  foreach ($titles as $key => $_) {
+    // Only group if field key has a corresponding value in $mappers
+    if (!empty($mappers[$key]) && $plugins[$mappers[$key]]) {
+      $groups[$mappers[$key]][] = $key;
+    }
+    else {
+      $group_general[] = $key;
+    }
   }
 
-  // Check whether there is at least one non-empty group
-  $no_grouping = count($groups) == 1 && isset($groups[0]);
+  // Check whether there is at least one non-general group
+  $no_grouping = empty($groups) && !empty($group_general);
+
+  // Append general group
+  if (!empty($group_general)) {
+    $groups[0] = $group_general;
+  }
 
   // Build table
   $header = array(
@@ -133,7 +149,7 @@ function theme_simplerdf_mappings_table($mappings, $mappers) {
       // Render mapper group
       $rows[] = array(
         array(
-          'data' => $mapper ? $mappers[$mapper] : t('(Other)'),
+          'data' => $mapper ? $plugins[$mapper]['title'] : t('(Other)'),
           'header' => TRUE,
           'colspan' => $column_count,
           'class' => 'simplerdf-mapper',
@@ -142,22 +158,11 @@ function theme_simplerdf_mappings_table($mappings, $mappers) {
     }
     // Render mappings
     foreach ($group as $key) {
-      $mapping = $mappings[$key];
-      $properties = $mapping['properties'];
-
-      // Build properties display
-      if (is_array($properties)) {
-        $properties = drupal_render($properties);
-      }
-      else {
-        $properties = filter_xss_admin($properties);
-      }
-
       // Build row
       $rows[] = array(
-        filter_xss($mapping['field_title']),
-        check_plain($mapping['field_name']),
-        $properties,
+        filter_xss($titles[$key]),
+        check_plain($key),
+        is_array($properties[$key]) ? drupal_render($properties[$key]) : filter_xss_admin($properties[$key]),
       );
     }
   }
@@ -178,37 +183,14 @@ function theme_simplerdf_mappings_table($mappings, $mappers) {
  * @ingroup simplerdf_themeable
  */
 function theme_simplerdf_admin_mappings_table($elements) {
-  $mappers = array();
-  $grouped = $elements['#grouped'];
-  if ($grouped) {
-    // Prepare mappers
-    $plugins = simplerdf_get_plugins('mappers');
-    foreach ($plugins as $name => $plugin) {
-      $mappers[$name] = check_plain($plugin['title']);
-    }
+  $titles = $elements['#titles'];
+  $properties = $elements['properties'];
+  $mappers = $elements['#mappers'];
+  if ($mappers) {
+    // Group by mappers
+    return theme('simplerdf_mappings_table', $titles, $properties, $mappers);
   }
-
-  foreach (element_children($elements) as $key) {
-    $mapping = &$elements[$key];
-
-    // Prepare mapping row
-    $mapping['properties'] = $mapping['properties'][$mapping['#field_name']];
-    $mapping['field_title'] = $mapping['#field_title'];
-    $mapping['field_name'] = $mapping['#field_name'];
-    if ($grouped) {
-      $mapping['mapper'] = $mapping['#mapper'];
-    }
-
-    // Strip properties
-    foreach (element_properties($mapping) as $property) {
-      unset($mapping[$property]);
-    }
+  else {
+    return theme('simplerdf_mappings_table', $titles, $properties);
   }
-
-  // Strip all form properties
-  foreach (element_properties($elements) as $property) {
-    unset($elements[$property]);
-  }
-
-  return theme('simplerdf_mappings_table', $elements, $mappers);
 }

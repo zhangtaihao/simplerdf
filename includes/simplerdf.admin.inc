@@ -151,31 +151,33 @@ function simplerdf_admin_mappings_form_inject(array &$form, &$form_state, $type,
   // Load mappings
   $mappings = simplerdf_get_mappings($type, $classifier);
 
-  // Build mappings
-  $form['mappings'] = array(
+  // Prepare mappings table
+  $table = array(
     '#theme' => 'simplerdf_admin_mappings_table',
-    '#grouped' => $grouped,
+    '#tree' => TRUE,
+    '#titles' => array(),
+    '#mappers' => array(),
   );
+  $table['properties'] = array(
+    '#tree' => TRUE,
+  );
+
+  // Build mappings table
   $fields = simplerdf_get_fields($type, $classifier);
   foreach ($fields as $name => $field) {
-    $mapping = array(
-      '#field_title' => $field['title'],
-      '#field_name' => $name,
-      'properties' => array('#tree' => TRUE),
-    );
-    if ($grouped) {
-      $mapping['#mapper'] = $field['mapper'];
-    }
-    // Mapping textfield
-    $mapping['properties'][$name] = array(
+    $table['#titles'][$name] = $field['title'];
+    $table['properties'][$name] = array(
       '#type' => 'textfield',
       '#size' => 20,
       '#maxlength' => 100,
       '#default_value' => implode(', ', $mappings[$name]),
     );
-
-    $form['mappings'][] = $mapping;
+    if ($grouped) {
+      $table['#mappers'][$name] = $field['mapper'];
+    }
   }
+
+  $form['mappings'] = $table;
 
   // Add submit handler
   $form['#submit'][] = 'simplerdf_admin_mappings_form_submit';
@@ -193,10 +195,10 @@ function simplerdf_admin_mappings_form_submit($form, $form_state) {
 
   // Add mappings
   $fields = simplerdf_get_fields($type, $classifier);
-  foreach (array_keys($fields) as $name) {
-    if (!empty($values['properties'][$name])) {
+  foreach ($fields as $name => $_) {
+    if (!empty($values['mappings']['properties'][$name])) {
       // Normalize RDF properties
-      $properties = array_filter(array_map('trim', preg_split('/\s*,\s*/', $values['properties'][$name])));
+      $properties = array_filter(array_map('trim', preg_split('/\s*,\s*/', $values['mappings']['properties'][$name])));
       if (!empty($properties)) {
         $mappings[$name] = $properties;
       }
@@ -283,35 +285,7 @@ function simplerdf_admin_dashboard() {
     $output .= l(t('Manage custom namespaces'), 'admin/build/simplerdf/namespaces');
     $output .= '</div>';
   }
-/*
-  // Build mappings
-  $output .= '<h2>' . t('Mapped fields') . '</h2>';
 
-  $header = array(
-    t('Type'),
-    t('Mapped fields'),
-    t('Operations'),
-  );
-  $rows = array();
-  foreach (node_get_types('names') as $content_type => $type_name) {
-    $fields = simplerdf_get_fields($content_type);
-    $rdf_mappings = simplerdf_get_mappings($content_type);
-    $mapped_fields = array();
-    // Group mapped fields
-    foreach ($fields as $name => $field) {
-      if (isset($rdf_mappings[$name])) {
-        $mapped_fields[] = $name;
-      }
-    }
-    $rows[] = array(
-      check_plain($type_name),
-      check_plain(implode(', ', $mapped_fields)),
-      l(t('Manage mappings'), 'admin/content/node-type/' . str_replace('_', '-', $content_type) . '/simplerdf'),
-    );
-  }
-
-  $output .= theme('table', $header, $rows, array('class' => 'simplerdf-admin-mapped-fields'));
-*/
   // Active plugins
   $output .= '<h2>' . t('Active plugins') . '</h2>';
 
