@@ -41,7 +41,7 @@ function simplerdf_taxonomy_admin_mappings_overview() {
     else {
       $row[] = check_plain($machine_name);
 
-      $mappings = simplerdf_taxonomy_get_mappings($vid);
+      $mappings = simplerdf_taxonomy_get_mappings($vocabulary->vid);
       $row[] = is_array($mappings['rdftype']) ? implode(', ', $mappings['rdftype']) : '';
 
       $row[] = l(t('manage mappings'), 'admin/content/taxonomy/' . $vocabulary->vid . '/simplerdf');
