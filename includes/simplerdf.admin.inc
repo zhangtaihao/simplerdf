@@ -138,6 +138,9 @@ function simplerdf_admin_mappings_form_inject(array &$form, &$form_state, $type,
     return;
   }
 
+  // Insert CSS
+  drupal_add_css(drupal_get_path('module', 'simplerdf') . '/simplerdf.admin.css');
+
   // Store value for use in submit callback
   $form['__type'] = array(
     '#type' => 'value',
@@ -217,10 +220,7 @@ function simplerdf_admin_mappings_form_submit($form, $form_state) {
  * Form for configuring node property mappings.
  */
 function simplerdf_admin_node_mappings_form($form_state, $content_type) {
-  $path = drupal_get_path('module', 'simplerdf');
-  drupal_add_css($path . '/simplerdf.admin.css');
   $content_type = str_replace('-', '_', $content_type);
-
   $content_type_info = content_types($content_type);
   drupal_set_title(t('Manage RDF mappings for %content_type', array('%content_type' => $content_type_info['name'])));
 
