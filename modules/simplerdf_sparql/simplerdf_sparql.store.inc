@@ -14,7 +14,14 @@
 function simplerdf_sparql_store_config() {
   /* MySQL and endpoint configuration */
   global $db_url;
-  $url = parse_url($db_url);
+  if (is_array($db_url)) {
+    // Multi-connection
+    $url = parse_url($db_url['default']);
+  }
+  else {
+    // Regular connection string
+    $url = parse_url($db_url);
+  }
   if ($url['scheme'] && in_array($url['scheme'], array('mysql', 'mysqli')) && $write_key = variable_get('simplerdf_sparql_arc2_write_key', NULL)) {
     $config = array(
       /* db */

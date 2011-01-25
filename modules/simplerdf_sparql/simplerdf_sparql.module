@@ -72,8 +72,9 @@ function simplerdf_sparql_endpoint() {
  */
 function simplerdf_sparql_reset() {
   module_load_include('inc', 'simplerdf_sparql', 'simplerdf_sparql.store');
-  $store = simplerdf_sparql_store_get_store();
-  $store->reset();
+  if ($store = simplerdf_sparql_store_get_store()) {
+    $store->reset();
+  }
 }
 
 /**
