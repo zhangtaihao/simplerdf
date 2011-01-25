@@ -14,6 +14,6 @@ $plugin = array(
   'object types' => array('node', 'user'),
   'aliasable' => TRUE,
   'internal' => TRUE,
-  'callback format' => 'simplerdf_get_default_uri',
+  'format callback' => 'simplerdf_get_default_uri',
   'weight' => -20,
 );

@@ -12,7 +12,7 @@ $plugin = array(
   'title' => t('Custom URI'),
   'description' => t('Format URIs from custom patterns using tokens. The Token module must be enabled for this to work.'),
   'internal' => TRUE,
-  'callback format' => 'simplerdf_uri_token_format',
+  'format callback' => 'simplerdf_uri_token_format',
   'settings defaults' => array(
     'pattern' => '',
   ),

@@ -120,7 +120,7 @@ function simplerdf_map_field($type, $object, $uri, array $properties, $field) {
   $plugin = simplerdf_get_plugins('mappers', $field['mapper']);
   $triples = array();
   foreach ($properties as $property) {
-    $result = _simplerdf_invoke($plugin, 'callback map', $type, $object, $uri, $property, $field);
+    $result = simplerdf_plugin_invoke($plugin, 'map callback', $type, $object, $uri, $property, $field);
     if (is_array($result) && !empty($result)) {
       $triples = array_merge($triples, $result);
     }
@@ -191,7 +191,7 @@ function _simplerdf_build_fields($type, $classifier = NULL, $reset = FALSE) {
       foreach ($providers as $plugin_name) {
         $plugin = $plugins[$plugin_name];
         // Fetch fields
-        foreach (_simplerdf_invoke($plugin, 'callback fields', $type, $classifier) as $name => $field) {
+        foreach (simplerdf_plugin_invoke($plugin, 'fields callback', $type, $classifier) as $name => $field) {
           $field['mapper'] = $plugin_name;
           $fields[$type][$classifier][$name] = array('name' => $name) + $field;
         }
@@ -271,7 +271,7 @@ function _simplerdf_build_content_fields($content_type, $reset = FALSE) {
           // Forward field to plugins providing its type
           foreach ($providers as $plugin_name) {
             $plugin = $plugins[$plugin_name];
-            foreach (_simplerdf_invoke($plugin, 'callback fields', $content_field) as $name => $field) {
+            foreach (simplerdf_plugin_invoke($plugin, 'fields callback', $content_field) as $name => $field) {
               $field['mapper'] = 'content';
               $field['field type'] = $content_field['type'];
               $field['field module'] = $content_field['module'];
@@ -506,7 +506,7 @@ function simplerdf_format_uri($type, $id, $object = NULL, $format = NULL) {
       $config['settings'] += $plugin['settings defaults'];
 
       // Generate
-      if ($uri = _simplerdf_invoke($plugin, 'callback format', $type, $id, $object, $config)) {
+      if ($uri = simplerdf_plugin_invoke($plugin, 'format callback', $type, $id, $object, $config)) {
         if ($plugin['internal']) {
           // Transform path to absolute path
           $url_options = array('absolute' => TRUE);

@@ -8,8 +8,8 @@
 $plugin = array(
   'title' => t('Date'),
   'field types' => array('date', 'datetime', 'datestamp'),
-  'callback fields' => 'simplerdf_content_mapper_date_fields',
-  'callback map' => 'simplerdf_content_mapper_date_map',
+  'fields callback' => 'simplerdf_content_mapper_date_fields',
+  'map callback' => 'simplerdf_content_mapper_date_map',
   'weight' => -10,
 );
 

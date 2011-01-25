@@ -8,8 +8,8 @@
 $plugin = array(
   'title' => t('File'),
   'field types' => array('filefield'),
-  'callback fields' => 'simplerdf_content_mapper_file_fields',
-  'callback map' => 'simplerdf_content_mapper_file_map',
+  'fields callback' => 'simplerdf_content_mapper_file_fields',
+  'map callback' => 'simplerdf_content_mapper_file_map',
   'weight' => -10,
 );
 

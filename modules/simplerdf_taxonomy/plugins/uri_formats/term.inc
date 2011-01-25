@@ -13,7 +13,7 @@ $plugin = array(
   'description' => t('Use the term\'s path as the URI, e.g. "http://www.example.com/taxonomy/term/123", or use its remote URI if available.'),
   'object types' => array('term'),
   'aliasable' => TRUE,
-  'callback format' => 'simplerdf_taxonomy_format_term_uri',
+  'format callback' => 'simplerdf_taxonomy_format_term_uri',
   'weight' => -20,
 );
 

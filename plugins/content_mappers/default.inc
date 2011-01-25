@@ -7,7 +7,7 @@
 
 $plugin = array(
   'title' => t('Default'),
-  'callback map' => 'simplerdf_content_mapper_default_map',
+  'map callback' => 'simplerdf_content_mapper_default_map',
   'weight' => -20,
 );
 

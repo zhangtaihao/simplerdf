@@ -13,8 +13,8 @@ $plugin = array(
   'object types' => array('user'),
   'description' => t('Basic properties belonging to a user.'),
   'weight' => -20,
-  'callback fields' => 'simplerdf_mapper_user_fields',
-  'callback map' => 'simplerdf_mapper_user_map',
+  'fields callback' => 'simplerdf_mapper_user_fields',
+  'map callback' => 'simplerdf_mapper_user_map',
 );
 
 /**

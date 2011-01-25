@@ -13,8 +13,8 @@ $plugin = array(
   'object types' => array('term'),
   'description' => t('Basic term fields as available in the Taxonomy module.'),
   'weight' => -20,
-  'callback fields' => 'simplerdf_taxonomy_mapper_term_fields',
-  'callback map' => 'simplerdf_taxonomy_mapper_term_map',
+  'fields callback' => 'simplerdf_taxonomy_mapper_term_fields',
+  'map callback' => 'simplerdf_taxonomy_mapper_term_map',
 );
 
 /**

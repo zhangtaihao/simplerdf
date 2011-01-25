@@ -49,22 +49,14 @@ function simplerdf_ctools_plugin_mappers() {
  * Mapper plugin processor.
  */
 function simplerdf_mappers_process(&$plugin, $info) {
-  $path = drupal_get_path('module', $plugin['module']);
-
   // Add default values
   $plugin += array(
     'title' => '',
     'object types' => array(),
     'description' => '',
     'weight' => 0,
-    'callback fields' => NULL,
-    'callback fields arguments' => array(),
-    'callback fields file' => NULL,
-    'callback fields path' => $path,
-    'callback map' => NULL,
-    'callback map arguments' => array(),
-    'callback map file' => NULL,
-    'callback map path' => $path,
+    'fields callback' => NULL,
+    'map callback' => NULL,
   );
 }
 
@@ -84,21 +76,13 @@ function simplerdf_ctools_plugin_content_mappers() {
  * Content mapper plugin processor.
  */
 function simplerdf_content_mappers_process(&$plugin, $info) {
-  $path = drupal_get_path('module', $plugin['module']);
-
   // Add default values
   $plugin += array(
     'weight' => 0,
     'field modules' => array(),
     'field types' => array(),
-    'callback fields' => '_simplerdf_content_mappers_default_fields',
-    'callback fields arguments' => array(),
-    'callback fields file' => NULL,
-    'callback fields path' => $path,
-    'callback map' => NULL,
-    'callback map arguments' => array(),
-    'callback map file' => NULL,
-    'callback map path' => $path,
+    'fields callback' => '_simplerdf_content_mappers_default_fields',
+    'map callback' => NULL,
   );
 }
 
@@ -139,10 +123,7 @@ function simplerdf_uri_formats_process(&$plugin, $info) {
     'aliasable' => FALSE,
     'internal' => FALSE,
     'weight' => 0,
-    'callback format' => NULL,
-    'callback format arguments' => array(),
-    'callback format file' => NULL,
-    'callback format path' => $path,
+    'format callback' => NULL,
     'settings defaults' => array(),
     'settings form' => NULL,
     'settings form validate' => NULL,
@@ -152,42 +133,27 @@ function simplerdf_uri_formats_process(&$plugin, $info) {
 /**
  * Invoke a plugin callback.
  */
-function _simplerdf_invoke($plugin, $op) {
-  // Track which callback files have already been loaded
-  static $loaded = array();
-
-  // Pop function arguments manually
+function simplerdf_plugin_invoke($plugin, $op) {
+  // Preprocess function arguments
   $args = func_get_args();
   $plugin = array_shift($args);
   $op = array_shift($args);
 
-  // Prepare callback arguments
-  $args = array_merge($args, $plugin[$op . ' arguments']);
-
-  // Load plugin file
-  if (!$loaded[$plugin['plugin module']][$plugin['plugin type']][$plugin['name']]['plugin'] && !empty($plugin['file']) && file_exists($plugin_file = $plugin['path'] . '/' . $plugin['file'])) {
-    _simplerdf_invoke_include($plugin_file);
-    $loaded[$plugin['plugin module']][$plugin['plugin type']][$plugin['name']]['plugin'] = TRUE;
+  // Get callback CTools-style
+  ctools_include('plugins');
+  $callback = ctools_plugin_get_function($plugin, $op);
+  if (!$callback) {
+    // Invalid callback
+    return;
   }
 
-  // Include file
-  if (!$loaded[$plugin['plugin module']][$plugin['plugin type']][$plugin['name']]['ops'][$op] && isset($plugin[$op . ' file']) && file_exists($file = $plugin[$op . ' path'] . '/' . $plugin[$op . ' file'])) {
-    _simplerdf_invoke_include($file);
-    $loaded[$plugin['plugin module']][$plugin['plugin type']][$plugin['name']]['ops'][$op] = TRUE;
+  // Prepare callback arguments
+  if (is_array($plugin[$op]) && is_array($plugin[$op]['arguments'])) {
+    $args = array_merge($args, $plugin[$op]['arguments']);
   }
 
   // Invoke callback
-  if (function_exists($callback = $plugin[$op])) {
-    return call_user_func_array($callback, $args);
-  }
-}
-
-/**
- * Load a plugin callback file safely.
- */
-function _simplerdf_invoke_include($file) {
-  // Simply include the file within a function sandbox
-  include_once $file;
+  return call_user_func_array($callback, $args);
 }
 
 /**
@@ -204,24 +170,10 @@ function _simplerdf_invoke_include($file) {
 function simplerdf_get_plugins($type, $id = NULL) {
   ctools_include('plugins');
   $plugins = ctools_get_plugins('simplerdf', $type, $id);
-  if (!isset($id) && is_array($plugins)) {
-    _simplerdf_sort_plugins($plugins);
+  if (!isset($id) && is_array($plugins) && function_exists('ctools_plugin_sort')) {
+    uasort($plugins, 'ctools_plugin_sort');
   }
   return $plugins;
-}
-
-/**
- * Sort plugins.
- */
-function _simplerdf_sort_plugins(array &$plugins) {
-  uasort($plugins, '_simplerdf_compare_plugin_weights');
-}
-
-/**
- * Compare two mappers on weights.
- */
-function _simplerdf_compare_plugin_weights($a, $b) {
-  return $a['weight'] - $b['weight'];
 }
 
 /**

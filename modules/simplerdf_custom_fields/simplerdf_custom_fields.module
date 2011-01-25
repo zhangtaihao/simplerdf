@@ -128,8 +128,8 @@ function simplerdf_custom_fields_simplerdf_mappers() {
     'custom' => array(
       'title' => t('Custom fields'),
       'description' => t('Custom defined fields.'),
-      'callback fields' => 'simplerdf_custom_fields_mapper_fields',
-      'callback map' => 'simplerdf_custom_fields_mapper_map',
+      'fields callback' => 'simplerdf_custom_fields_mapper_fields',
+      'map callback' => 'simplerdf_custom_fields_mapper_map',
     ),
   );
 }

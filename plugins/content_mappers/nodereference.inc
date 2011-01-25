@@ -8,7 +8,7 @@
 $plugin = array(
   'title' => t('Nodereference'),
   'field types' => array('nodereference'),
-  'callback map' => 'simplerdf_content_mapper_nodereference_map',
+  'map callback' => 'simplerdf_content_mapper_nodereference_map',
   'weight' => -10,
 );
 

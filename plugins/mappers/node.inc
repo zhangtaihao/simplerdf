@@ -13,8 +13,8 @@ $plugin = array(
   'object types' => array('node'),
   'description' => t('Basic node properties for the basic description of a node.'),
   'weight' => -20,
-  'callback fields' => 'simplerdf_mapper_node_fields',
-  'callback map' => 'simplerdf_mapper_node_map',
+  'fields callback' => 'simplerdf_mapper_node_fields',
+  'map callback' => 'simplerdf_mapper_node_map',
 );
 
 /**

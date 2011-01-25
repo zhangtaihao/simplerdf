@@ -12,8 +12,8 @@ $plugin = array(
   'title' => t('Node: core user'),
   'object types' => array('node'),
   'description' => t('Node user mapping.'),
-  'callback fields' => 'simplerdf_mapper_node_user_fields',
-  'callback map' => 'simplerdf_mapper_node_user_map',
+  'fields callback' => 'simplerdf_mapper_node_user_fields',
+  'map callback' => 'simplerdf_mapper_node_user_map',
   'weight' => -17,    // Put right below core node mapper
 );
 

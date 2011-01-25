@@ -302,7 +302,6 @@ function simplerdf_admin_dashboard() {
   foreach ($type_names as $type => $type_name) {
     $plugin_titles = array();
     $plugins = simplerdf_get_plugins($type);
-    uasort($plugins, '_simplerdf_compare_plugin_weights');
     foreach ($plugins as $name => $plugin) {
       $plugin_titles[] = '<strong>' . check_plain($plugin['title']) . '</strong>' . ' (' . check_plain($name) . ')';
     }
@@ -558,11 +557,6 @@ function simplerdf_admin_uri_settings_form($form_state, $type, $format) {
 
   drupal_set_title(t('Configure %format settings for %type', array('%format' => $plugin['title'], '%type' => $types[$type])));
 
-  // Load plugin
-  if (!empty($plugin) && !empty($plugin['file']) && file_exists($plugin_file = $plugin['path'] . '/' . $plugin['file'])) {
-    _simplerdf_invoke_include($plugin_file);
-  }
-
   // Prepare default values
   if (!isset($form_state['values'])) {
     $form_state['values'] = array();
@@ -591,10 +585,8 @@ function simplerdf_admin_uri_settings_form($form_state, $type, $format) {
   $form['settings'] = array(
     '#tree' => TRUE,
   );
-  if (function_exists($callback = $plugin['settings form'])) {
-    if (is_array($subform = $callback($form_state, $type))) {
-      $form['settings'] = array_merge($form['settings'], $subform);
-    }
+  if (is_array($subform = simplerdf_plugin_invoke($plugin, 'settings form', $form_state, $type))) {
+    $form['settings'] = array_merge($form['settings'], $subform);
   }
 
   $form['submit'] = array(
@@ -611,13 +603,8 @@ function simplerdf_admin_uri_settings_form($form_state, $type, $format) {
 function simplerdf_admin_uri_settings_form_validate(&$form, &$form_state) {
   // Load plugin
   $plugin = $form_state['values']['__plugin'];
-  if (!empty($plugin['file']) && file_exists($plugin_file = $plugin['path'] . '/' . $plugin['file'])) {
-    _simplerdf_invoke_include($plugin_file);
-  }
-  if (function_exists($callback = $plugin['settings form validate'])) {
-    // Pass through to plugin settings validator
-    $callback($form, $form_state);
-  }
+  // Pass through to plugin settings validator
+  simplerdf_plugin_invoke($plugin, 'settings form validate', $form, $form_state);
 }
 
 /**

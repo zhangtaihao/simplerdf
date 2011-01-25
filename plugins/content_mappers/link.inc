@@ -8,8 +8,8 @@
 $plugin = array(
   'title' => t('Link'),
   'field types' => array('link'),
-  'callback fields' => 'simplerdf_content_mapper_link_fields',
-  'callback map' => 'simplerdf_content_mapper_link_map',
+  'fields callback' => 'simplerdf_content_mapper_link_fields',
+  'map callback' => 'simplerdf_content_mapper_link_map',
   'weight' => -10,
 );
 

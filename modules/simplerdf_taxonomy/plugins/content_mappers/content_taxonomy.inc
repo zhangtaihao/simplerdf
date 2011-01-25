@@ -8,7 +8,7 @@
 $plugin = array(
   'title' => t('Content Taxonomy'),
   'field types' => array('content_taxonomy'),
-  'callback map' => 'simplerdf_taxonomy_content_mapper_content_taxonomy_map',
+  'map callback' => 'simplerdf_taxonomy_content_mapper_content_taxonomy_map',
   'weight' => -10,
 );
 

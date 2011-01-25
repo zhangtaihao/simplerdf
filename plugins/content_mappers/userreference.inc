@@ -8,7 +8,7 @@
 $plugin = array(
   'title' => t('Userreference'),
   'field types' => array('userreference'),
-  'callback map' => 'simplerdf_content_mapper_userreference_map',
+  'map callback' => 'simplerdf_content_mapper_userreference_map',
   'weight' => -10,
 );
 
