@@ -665,7 +665,7 @@ function simplerdf_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
     case 'delete':
       // Clear cache
       simplerdf_clear_cache('node', $node->nid);
-      simplerdf_rel_remove_object('node', $node->nid);
+      simplerdf_rel_remove_object('node', $node->nid, $node);
       break;
   }
 }
@@ -684,7 +684,7 @@ function simplerdf_user($op, &$edit, &$account, $category = NULL) {
 
     case 'delete':
       simplerdf_clear_cache('user', $account->uid);
-      simplerdf_rel_remove_object('user', $account->uid);
+      simplerdf_rel_remove_object('user', $account->uid, $account);
       break;
   }
 }
