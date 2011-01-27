@@ -694,7 +694,7 @@ function simplerdf_user($op, &$edit, &$account, $category = NULL) {
  */
 function simplerdf_simplerdf_node_autocomplete($string) {
   // Match on node ID or title
-  $result = db_query("SELECT nid, title FROM {node} WHERE nid LIKE '%%%s%%' OR title LIKE '%%%s%%'", $string, $string);
+  $result = db_query_range("SELECT nid, title FROM {node} WHERE nid LIKE '%%%s%%' OR title LIKE '%%%s%%'", $string, $string, 0, SIMPLERDF_PREVIEW_ID_COUNT);
   $matches = array();
   while ($match = db_fetch_array($result)) {
     $matches[$match['nid']] = "$match[title] (nid: $match[nid])";
@@ -707,7 +707,7 @@ function simplerdf_simplerdf_node_autocomplete($string) {
  */
 function simplerdf_simplerdf_user_autocomplete($string) {
   // Match on user ID or name
-  $result = db_query("SELECT uid, name FROM {users} WHERE uid LIKE '%%%s%%' OR name LIKE '%%%s%%'", $string, $string);
+  $result = db_query_range("SELECT uid, name FROM {users} WHERE uid LIKE '%%%s%%' OR name LIKE '%%%s%%'", $string, $string, 0, SIMPLERDF_PREVIEW_ID_COUNT);
   $matches = array();
   while ($match = db_fetch_array($result)) {
     $matches[$match['uid']] = "$match[name] (uid: $match[uid])";
