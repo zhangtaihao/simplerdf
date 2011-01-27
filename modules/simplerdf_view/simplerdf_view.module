@@ -87,8 +87,8 @@ function simplerdf_view_menu() {
     $items['user/%user/' . $user_path] = $rdf_items['user'];
   }
 
-  $view_path = variable_get('simplerdf_view_term_path', SIMPLERDF_VIEW_DEFAULT_PATH);
-  $items['taxonomy/term/%/' . $view_path] = array(
+  $term_path = variable_get('simplerdf_view_term_path', SIMPLERDF_VIEW_DEFAULT_PATH);
+  $items['taxonomy/term/%/' . $term_path] = array(
     'title' => check_plain(variable_get('simplerdf_view_title', 'RDF')),
     'description' => 'View the RDF document.',
     'page callback' => 'simplerdf_view_render_term',
@@ -175,18 +175,23 @@ function simplerdf_view_menu_alter(&$items) {
  *   (Optional) Loaded object.
  */
 function simplerdf_view_render($type, $id, $object = NULL) {
+  // Load object
   if (!isset($object)) {
     $object = simplerdf_load($type, $id);
   }
-  // Attempt to render
-  if (is_object($object)) {
-    simplerdf_view_render_object($type, $id, $object);
+  // Attempt to get RDF document
+  if (is_object($object) && $document = simplerdf_view_get_document($type, $id, $object)) {
+    // Display document
+    $filename = "$type-$id.rdf";
+    drupal_set_header('Content-Type: ' . $document['type']);
+    drupal_set_header('Content-Disposition: inline; filename=' . $filename);
+    echo $document['content'];
   }
   else {
-    // Could not load object
+    // Document could not be built
     drupal_not_found();
-    exit;
   }
+  exit;
 }
 
 /**
@@ -229,7 +234,7 @@ function simplerdf_view_render_term($tid) {
 }
 
 /**
- * Renders the RDF document for an object and exit.
+ * Get a (lazily-built) RDF document for an object.
  *
  * @param string $type
  *   Object type, e.g. node.
@@ -237,8 +242,13 @@ function simplerdf_view_render_term($tid) {
  *   Object ID.
  * @param $object
  *   Loaded object.
+ *
+ * @return array
+ *   RDF document, or NULL if cannot be built. The document array consists of:
+ *   - 'type' : MIME type.
+ *   - 'content' : document content.
  */
-function simplerdf_view_render_object($type, $id, $object) {
+function simplerdf_view_get_document($type, $id, $object) {
   // Fetch cache
   $cid = "$type:$id:document";
   if ($cache = cache_get($cid, 'cache_simplerdf')) {
@@ -253,19 +263,7 @@ function simplerdf_view_render_object($type, $id, $object) {
       cache_set($cid, $document, 'cache_simplerdf');
     }
   }
-
-  if ($document) {
-    // Display document
-    $filename = "$type-$id.rdf";
-    drupal_set_header('Content-Type: ' . $document['type']);
-    drupal_set_header('Content-Disposition: inline; filename=' . $filename);
-    echo $document['content'];
-  }
-  else {
-    // Document could not be built
-    drupal_not_found();
-  }
-  exit;
+  return $document;
 }
 
 /**
