@@ -256,9 +256,7 @@ function simplerdf_view_get_document($type, $id, $object) {
   }
   else {
     // Build page
-    $triples = simplerdf_get_triples($type, $id, $object);
-    $triples = simplerdf_expand_triples($triples);
-    $document = simplerdf_view_build_document($triples);
+    $document = simplerdf_view_build_document($type, $id, $object);
     if ($document) {
       cache_set($cid, $document, 'cache_simplerdf');
     }
@@ -267,18 +265,26 @@ function simplerdf_view_get_document($type, $id, $object) {
 }
 
 /**
- * Build RDF document from RDF triples.
+ * Build RDF document for an object from its RDF triples.
  *
- * @param array $triples
- *   Array of processed RDF triples.
+ * @param string $type
+ *   Object type, e.g. node.
+ * @param int $id
+ *   Object ID.
+ * @param $object
+ *   Loaded object.
  *
  * @return array
  *   RDF document, or NULL if cannot be built. The document array consists of:
  *   - 'type' : MIME type.
  *   - 'content' : document content.
  */
-function simplerdf_view_build_document($triples) {
+function simplerdf_view_build_document($type, $id, $object) {
   $namespaces = simplerdf_get_namespaces();
+
+  // Get RDF triples
+  $triples = simplerdf_get_triples($type, $id, $object);
+  $triples = simplerdf_expand_triples($triples);
 
   // Serialize document
   $document = array();
