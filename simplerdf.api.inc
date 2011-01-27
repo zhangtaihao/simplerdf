@@ -18,7 +18,7 @@ function simplerdf_get_types() {
     $info = simplerdf_get_type_info();
     $types = array();
     foreach ($info['types'] as $type_name => $type) {
-      $types[$type_name] = $type['title singular'];
+      $types[$type_name] = $type['title singular proper'];
     }
   }
   return $types;

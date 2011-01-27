@@ -72,9 +72,9 @@ function simplerdf_admin_mappings_default_form($form_state, $type, $classifier =
     exit;
   }
 
-  if ($type_info['types'][$type]['singular']) {
+  if ($type_info['types'][$type]['title singular']) {
     // Readable type name
-    drupal_set_title(t('Manage !type RDF mappings', array('!type' => $type_info['types'][$type]['singular'])));
+    drupal_set_title(t('Manage !type RDF mappings', array('!type' => $type_info['types'][$type]['title singular'])));
   }
   else {
     // Type identifier
@@ -454,7 +454,7 @@ function simplerdf_admin_uri_form(&$form_state, $type) {
   );
   $form['preview']['id'] = array(
     '#type' => 'textfield',
-    '#title' => t('@type ID', array('@type' => $types[$type]['title singular'])),
+    '#title' => t('@type ID', array('@type' => $types[$type]['title singular proper'])),
     '#description' => t('Enter a ID to preview the URI for.'),
     '#default_value' => $form_state['values']['id'],
   );

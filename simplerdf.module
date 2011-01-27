@@ -283,8 +283,8 @@ function simplerdf_rel_index($batch = array()) {
       simplerdf_rel_unregister($type);
       $tasks[] = array(
         'type' => $type,
-        'type singular' => $info['types'][$type]['singular'],
-        'type plural' => $info['types'][$type]['plural'],
+        'type singular' => $info['types'][$type]['title singular'],
+        'type plural' => $info['types'][$type]['title plural'],
         'count callback' => $module . '_' . $count_hook,
         'perform callback' => 'simplerdf_rel_index_perform',
       );
