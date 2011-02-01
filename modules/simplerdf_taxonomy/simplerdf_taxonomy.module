@@ -78,10 +78,10 @@ function simplerdf_taxonomy_features_api() {
 function simplerdf_taxonomy_simplerdf_types() {
   return array(
     'term' => array(
-      'title singular' => t('Term'),
-      'title plural' => t('Terms'),
-      'singular' => t('term'),
-      'plural' => t('terms'),
+      'title singular proper' => t('Term'),
+      'title plural proper' => t('Terms'),
+      'title singular' => t('term'),
+      'title plural' => t('terms'),
     ),
   );
 }

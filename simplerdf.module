@@ -555,16 +555,16 @@ function simplerdf_delete_mappings($type, $classifier) {
 function simplerdf_simplerdf_types() {
   return array(
     'node' => array(
-      'title singular' => t('Node'),
-      'title plural' => t('Nodes'),
-      'singular' => t('node'),
-      'plural' => t('nodes'),
+      'title singular proper' => t('Node'),
+      'title plural proper' => t('Nodes'),
+      'title singular' => t('node'),
+      'title plural' => t('nodes'),
     ),
     'user' => array(
-      'title singular' => t('User'),
-      'title plural' => t('Users'),
-      'singular' => t('user'),
-      'plural' => t('users'),
+      'title singular proper' => t('User'),
+      'title plural proper' => t('Users'),
+      'title singular' => t('user'),
+      'title plural' => t('users'),
     ),
   );
 }
