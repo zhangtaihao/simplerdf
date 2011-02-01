@@ -369,7 +369,7 @@ function simplerdf_sparql_index_term_load(&$sandbox) {
  * Implements hook_nodeapi().
  */
 function simplerdf_sparql_nodeapi(&$node, $op, $a3, $a4) {
-  if (in_array($op, array('insert', 'update', 'delete'), TRUE)) {
+  if (in_array($op, array('insert', 'update'), TRUE)) {
     simplerdf_sparql_object_crud($op, 'node', $node->nid);
   }
 }
@@ -378,7 +378,7 @@ function simplerdf_sparql_nodeapi(&$node, $op, $a3, $a4) {
  * Implements hook_taxonomy().
  */
 function simplerdf_sparql_taxonomy($op, $type, $array = NULL) {
-  if (in_array($op, array('insert', 'update', 'delete'), TRUE)) {
+  if (in_array($op, array('insert', 'update'), TRUE)) {
     simplerdf_sparql_object_crud($op, 'term', $array['tid']);
   }
 }
@@ -387,7 +387,7 @@ function simplerdf_sparql_taxonomy($op, $type, $array = NULL) {
  * Implements hook_user().
  */
 function simplerdf_sparql_user($op, &$edit, &$account, $category = NULL) {
-  if (in_array($op, array('insert', 'update', 'delete'), TRUE)) {
+  if (in_array($op, array('insert', 'update'), TRUE)) {
     simplerdf_sparql_object_crud($op, 'user', $account->uid);
   }
 }
