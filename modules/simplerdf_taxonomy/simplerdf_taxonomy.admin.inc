@@ -86,7 +86,6 @@ function simplerdf_taxonomy_admin_vocabulary_mappings_form($form_state, $vocabul
     '#type' => 'submit',
     '#value' => t('Save mappings'),
   );
-  $form['#submit'][] = 'simplerdf_taxonomy_admin_vocabulary_mappings_form_submit';
 
   return $form;
 }

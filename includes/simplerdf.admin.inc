@@ -49,6 +49,15 @@ function _simplerdf_content_types_overview_alter(&$header, &$rows) {
 }
 
 /**
+ * Delegate form alter handler for admin.
+ */
+function _simplerdf_admin_form_alter(&$form, &$form_state, $form_id) {
+  if ($form['#simplerdf_admin_mappings_form']) {
+    _simplerdf_admin_mappings_form_process($form);
+  }
+}
+
+/**
  * A basic mappings administration form.
  *
  * @param array $form_state
@@ -182,6 +191,15 @@ function simplerdf_admin_mappings_form_inject(array &$form, &$form_state, $type,
 
   $form['mappings'] = $table;
 
+  // Prepare to inject other stuff after form preprocessing
+  $form['#simplerdf_admin'] = TRUE;
+  $form['#simplerdf_admin_mappings_form'] = TRUE;
+}
+
+/**
+ * Process mapping admin form.
+ */
+function _simplerdf_admin_mappings_form_process(&$form) {
   // Add submit handler
   $form['#submit'][] = 'simplerdf_admin_mappings_form_submit';
 }
@@ -244,7 +262,6 @@ function simplerdf_admin_node_mappings_form($form_state, $content_type) {
     '#type' => 'submit',
     '#value' => t('Save mappings'),
   );
-  $form['#submit'][] = 'simplerdf_admin_node_mappings_form_submit';
 
   return $form;
 }

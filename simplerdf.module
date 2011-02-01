@@ -782,6 +782,12 @@ function simplerdf_form_alter(&$form, &$form_state, $form_id) {
       $form['#submit'][] = 'simplerdf_clear_cache_all';
       break;
   }
+
+  // Invoke admin form alter handlers
+  if ($form['#simplerdf_admin']) {
+    module_load_include('inc', 'simplerdf', 'includes/simplerdf.admin');
+    _simplerdf_admin_form_alter($form, $form_state, $form_id);
+  }
 }
 
 /**
