@@ -140,7 +140,7 @@ function simplerdf_admin_mappings_default_form_submit($form, $form_state) {
  * @param bool $grouped
  *   Whether fields should be grouped by mapper.
  */
-function simplerdf_admin_mappings_form_inject(array &$form, &$form_state, $type, $classifier = NULL, $grouped = FALSE) {
+function simplerdf_admin_mappings_form_inject(array &$form, array &$form_state, $type, $classifier = NULL, $grouped = FALSE) {
   // Verify type
   $types = simplerdf_get_types();
   if (!$types[$type]) {
@@ -160,8 +160,15 @@ function simplerdf_admin_mappings_form_inject(array &$form, &$form_state, $type,
     '#value' => $classifier,
   );
 
-  // Load mappings
-  $mappings = simplerdf_get_mappings($type, $classifier);
+  if (!$form_state['values']['mappings']['properties']) {
+    // Load mappings
+    $form_state['values']['mappings']['properties'] = array();
+    $mappings = simplerdf_get_mappings($type, $classifier);
+    foreach ($mappings as $name => $properties) {
+      // Concatenate properties, delimiting by commas
+      $form_state['values']['mappings']['properties'][$name] = implode(', ', $properties);
+    }
+  }
 
   // Prepare mappings table
   $table = array(
@@ -182,7 +189,7 @@ function simplerdf_admin_mappings_form_inject(array &$form, &$form_state, $type,
       '#type' => 'textfield',
       '#size' => 20,
       '#maxlength' => 100,
-      '#default_value' => implode(', ', $mappings[$name]),
+      '#default_value' => $form_state['values']['mappings']['properties'][$name],
     );
     if ($grouped) {
       $table['#mappers'][$name] = $field['mapper'];
